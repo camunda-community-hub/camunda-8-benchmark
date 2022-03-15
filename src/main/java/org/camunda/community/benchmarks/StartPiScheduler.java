@@ -107,15 +107,17 @@ public class StartPiScheduler {
     }
 
     private static final double BACKPRESSURE_MAX_RATE_PER_SECOND = 100;
-    private static final long BACKPRESSURE_ADJUSTEMENT_INTERVAL = 10;
+    private static final long BACKPRESSURE_ADJUSTEMENT_INTERVAL = 30;
+    private static final long BACKPRESSURE_ADJUSTEMENT_AMOUNT = 10;
     private Instant lastAdjusted = Instant.now();
     public void hintBackpressureReceived() {
         if (stats.getBackpressureOnStartPiMeter().getOneMinuteRate() > BACKPRESSURE_MAX_RATE_PER_SECOND
             && Instant.now().isAfter( lastAdjusted.plusSeconds(BACKPRESSURE_ADJUSTEMENT_INTERVAL) )) {
             lastAdjusted = Instant.now();
             // too much backpressure - reduce start rate
-            LOG.info("Backpressure rate too high (" + stats.getBackpressureOnStartPiMeter().getOneMinuteRate() + "), reducing start rate by 10");
-            piStarted -= 10;
+            long newGoal =  piStartedGoal - BACKPRESSURE_ADJUSTEMENT_AMOUNT;
+            LOG.info("Backpressure rate too high (" + stats.getBackpressureOnStartPiMeter().getOneMinuteRate() + "), reducing start rate by 10 to " + newGoal);
+            calculateParameters(newGoal);
         }
     }
 }
