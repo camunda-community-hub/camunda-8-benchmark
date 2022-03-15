@@ -1,0 +1,25 @@
+<configuration>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="io.camunda.zeebe.client.job.poller" level="WARN" />
+
+    <logger name="javax.activation" level="info" />
+    <logger name="org.springframework" level="info" />
+    <logger name="org.camunda" level="info" />
+    <!--
+      <logger name="org.camunda" level="DEBUG"/>
+    -->
+
+    <logger name="io.camunda.zeebe.spring.client.jobhandling.DefaultCommandExceptionHandlingStrategy" level="ERROR" />
+
+
+    <root level="info">
+        <appender-ref ref="STDOUT" />
+    </root>
+
+</configuration>

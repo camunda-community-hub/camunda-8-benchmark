@@ -1,8 +1,12 @@
 package org.camunda.community.benchmarks;
 
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
+import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.Date;
 
 @Component
@@ -10,20 +14,63 @@ public class StatisticsCollector {
 
     private Date startTime = new Date();
 
-    private long startedProcessInstances;
-    private long completedProcessInstances;
-    private long completedJobs;
+    private MetricRegistry metricRegistry = new MetricRegistry();
 
-    @Scheduled(fixedRate = 1000)
-    public void prinStatus() {
-        System.out.println("Started process instances: " + startedProcessInstances);
+    private long lastPrintStartedProcessInstances = 0;
+    private long lastPrintCompletedProcessInstances = 0;
+    private long lastPrintCompletedJobs = 0;
+    private long lastPrintStartedProcessInstancesBackpressure = 0;
+    private long lastPrintCompletedJobsBackpressure = 0;
+
+    @Scheduled(fixedRate = 5000)
+    public void printStatus() {
+        System.out.println("------------------- " + Instant.now());
+
+        long count = getStartedPiMeter().getCount();
+        System.out.println("STARTED PI:     " + f(count) + " (+ " + f(count-lastPrintStartedProcessInstances) + ")");
+        lastPrintStartedProcessInstances = count;
+
+        long backpressure = getBackpressureOnStartPiMeter().getCount();
+        System.out.println("Backpressure:   " + f(backpressure) + " (+ " + f(backpressure - lastPrintStartedProcessInstancesBackpressure) + ")");
+        lastPrintStartedProcessInstancesBackpressure = backpressure;
+
+        count = getCompletedJobsMeter().getCount();
+        System.out.println("COMPLETED JOBS: " + f(count) + " (+ " + f(count-lastPrintCompletedJobs) + ")");
+        lastPrintCompletedJobs = count;
+
+        backpressure = getBackpressureOnJobCompleteMeter().getCount();
+        System.out.println("Backpressure:   " + f(backpressure) + " (+ " + f(backpressure - lastPrintCompletedJobsBackpressure) + ")");
+        lastPrintCompletedJobsBackpressure = backpressure;
+    }
+
+    public String f(Number n) {
+        return String.format("%1$5s", n);
+    }
+
+    public Meter getStartedPiMeter() {
+        return metricRegistry.meter("startedPi" );
+    }
+
+    public Meter getCompletedJobsMeter() {
+        return metricRegistry.meter("completedJobs" );
+    }
+
+    public Meter getBackpressureOnJobCompleteMeter() {
+        return metricRegistry.meter("backpressureOnJobCompleteMeter" );
+    }
+
+    public Meter getBackpressureOnStartPiMeter() {
+        return metricRegistry.meter("backpressureOnStartPiMeter" );
     }
 
     public void incStartedProcessInstances() {
-        startedProcessInstances++;
+        getStartedPiMeter().mark();
     }
 
-
+    public void incCompletedJobs() {
+        getCompletedJobsMeter().mark();
+    }
+/*
     public Date getStartTime() {
         return startTime;
     }
@@ -39,5 +86,5 @@ public class StatisticsCollector {
     public long getCompletedJobs() {
         return completedJobs;
     }
-
+*/
 }
