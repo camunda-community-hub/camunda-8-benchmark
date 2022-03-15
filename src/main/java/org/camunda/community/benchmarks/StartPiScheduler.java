@@ -107,17 +107,30 @@ public class StartPiScheduler {
         }
     }
 
-    private static final double BACKPRESSURE_MAX_RATE_PER_SECOND = 15;
-    private static final long BACKPRESSURE_ADJUSTEMENT_AMOUNT = 10;
+    private static final double BACKPRESSURE_MAX_RATE_PER_SECOND_BIG = 15;
+    private static final long BACKPRESSURE_ADJUSTEMENT_AMOUNT_BIG = 10;
 
-    @Scheduled(fixedDelay = 30000)
+    private static final double BACKPRESSURE_MAX_RATE_PER_SECOND_SMALL = 3;
+    private static final long BACKPRESSURE_ADJUSTEMENT_AMOUNT_SMALL = 1;
+
+    @Scheduled(fixedDelay = 30000, initialDelay = 30000)
     public void hintBackpressureReceived() {
-        // Backpressure is considered too high if above
-        if (stats.getBackpressureOnStartPiMeter().getOneMinuteRate() > BACKPRESSURE_MAX_RATE_PER_SECOND) {
+        if (stats.getBackpressureOnStartPiMeter().getOneMinuteRate() > BACKPRESSURE_MAX_RATE_PER_SECOND_BIG) {
+            // Backpressure is considered much too high if above
+            adjustStartRateBy(-1 * BACKPRESSURE_ADJUSTEMENT_AMOUNT_BIG);
+        } else if (stats.getBackpressureOnStartPiMeter().getOneMinuteRate() > BACKPRESSURE_MAX_RATE_PER_SECOND_SMALL) {
+            // Backpressure is still a bit too high
             // too much backpressure - reduce start rate by fixed amount //(by 1%)
-            long newGoal =  piStartedGoal - BACKPRESSURE_ADJUSTEMENT_AMOUNT; //Math.round(Math.ceil(piStartedGoal/100));
-            LOG.info("Backpressure rate too high (" + stats.getBackpressureOnStartPiMeter().getOneMinuteRate() + "), reducing start rate by 10 to " + newGoal);
-            calculateParameters(newGoal);
+            adjustStartRateBy(-1 * BACKPRESSURE_ADJUSTEMENT_AMOUNT_SMALL); //Math.round(Math.ceil(piStartedGoal/100));
+        } else if (stats.getBackpressureOnStartPiMeter().getOneMinuteRate() < 1) {
+            // increase it again
+            adjustStartRateBy(BACKPRESSURE_ADJUSTEMENT_AMOUNT_SMALL); //Math.round(Math.ceil(piStartedGoal/100));
         }
+    }
+
+    private void adjustStartRateBy(long amount) {
+        long newGoal =  piStartedGoal + amount;
+        LOG.info("Backpressure rate (" + stats.getBackpressureOnStartPiMeter().getOneMinuteRate() + ") leads to change in start rate by "+amount+" to " + newGoal);
+        calculateParameters(newGoal);
     }
 }

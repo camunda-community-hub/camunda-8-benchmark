@@ -25,10 +25,10 @@ public class BenchmarkStartPiExceptionHandlingStrategy extends DefaultCommandExc
             StatusRuntimeException exception = (StatusRuntimeException) throwable;
             if (Status.Code.RESOURCE_EXHAUSTED == exception.getStatus().getCode()) {
                 stats.incStartedProcessInstancesBackpressure();
-                return;
+                return; // ignore backpressure, as we don't want to add a big wave of retries
             }
         }
-        // use normal behavior, e.g. increasing back-off for retries on backpressue
+        // use normal behavior
         super.handleCommandError(command, throwable);
     }
 }
