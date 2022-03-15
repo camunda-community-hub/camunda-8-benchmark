@@ -21,17 +21,18 @@ public class StatisticsCollector {
     private long lastPrintCompletedJobs = 0;
     private long lastPrintStartedProcessInstancesBackpressure = 0;
     private long lastPrintCompletedJobsBackpressure = 0;
+    private long piPerSecondGoal;
 
     @Scheduled(fixedRate = 5000)
     public void printStatus() {
-        System.out.println("------------------- " + Instant.now());
+        System.out.println("------------------- " + Instant.now() + " Current goal (PI/s): " + piPerSecondGoal);
 
         long count = getStartedPiMeter().getCount();
         System.out.println("STARTED PI:     " + f(count) + " (+ " + f(count-lastPrintStartedProcessInstances) + ")");
         lastPrintStartedProcessInstances = count;
 
         long backpressure = getBackpressureOnStartPiMeter().getCount();
-        System.out.println("Backpressure:   " + f(backpressure) + " (+ " + f(backpressure - lastPrintStartedProcessInstancesBackpressure) + ")");
+        System.out.println("Backpressure:   " + f(backpressure) + " (+ " + f(backpressure - lastPrintStartedProcessInstancesBackpressure) + ") Last minute rate: " + String.format("%.2f", getBackpressureOnStartPiMeter().getOneMinuteRate()));
         lastPrintStartedProcessInstancesBackpressure = backpressure;
 
         count = getCompletedJobsMeter().getCount();
@@ -73,6 +74,10 @@ public class StatisticsCollector {
 
     public void incCompletedJobs() {
         getCompletedJobsMeter().mark();
+    }
+
+    public void hintOnNewPiPerSecondGoald(long piPerSecondGoal) {
+        this.piPerSecondGoal = piPerSecondGoal;
     }
 /*
     public Date getStartTime() {

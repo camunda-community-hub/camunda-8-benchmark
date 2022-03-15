@@ -40,6 +40,7 @@ public class StartPiScheduler {
 
     public void calculateParameters(long piPerSecondGoal) {
         this.piStartedGoal = piPerSecondGoal;
+        stats.hintOnNewPiPerSecondGoald(piPerSecondGoal);
         if (config.getStartPiPerSecond() < 100) {
             // we can handle this by starting one PI every x times 10 ms
             batchSize = 1;
@@ -106,16 +107,15 @@ public class StartPiScheduler {
         }
     }
 
-    private static final double BACKPRESSURE_MAX_RATE_PER_SECOND = 100;
-    private static final long BACKPRESSURE_ADJUSTEMENT_INTERVAL = 30;
+    private static final double BACKPRESSURE_MAX_RATE_PER_SECOND = 15;
     private static final long BACKPRESSURE_ADJUSTEMENT_AMOUNT = 10;
-    private Instant lastAdjusted = Instant.now();
+
+    @Scheduled(fixedDelay = 30000)
     public void hintBackpressureReceived() {
-        if (stats.getBackpressureOnStartPiMeter().getOneMinuteRate() > BACKPRESSURE_MAX_RATE_PER_SECOND
-            && Instant.now().isAfter( lastAdjusted.plusSeconds(BACKPRESSURE_ADJUSTEMENT_INTERVAL) )) {
-            lastAdjusted = Instant.now();
-            // too much backpressure - reduce start rate
-            long newGoal =  piStartedGoal - BACKPRESSURE_ADJUSTEMENT_AMOUNT;
+        // Backpressure is considered too high if above
+        if (stats.getBackpressureOnStartPiMeter().getOneMinuteRate() > BACKPRESSURE_MAX_RATE_PER_SECOND) {
+            // too much backpressure - reduce start rate by fixed amount //(by 1%)
+            long newGoal =  piStartedGoal - BACKPRESSURE_ADJUSTEMENT_AMOUNT; //Math.round(Math.ceil(piStartedGoal/100));
             LOG.info("Backpressure rate too high (" + stats.getBackpressureOnStartPiMeter().getOneMinuteRate() + "), reducing start rate by 10 to " + newGoal);
             calculateParameters(newGoal);
         }

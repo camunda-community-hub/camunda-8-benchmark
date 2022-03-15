@@ -16,9 +16,6 @@ public class BenchmarkStartPiExceptionHandlingStrategy extends DefaultCommandExc
     @Autowired
     private StatisticsCollector stats;
 
-    @Autowired
-    private StartPiScheduler startPiScheduler;
-
     public BenchmarkStartPiExceptionHandlingStrategy(@Autowired BackoffSupplier backoffSupplier, @Autowired ScheduledExecutorService scheduledExecutorService) {
         super(backoffSupplier, scheduledExecutorService);
     }
@@ -28,7 +25,6 @@ public class BenchmarkStartPiExceptionHandlingStrategy extends DefaultCommandExc
             StatusRuntimeException exception = (StatusRuntimeException) throwable;
             if (Status.Code.RESOURCE_EXHAUSTED == exception.getStatus().getCode()) {
                 stats.incStartedProcessInstancesBackpressure();
-                startPiScheduler.hintBackpressureReceived();
                 return;
             }
         }
