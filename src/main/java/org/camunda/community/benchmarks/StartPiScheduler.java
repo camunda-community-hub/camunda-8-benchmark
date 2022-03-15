@@ -9,11 +9,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.time.Instant;
 
 @Component
-public class WorkScheduler {
+public class StartPiScheduler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(WorkScheduler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StartPiScheduler.class);
 
     @Autowired
     private BenchmarkConfiguration config;
@@ -87,7 +88,7 @@ public class WorkScheduler {
             processInstancesToStart = piStartedGoal - piStarted;
 
             // restart timer
-            LOG.debug("One second is over, resetting timer (Current count: " + stats.getStartedProcessInstances() + ")");
+            LOG.debug("One second is over, resetting timer");
             piStarted = 0;
             startTimeInMillis = System.currentTimeMillis();
         }
@@ -105,4 +106,16 @@ public class WorkScheduler {
         }
     }
 
+    private static final double BACKPRESSURE_MAX_RATE_PER_SECOND = 100;
+    private static final long BACKPRESSURE_ADJUSTEMENT_INTERVAL = 10;
+    private Instant lastAdjusted = Instant.now();
+    public void hintBackpressureReceived() {
+        if (stats.getBackpressureOnStartPiMeter().getOneMinuteRate() > BACKPRESSURE_MAX_RATE_PER_SECOND
+            && Instant.now().isAfter( lastAdjusted.plusSeconds(BACKPRESSURE_ADJUSTEMENT_INTERVAL) )) {
+            lastAdjusted = Instant.now();
+            // too much backpressure - reduce start rate
+            LOG.info("Backpressure rate too high (" + stats.getBackpressureOnStartPiMeter().getOneMinuteRate() + "), reducing start rate by 10");
+            piStarted -= 10;
+        }
+    }
 }

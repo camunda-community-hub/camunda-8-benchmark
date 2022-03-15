@@ -67,6 +67,10 @@ public class StatisticsCollector {
         getStartedPiMeter().mark();
     }
 
+    public void incStartedProcessInstancesBackpressure() {
+        getBackpressureOnStartPiMeter().mark();
+    }
+
     public void incCompletedJobs() {
         getCompletedJobsMeter().mark();
     }
