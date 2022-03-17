@@ -28,7 +28,7 @@ You can configure
 The design is, that you only run this one application for driving your benchmark. 
 
 If you benchmark big clusters and cannot produce enough load, you can simply scale this application (you might want to adjust the `benchmark.startPiReduceFactor` of the properties as backpressure is then "distributed" over various load generators)
-
+ 
 
 ## Configuration Properties
 
