@@ -2,6 +2,7 @@ package org.camunda.community.benchmarks.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.Resource;
 
 import java.util.concurrent.TimeUnit;
 
@@ -14,6 +15,8 @@ public class BenchmarkConfiguration {
     private long taskCompletionDelay = 200;
     private String bpmnProcessId = "benchmark";
     private String payloadPath = "bpmn/typical_payload.json";
+    private Resource bpmnResource;
+    private boolean autoDeployProcess = true;
 
     private int maxBackpressurePercentage = 10;
     private double startPiReduceFactor = 0.4;
@@ -78,6 +81,22 @@ public class BenchmarkConfiguration {
 
     public void setStartPiIncreaseFactor(double startPiIncreaseFactor) {
         this.startPiIncreaseFactor = startPiIncreaseFactor;
+    }
+
+    public boolean isAutoDeployProcess() {
+        return autoDeployProcess;
+    }
+
+    public void setAutoDeployProcess(boolean autoDeployProcess) {
+        this.autoDeployProcess = autoDeployProcess;
+    }
+
+    public Resource getBpmnResource() {
+        return bpmnResource;
+    }
+
+    public void setBpmnResource(Resource bpmnResource) {
+        this.bpmnResource = bpmnResource;
     }
 
     public void setStartPiReduceFactor(double startPiReduceFactor) {

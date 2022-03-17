@@ -13,15 +13,14 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableZeebeClient
 @EnableScheduling
 @EnableAsync
-@ZeebeDeployment(resources = "classpath:bpmn/typical_process.bpmn")
+//@ZeebeDeployment(resources = "classpath:bpmn/typical_process.bpmn")
 class BenchmarkApplication  {
 
     public static void main(String[] args) {
         ConfigurableApplicationContext context = SpringApplication.run(BenchmarkApplication.class, args);
 
-        ZeebeClient zeebeClient = context.getBean(ZeebeClient.class);
-        // TODO
-        //zeebeClient.newDeployCommand().
+        // Trigger here to make sure it happens AFTER the ApplicationContext is ready
+        context.getBean(ProcessDeployer.class).autoDeploy();
     }
 
 }
