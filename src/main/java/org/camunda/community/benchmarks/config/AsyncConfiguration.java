@@ -5,27 +5,32 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import java.util.concurrent.Executor;
 
 @Configuration
-@EnableAsync
 public class AsyncConfiguration {
 
     private static final Logger LOGGER = LogManager.getLogger(AsyncConfiguration.class);
     
-    @Value("${core.pool.size}")
+    @Value("${async.corePoolSize}")
     private int corePoolSize;
     
-    @Value("${max.pool.size}")
+    @Value("${async.maxPoolSize}")
     private int maxPoolSize;
     
-    @Value("${queue.capacity}")
+    @Value("${async.queueCapacity}")
     private int queueCapacity;
-    
-    @Bean (name = "taskExecutor")
+
+    @Value("${scheduler.poolSize}")
+    private int schedulerPoolSize;
+
+    @Bean
     public Executor taskExecutor() {
         LOGGER.debug("Creating Async Task Executor");
         final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -36,4 +41,13 @@ public class AsyncConfiguration {
         return executor;
     }
 
+    @Bean
+    public TaskScheduler taskScheduler() {
+        LOGGER.debug("Creating Async Task Executor");
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(corePoolSize);
+        scheduler.setThreadNamePrefix("ThreadPoolTaskScheduler-");
+        scheduler.initialize();
+        return scheduler;
+    }
 }

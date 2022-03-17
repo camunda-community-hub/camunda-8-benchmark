@@ -15,6 +15,10 @@ public class BenchmarkConfiguration {
     private String bpmnProcessId = "benchmark";
     private String payloadPath = "bpmn/typical_payload.json";
 
+    private int maxBackpressurePercentage = 10;
+    private double startPiReduceFactor = 0.4;
+    private double startPiIncreaseFactor = 0.4;
+
     public String getPayloadPath() {
         return payloadPath;
     }
@@ -54,5 +58,29 @@ public class BenchmarkConfiguration {
 
     public String getBpmnProcessId() {
         return bpmnProcessId;
+    }
+
+    public int getMaxBackpressurePercentage() {
+        return maxBackpressurePercentage;
+    }
+
+    public void setMaxBackpressurePercentage(int maxBackpressurePercentage) {
+        this.maxBackpressurePercentage = maxBackpressurePercentage;
+    }
+
+    public double getStartPiReduceFactor() {
+        return startPiReduceFactor;
+    }
+
+    public double getStartPiIncreaseFactor() {
+        return startPiIncreaseFactor;
+    }
+
+    public void setStartPiIncreaseFactor(double startPiIncreaseFactor) {
+        this.startPiIncreaseFactor = startPiIncreaseFactor;
+    }
+
+    public void setStartPiReduceFactor(double startPiReduceFactor) {
+        this.startPiReduceFactor = startPiReduceFactor;
     }
 }
