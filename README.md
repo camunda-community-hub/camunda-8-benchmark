@@ -17,7 +17,7 @@ mvn spring-boot:run
 
 Or 
 ```bash
-docker run berndruecker/camunda-cloud-benchmark
+docker run berndruecker/camunda-cloud-benchmark:main
 ```
 
 You can configure 
