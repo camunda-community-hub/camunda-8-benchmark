@@ -51,7 +51,7 @@ public class StartPiScheduler {
             // better more than too less, then we can stop when we hit the limit
             batchSize = Math.round(Math.ceil( piPerSecondGoal / 100.0));
         }
-        LOG.info("Configured benchmark to start " + piPerSecondGoal + " PIs per second. This means " + howOften + " times per second (of 100 x 10ms intervals) with a batch size of " + batchSize);
+        LOG.info("Configured benchmark to start " + piPerSecondGoal + " PIs per second. This means every " + howOften + ". interval (of the 100 x 10ms intervals in total) with a batch size of " + batchSize);
     }
 
     /**
