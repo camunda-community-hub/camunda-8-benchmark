@@ -51,7 +51,7 @@ public class StartPiScheduler {
             // better more than too less, then we can stop when we hit the limit
             batchSize = Math.round(Math.ceil( piPerSecondGoal / 100.0));
         }
-        LOG.info("Configured benchmark to start " + piPerSecondGoal + " PIs per second. This means every " + howOften + " times of the 10ms intervals with a batch size of " + batchSize);
+        LOG.info("Configured benchmark to start " + piPerSecondGoal + " PIs per second. This means " + howOften + " times per second (of 100 x 10ms intervals) with a batch size of " + batchSize);
     }
 
     /**
@@ -124,18 +124,16 @@ public class StartPiScheduler {
         }  else {
         */
 
-            long backpressurePercentage = stats.getBackpressureOnStartPercentage();
+            double backpressurePercentage = stats.getBackpressureOnStartPercentage();
             if (backpressurePercentage > config.getMaxBackpressurePercentage()) {
                 // Backpressure too high - reduce start rate
-                long rate = config.getMaxBackpressurePercentage() - backpressurePercentage;
-                rate = Math.round( rate * config.getStartPiReduceFactor());
+                long rate = Math.round( (config.getMaxBackpressurePercentage() - backpressurePercentage) * config.getStartPiReduceFactor());
                 LOG.info("Backpressure percentage too high ("+backpressurePercentage+" > "+config.getMaxBackpressurePercentage()+"), reducing start rate by " + rate );
                 adjustStartRateBy(rate);
             } else{
                 // Backpressure is there, but lower than the maximum considered optimal for throughput
                 // slightly increase start rate
-                long rate = config.getMaxBackpressurePercentage() - backpressurePercentage;
-                rate = Math.round( rate * config.getStartPiIncreaseFactor());
+                long rate = Math.round( (config.getMaxBackpressurePercentage() - backpressurePercentage) * config.getStartPiIncreaseFactor());
                 LOG.info("Backpressure percentage too low ("+backpressurePercentage+" <= "+config.getMaxBackpressurePercentage()+"), increasing start rate by " + rate );
                 adjustStartRateBy(rate);
             }

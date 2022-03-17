@@ -18,7 +18,7 @@ public class BenchmarkConfiguration {
     private Resource bpmnResource;
     private boolean autoDeployProcess = true;
 
-    private int maxBackpressurePercentage = 10;
+    private double maxBackpressurePercentage = 10;
     private double startPiReduceFactor = 0.4;
     private double startPiIncreaseFactor = 0.4;
 
@@ -63,11 +63,11 @@ public class BenchmarkConfiguration {
         return bpmnProcessId;
     }
 
-    public int getMaxBackpressurePercentage() {
+    public double getMaxBackpressurePercentage() {
         return maxBackpressurePercentage;
     }
 
-    public void setMaxBackpressurePercentage(int maxBackpressurePercentage) {
+    public void setMaxBackpressurePercentage(double maxBackpressurePercentage) {
         this.maxBackpressurePercentage = maxBackpressurePercentage;
     }
 

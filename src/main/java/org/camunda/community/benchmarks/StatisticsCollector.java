@@ -32,7 +32,7 @@ public class StatisticsCollector {
         lastPrintStartedProcessInstances = count;
 
         long backpressure = getBackpressureOnStartPiMeter().getCount();
-        System.out.println("Backpressure:   " + f(backpressure) + " (+ " + f(backpressure - lastPrintStartedProcessInstancesBackpressure) + ") Last minute rate: " + f(getBackpressureOnStartPiMeter().getOneMinuteRate()) + ". Percentage: " + getBackpressureOnStartPercentage() + " %");
+        System.out.println("Backpressure:   " + f(backpressure) + " (+ " + f(backpressure - lastPrintStartedProcessInstancesBackpressure) + ") Last minute rate: " + f(getBackpressureOnStartPiMeter().getOneMinuteRate()) + ". Percentage: " + fpercent(getBackpressureOnStartPercentage()) + " %");
         lastPrintStartedProcessInstancesBackpressure = backpressure;
 
         count = getCompletedJobsMeter().getCount();
@@ -44,6 +44,9 @@ public class StatisticsCollector {
         lastPrintCompletedJobsBackpressure = backpressure;
     }
 
+    public String fpercent(double n) {
+        return String.format("%5.3f", n);
+    }
     public String f(double n) {
         return String.format("%5.1f", n);
     }
@@ -51,8 +54,8 @@ public class StatisticsCollector {
         return String.format("%1$5s", n);
     }
 
-    public int getBackpressureOnStartPercentage() {
-        return Math.toIntExact(Math.round(getBackpressureOnStartPiMeter().getOneMinuteRate() / getStartedPiMeter().getOneMinuteRate() * 100));
+    public double getBackpressureOnStartPercentage() {
+        return getBackpressureOnStartPiMeter().getOneMinuteRate() / getStartedPiMeter().getOneMinuteRate() * 100;
     }
 
     public Meter getStartedPiMeter() {

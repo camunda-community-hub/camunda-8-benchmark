@@ -60,6 +60,12 @@ The current assumption is 10% of backpressure gets us there.
 
 A normal user would probably strive for 0% backpressure. If we accept only 0.5 % backpressure, we  still know that if we increase the start rate just a little bit, backpressure will kick in.
 
+The "target" backpressure can be configured:
+
+```properties
+benchmark.maxBackpressurePercentage=10.0
+```
+
 # Todos
 
 - Extract stuff so that it can be used as library and provide an example (Benchmark Starter)
