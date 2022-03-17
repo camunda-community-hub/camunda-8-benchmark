@@ -23,7 +23,7 @@ public class StatisticsCollector {
     private long lastPrintCompletedJobsBackpressure = 0;
     private long piPerSecondGoal;
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 10*1000)
     public void printStatus() {
         System.out.println("------------------- " + Instant.now() + " Current goal (PI/s): " + piPerSecondGoal);
 

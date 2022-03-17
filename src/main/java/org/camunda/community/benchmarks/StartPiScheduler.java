@@ -130,6 +130,9 @@ public class StartPiScheduler {
 
     private void adjustStartRateBy(long amount) {
         long newGoal =  piStartedGoal + amount;
+        if (newGoal<=0) {
+            newGoal = 1;
+        }
         LOG.info("Backpressure rate (" + stats.getBackpressureOnStartPiMeter().getOneMinuteRate() + ") leads to change in start rate by "+amount+" to " + newGoal);
         calculateParameters(newGoal);
     }
