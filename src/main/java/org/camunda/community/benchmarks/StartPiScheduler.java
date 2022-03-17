@@ -107,7 +107,7 @@ public class StartPiScheduler {
         }
     }
 
-    private static final double BACKPRESSURE_MAX_RATE_PER_SECOND_BIG = 15;
+    private static final double BACKPRESSURE_MAX_RATE_PER_SECOND_BIG = 15; // TODO: use percentage
     private static final long BACKPRESSURE_ADJUSTEMENT_AMOUNT_BIG = 10;
 
     private static final double BACKPRESSURE_MAX_RATE_PER_SECOND_SMALL = 3;
