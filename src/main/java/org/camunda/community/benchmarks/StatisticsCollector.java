@@ -28,15 +28,15 @@ public class StatisticsCollector {
         System.out.println("------------------- " + Instant.now() + " Current goal (PI/s): " + piPerSecondGoal);
 
         long count = getStartedPiMeter().getCount();
-        System.out.println("STARTED PI:     " + f(count) + " (+ " + f(count-lastPrintStartedProcessInstances) + ") Last minute rate: " + String.format("%.2f", getStartedPiMeter().getOneMinuteRate()));
+        System.out.println("STARTED PI:     " + f(count) + " (+ " + f(count-lastPrintStartedProcessInstances) + ") Last minute rate: " + f(getStartedPiMeter().getOneMinuteRate()));
         lastPrintStartedProcessInstances = count;
 
         long backpressure = getBackpressureOnStartPiMeter().getCount();
-        System.out.println("Backpressure:   " + f(backpressure) + " (+ " + f(backpressure - lastPrintStartedProcessInstancesBackpressure) + ") Last minute rate: " + String.format("%.2f", getBackpressureOnStartPiMeter().getOneMinuteRate()) + ". Percentage: " + getBackpressureOnStartPercentage() + " %");
+        System.out.println("Backpressure:   " + f(backpressure) + " (+ " + f(backpressure - lastPrintStartedProcessInstancesBackpressure) + ") Last minute rate: " + f(getBackpressureOnStartPiMeter().getOneMinuteRate()) + ". Percentage: " + getBackpressureOnStartPercentage() + " %");
         lastPrintStartedProcessInstancesBackpressure = backpressure;
 
         count = getCompletedJobsMeter().getCount();
-        System.out.println("COMPLETED JOBS: " + f(count) + " (+ " + f(count-lastPrintCompletedJobs) + ")");
+        System.out.println("COMPLETED JOBS: " + f(count) + " (+ " + f(count-lastPrintCompletedJobs) + ") Last minute rate: " + f(getCompletedJobsMeter().getOneMinuteRate()));
         lastPrintCompletedJobs = count;
 
         backpressure = getBackpressureOnJobCompleteMeter().getCount();
@@ -44,7 +44,10 @@ public class StatisticsCollector {
         lastPrintCompletedJobsBackpressure = backpressure;
     }
 
-    public String f(Number n) {
+    public String f(double n) {
+        return String.format("%5.1f", n);
+    }
+    public String f(long n) {
         return String.format("%1$5s", n);
     }
 
