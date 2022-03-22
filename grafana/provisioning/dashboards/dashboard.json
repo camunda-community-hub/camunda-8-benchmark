@@ -136,9 +136,74 @@
       ],
       "title": "Benchmark",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.3.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "(startedPi_total - backpressureOnStartPiMeter_total)",
+          "interval": "",
+          "legendFormat": "PI started without backpressure",
+          "refId": "A"
+        }
+      ],
+      "title": "Started PI in total",
+      "type": "stat"
     }
   ],
-  "refresh": "",
+  "refresh": "5s",
   "schemaVersion": 34,
   "style": "dark",
   "tags": [],
@@ -153,6 +218,6 @@
   "timezone": "",
   "title": "Benchmark",
   "uid": "VEPGQXPnk",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
