@@ -66,14 +66,33 @@ The "target" backpressure can be configured:
 benchmark.maxBackpressurePercentage=10.0
 ```
 
+# Collect and inspect metrics
+
+The application provides some metrics via Spring Actuator that can be used via http://localhost:8088/actuator/prometheus for Prometheus.
+
+The contained docker-compose starts up a prometheus/grafana combo  
+
+```
+cd grafana
+docker compose up
+```
+
+This will scrape those metrics and allow inspecting it
+
+* via Prometheus, e.g. http://localhost:9090/graph?g0.expr=startedPi_total&g0.tab=0&g0.stacked=0&g0.show_exemplars=0&g0.range_input=1h 
+* via Grafana, e.g. http://localhost:3000/d/VEPGQXPnk/benchmark?orgId=1&from=now-15m&to=now
+
+
 # Todos
 
-- Extract stuff so that it can be used as library and provide an example (Benchmark Starter)
-- Get information about job activation back pressure
 - Only pick up jobs from "my" process
 - Wait for results & count completions
+- Extract stuff so that it can be used as library and provide an example (Benchmark Starter), own code for startzing and job completion (but recognize/handle backpressure)
+- Get information about job activation back pressure
+  - Check if we need to look at JobActivation-Backoff?
 - Check if start exceptions are counted correctly
 - Document properties and examples
   - Process Model from URL
   - Payload from URL
   - Pool Size Parameters
+- Swap Metrics recorder (maybe have more flexibility on timeline, allow plotting values over time)

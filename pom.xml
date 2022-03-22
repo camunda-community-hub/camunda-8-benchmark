@@ -73,20 +73,37 @@
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-core</artifactId>
-      <version>4.2.8</version>
+      <version>4.2.9</version>
     </dependency>
 
     <dependency>
-      <groupId>me.dinowernli</groupId>
-      <artifactId>java-grpc-prometheus</artifactId>
-      <version>0.5.0</version>
-      <exclusions>
-        <exclusion>
-          <groupId>io.grpc</groupId>
-          <artifactId>grpc-all</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+      <version>2.6.3</version>
     </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <version>1.8.4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webflux</artifactId>
+      <version>2.6.3</version>
+    </dependency>
+    <!--
+        <dependency>
+          <groupId>me.dinowernli</groupId>
+          <artifactId>java-grpc-prometheus</artifactId>
+          <version>0.5.0</version>
+          <exclusions>
+            <exclusion>
+              <groupId>io.grpc</groupId>
+              <artifactId>grpc-all</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+        -->
   </dependencies>
 
   <build>

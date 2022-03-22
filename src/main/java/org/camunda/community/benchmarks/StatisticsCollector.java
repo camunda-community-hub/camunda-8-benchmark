@@ -1,26 +1,37 @@
 package org.camunda.community.benchmarks;
 
+import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.MetricFilter;
+import io.prometheus.client.CollectorRegistry;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class StatisticsCollector {
 
     private Date startTime = new Date();
 
-    private MetricRegistry metricRegistry = new MetricRegistry();
+    // Leveraging Dropwizard here to do rate calculation within the app
+    private com.codahale.metrics.MetricRegistry dropwizardMetricRegistry = new com.codahale.metrics.MetricRegistry();
+    // But also the more modern Micrometer library, which can be exported to prometheus easily (using Spring Actuator)
+    @Autowired
+    private io.micrometer.core.instrument.MeterRegistry micrometerMetricRegistry;
 
     private long lastPrintStartedProcessInstances = 0;
     private long lastPrintCompletedProcessInstances = 0;
     private long lastPrintCompletedJobs = 0;
     private long lastPrintStartedProcessInstancesBackpressure = 0;
     private long lastPrintCompletedJobsBackpressure = 0;
+
     private long piPerSecondGoal;
 
     @Scheduled(fixedRate = 10*1000)
@@ -59,51 +70,37 @@ public class StatisticsCollector {
     }
 
     public Meter getStartedPiMeter() {
-        return metricRegistry.meter("startedPi" );
+        return dropwizardMetricRegistry.meter("startedPi" );
     }
 
     public Meter getCompletedJobsMeter() {
-        return metricRegistry.meter("completedJobs" );
+        return dropwizardMetricRegistry.meter("completedJobs" );
     }
 
     public Meter getBackpressureOnJobCompleteMeter() {
-        return metricRegistry.meter("backpressureOnJobCompleteMeter" );
+        return dropwizardMetricRegistry.meter("backpressureOnJobCompleteMeter" );
     }
 
     public Meter getBackpressureOnStartPiMeter() {
-        return metricRegistry.meter("backpressureOnStartPiMeter" );
+        return dropwizardMetricRegistry.meter("backpressureOnStartPiMeter" );
     }
 
     public void incStartedProcessInstances() {
         getStartedPiMeter().mark();
+        micrometerMetricRegistry.counter("startedPi").increment();
     }
 
     public void incStartedProcessInstancesBackpressure() {
         getBackpressureOnStartPiMeter().mark();
+        micrometerMetricRegistry.counter("backpressureOnStartPiMeter").increment();
     }
 
     public void incCompletedJobs() {
         getCompletedJobsMeter().mark();
+        micrometerMetricRegistry.counter("completedJobs").increment();
     }
 
     public void hintOnNewPiPerSecondGoald(long piPerSecondGoal) {
         this.piPerSecondGoal = piPerSecondGoal;
     }
-/*
-    public Date getStartTime() {
-        return startTime;
-    }
-
-    public long getStartedProcessInstances() {
-        return startedProcessInstances;
-    }
-
-    public long getCompletedProcessInstances() {
-        return completedProcessInstances;
-    }
-
-    public long getCompletedJobs() {
-        return completedJobs;
-    }
-*/
 }
