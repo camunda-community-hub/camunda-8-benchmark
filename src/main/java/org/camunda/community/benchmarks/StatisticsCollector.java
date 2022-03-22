@@ -87,20 +87,28 @@ public class StatisticsCollector {
 
     public void incStartedProcessInstances() {
         getStartedPiMeter().mark();
-        micrometerMetricRegistry.counter("startedPi").increment();
+        micrometerMetricRegistry.counter("pi_started").increment();
     }
 
     public void incStartedProcessInstancesBackpressure() {
         getBackpressureOnStartPiMeter().mark();
-        micrometerMetricRegistry.counter("backpressureOnStartPiMeter").increment();
+        micrometerMetricRegistry.counter("pi_backpressure").increment();
     }
 
     public void incCompletedJobs() {
         getCompletedJobsMeter().mark();
-        micrometerMetricRegistry.counter("completedJobs").increment();
+        micrometerMetricRegistry.counter("jobs_completed").increment();
     }
 
     public void hintOnNewPiPerSecondGoald(long piPerSecondGoal) {
         this.piPerSecondGoal = piPerSecondGoal;
+    }
+
+    public void incStartedProcessInstancesException(String exceptionMessage) {
+        micrometerMetricRegistry.counter("pi_exception", "exception", exceptionMessage).increment();
+    }
+
+    public void incCompletedJobsException(String exceptionMessage) {
+        micrometerMetricRegistry.counter("jobs_exception", "exception", exceptionMessage).increment();
     }
 }

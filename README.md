@@ -96,4 +96,3 @@ This will scrape those metrics and allow inspecting it
   - Process Model from URL
   - Payload from URL
   - Pool Size Parameters
-- Swap Metrics recorder (maybe have more flexibility on timeline, allow plotting values over time)
