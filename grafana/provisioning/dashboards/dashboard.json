@@ -21,6 +21,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": 1,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -193,13 +194,14 @@
             "uid": "PBFA97CFB590B2093"
           },
           "exemplar": true,
-          "expr": "(startedPi_total - backpressureOnStartPiMeter_total)",
+          "expr": "increase(startedPi_total[$__range])  - increase(backpressureOnStartPiMeter_total[$__range]) ",
           "interval": "",
-          "legendFormat": "PI started without backpressure",
+          "legendFormat": "PI without error",
           "refId": "A"
         }
       ],
       "title": "Started PI in total",
+      "transformations": [],
       "type": "stat"
     }
   ],
