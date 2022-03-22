@@ -82,6 +82,7 @@ This will scrape those metrics and allow inspecting it
 * via Prometheus, e.g. http://localhost:9090/graph?g0.expr=startedPi_total&g0.tab=0&g0.stacked=0&g0.show_exemplars=0&g0.range_input=1h 
 * via Grafana, e.g. http://localhost:3000/d/VEPGQXPnk/benchmark?orgId=1&from=now-15m&to=now
 
+![Grafana Screenshot](grafana.png)
 
 # Todos
 
