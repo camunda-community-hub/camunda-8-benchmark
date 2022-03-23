@@ -1,11 +1,14 @@
 package org.camunda.community.benchmarks;
 
+import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.Timer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +31,14 @@ public class StatisticsCollector {
 
     private long piPerSecondGoal;
 
+    @PostConstruct
+    public void init() {
+        io.micrometer.core.instrument.Timer.builder("pi_cycletime")
+                .publishPercentiles(0.75, 0.95, 0.99)
+                .publishPercentileHistogram()
+                .register(micrometerMetricRegistry);
+    }
+
     @Scheduled(fixedRate = 10*1000)
     public void printStatus() {
         System.out.println("------------------- " + Instant.now() + " Current goal (PI/s): " + piPerSecondGoal);
@@ -42,7 +53,8 @@ public class StatisticsCollector {
 
         count = getCompletedProcessInstancesMeter().getCount();
         System.out.print("PI COMPLETED:   " + f(count) + " (+ " + f(count-lastPrintCompletedProcessInstances) + ") Last minute rate: " + f(getCompletedProcessInstancesMeter().getOneMinuteRate()));
-        System.out.println( ". Average cycle time: " + getCompletedProcessInstancesTimer().getOneMinuteRate());
+        Snapshot snapshot = getCompletedProcessInstancesTimer().getSnapshot();
+        System.out.println( ". Mean: " + fd(snapshot.getMean()) + ". Percentile .95: " + fd(snapshot.get95thPercentile()) + ". Percentile .99: " + fd(snapshot.get99thPercentile()));
         lastPrintCompletedProcessInstances = count;
 
         count = getCompletedJobsMeter().getCount();
@@ -57,6 +69,9 @@ public class StatisticsCollector {
 
     public String fpercent(double n) {
         return String.format("%5.3f", n);
+    }
+    public String fd(double n) {
+        return String.format("%,.0f", n);
     }
     public String f(double n) {
         return String.format("%5.1f", n);

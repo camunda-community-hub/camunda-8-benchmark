@@ -93,7 +93,7 @@
     <bpmn:sequenceFlow id="SequenceFlow_02ln9k8" sourceRef="task8" targetRef="task9" />
     <bpmn:serviceTask id="task10" name="task10">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id" />
+        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id + &#34;-completed&#34;" />
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_18f5tlt</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_1ofj7hs</bpmn:outgoing>
