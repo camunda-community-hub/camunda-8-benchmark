@@ -173,12 +173,8 @@ spec:
 
 # Todos
 
-- Only pick up jobs from "my" process
-- Wait for results & count completions
 - Extract stuff so that it can be used as library and provide an example (Benchmark Starter), own code for startzing and job completion (but recognize/handle backpressure)
-- Get information about job activation back pressure
-  - Check if we need to look at JobActivation-Backoff?
-- Check if start exceptions are counted correctly
+- Get information about job activation back pressure / Check if we need to look at JobActivation-Backoff?
 - Document properties and examples
   - Process Model from URL
   - Payload from URL
