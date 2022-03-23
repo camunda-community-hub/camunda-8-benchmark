@@ -6,29 +6,28 @@
     </bpmn:startEvent>
     <bpmn:serviceTask id="task1" name="task1">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="benchmark-task" />
+        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id" />
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_1swotv4</bpmn:incoming>
-      <bpmn:outgoing>SequenceFlow_0cqtbo2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_13nehq4</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="SequenceFlow_1swotv4" sourceRef="start" targetRef="task1" />
     <bpmn:serviceTask id="task2" name="task2">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="benchmark-task" />
+        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id" />
       </bpmn:extensionElements>
-      <bpmn:incoming>SequenceFlow_0cqtbo2</bpmn:incoming>
+      <bpmn:incoming>Flow_13nehq4</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_19e406m</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="SequenceFlow_0cqtbo2" sourceRef="task1" targetRef="task2" />
     <bpmn:serviceTask id="task3" name="task3">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="benchmark-task" />
+        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id" />
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_19e406m</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_1fcsq3j</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="SequenceFlow_19e406m" sourceRef="task2" targetRef="task3" />
-    <bpmn:intermediateCatchEvent id="timer1" name="20 minutes">
+    <bpmn:intermediateCatchEvent id="timer1" name="1 minute">
       <bpmn:incoming>Flow_0z2tud8</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_1izpkmf</bpmn:outgoing>
       <bpmn:timerEventDefinition>
@@ -38,7 +37,7 @@
     <bpmn:sequenceFlow id="SequenceFlow_1fcsq3j" sourceRef="task3" targetRef="Gateway_09jrxib" />
     <bpmn:serviceTask id="task4" name="task4">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="benchmark-task" />
+        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id" />
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_1izpkmf</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_1ktyxza</bpmn:outgoing>
@@ -46,7 +45,7 @@
     <bpmn:sequenceFlow id="SequenceFlow_1izpkmf" sourceRef="timer1" targetRef="task4" />
     <bpmn:serviceTask id="task5" name="task5">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="benchmark-task" />
+        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id" />
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_1ktyxza</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_0h8p3qy</bpmn:outgoing>
@@ -54,13 +53,13 @@
     <bpmn:sequenceFlow id="SequenceFlow_1ktyxza" sourceRef="task4" targetRef="task5" />
     <bpmn:serviceTask id="task6" name="task6">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="benchmark-task" />
+        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id" />
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_0h8p3qy</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_0pvrpnr</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="SequenceFlow_0h8p3qy" sourceRef="task5" targetRef="task6" />
-    <bpmn:intermediateCatchEvent id="timer2" name="20 minutes">
+    <bpmn:intermediateCatchEvent id="timer2" name="1 minute">
       <bpmn:incoming>SequenceFlow_0pvrpnr</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_0momtrt</bpmn:outgoing>
       <bpmn:timerEventDefinition>
@@ -70,7 +69,7 @@
     <bpmn:sequenceFlow id="SequenceFlow_0pvrpnr" sourceRef="task6" targetRef="timer2" />
     <bpmn:serviceTask id="task7" name="task7">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="benchmark-task" />
+        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id" />
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_0momtrt</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_11i3dru</bpmn:outgoing>
@@ -78,7 +77,7 @@
     <bpmn:sequenceFlow id="SequenceFlow_0momtrt" sourceRef="timer2" targetRef="task7" />
     <bpmn:serviceTask id="task8" name="task8">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="benchmark-task" />
+        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id" />
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_11i3dru</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_02ln9k8</bpmn:outgoing>
@@ -86,7 +85,7 @@
     <bpmn:sequenceFlow id="SequenceFlow_11i3dru" sourceRef="task7" targetRef="task8" />
     <bpmn:serviceTask id="task9" name="task9">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="benchmark-task" />
+        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id" />
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_02ln9k8</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_18f5tlt</bpmn:outgoing>
@@ -94,7 +93,7 @@
     <bpmn:sequenceFlow id="SequenceFlow_02ln9k8" sourceRef="task8" targetRef="task9" />
     <bpmn:serviceTask id="task10" name="task10">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="benchmark-task" />
+        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id" />
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_18f5tlt</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_1ofj7hs</bpmn:outgoing>
@@ -118,6 +117,7 @@
     <bpmn:sequenceFlow id="Flow_11ozwsi" name="no" sourceRef="Gateway_09jrxib" targetRef="Event_1bcf2he">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= var2=false</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_13nehq4" sourceRef="task1" targetRef="task2" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="benchmark">
@@ -179,13 +179,13 @@
         <di:waypoint x="534" y="127" />
         <di:waypoint x="585" y="127" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="SequenceFlow_0cqtbo2_di" bpmnElement="SequenceFlow_0cqtbo2">
-        <di:waypoint x="381" y="127" />
-        <di:waypoint x="434" y="127" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="SequenceFlow_1swotv4_di" bpmnElement="SequenceFlow_1swotv4">
         <di:waypoint x="215" y="127" />
         <di:waypoint x="281" y="127" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13nehq4_di" bpmnElement="Flow_13nehq4">
+        <di:waypoint x="381" y="127" />
+        <di:waypoint x="434" y="127" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="start">
         <dc:Bounds x="179" y="109" width="36" height="36" />
@@ -202,7 +202,7 @@
       <bpmndi:BPMNShape id="IntermediateCatchEvent_1so6ydj_di" bpmnElement="timer1">
         <dc:Bounds x="844" y="109" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="834" y="155" width="55" height="14" />
+          <dc:Bounds x="840" y="155" width="43" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="ServiceTask_0k94g0c_di" bpmnElement="task4">
@@ -217,7 +217,7 @@
       <bpmndi:BPMNShape id="IntermediateCatchEvent_066cnhl_di" bpmnElement="timer2">
         <dc:Bounds x="1372" y="109" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="1364" y="79" width="55" height="14" />
+          <dc:Bounds x="1371" y="79" width="43" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="ServiceTask_0tsh0b1_di" bpmnElement="task7">

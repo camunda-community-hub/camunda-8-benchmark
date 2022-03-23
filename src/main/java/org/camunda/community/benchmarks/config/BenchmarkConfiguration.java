@@ -10,6 +10,8 @@ import java.util.concurrent.TimeUnit;
 @ConfigurationProperties(prefix = "benchmark")
 public class BenchmarkConfiguration {
 
+    private String starterId = "benchmarkStarter1";
+
     private long startPiPerSecond = 500;
     private String jobType = "benchmark-task";
     private long taskCompletionDelay = 200;
@@ -101,5 +103,13 @@ public class BenchmarkConfiguration {
 
     public void setStartPiReduceFactor(double startPiReduceFactor) {
         this.startPiReduceFactor = startPiReduceFactor;
+    }
+
+    public String getStarterId() {
+        return starterId;
+    }
+
+    public void setStarterId(String starterId) {
+        this.starterId = starterId;
     }
 }

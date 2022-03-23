@@ -29,6 +29,47 @@ The design is, that you only run this one application for driving your benchmark
 
 If you benchmark big clusters and cannot produce enough load, you can simply scale this application (you might want to adjust the `benchmark.startPiReduceFactor` of the properties as backpressure is then "distributed" over various load generators)
  
+## Define your process
+
+### Measure cycle time
+
+You can mark your last service task in the process, so that the benchmark starter will use this to measure the cycle time. While this is not a 100% correct, it is a good approximation and sufficient for typical load tests.
+
+Therefore, just add ``-completed`` to the task type of the last service task:
+
+```xml
+ <bpmn:serviceTask id="lastTask">
+  <bpmn:extensionElements>
+    <zeebe:taskDefinition type="benchmark-task-completed" />
+  </bpmn:extensionElements>
+```
+
+
+
+### Sticky processes 
+
+You can tie a process to one cluster instance of the starter (in case you need to scale those). Therefore, you need to makre sure the following configuration property is set differently for every starter instance (e.g. by using environment variables to overwrite it):
+
+```properties
+benchmark.starterId=benchmarkStarter1
+```
+
+Now you can use that startedId in your process models to tie service tasks to this instance of your starter by using the `benchmark_starter_id` process variable:
+
+```xml
+ <bpmn:serviceTask id="task1" name="task1">
+  <bpmn:extensionElements>
+    <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id" />
+  </bpmn:extensionElements>
+```
+
+Normally you simply configure the task type via the modeler:
+
+```
+= "benchmark-task-" + benchmark_starter_id
+```
+
+
 
 ## Configuration Properties
 

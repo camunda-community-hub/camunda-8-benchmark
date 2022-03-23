@@ -21,6 +21,7 @@ class BenchmarkApplication  {
 
         // Trigger here to make sure it happens AFTER the ApplicationContext is ready
         context.getBean(ProcessDeployer.class).autoDeploy();
+        context.getBean(JobWorker.class).startWorkers();
     }
 
 }

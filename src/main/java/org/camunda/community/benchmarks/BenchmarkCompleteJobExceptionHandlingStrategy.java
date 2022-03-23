@@ -24,10 +24,11 @@ public class BenchmarkCompleteJobExceptionHandlingStrategy extends DefaultComman
         if (StatusRuntimeException.class.isAssignableFrom(throwable.getClass())) {
             StatusRuntimeException exception = (StatusRuntimeException) throwable;
             stats.incCompletedJobsException(exception.getStatus().getCode().name());
+            /* Backpressure on Job completion cannot happen at the moment (whitelisted)
             if (Status.Code.RESOURCE_EXHAUSTED == exception.getStatus().getCode()) {
                 stats.getBackpressureOnJobCompleteMeter().mark();
                 return;
-            }
+            }*/
         } else {
             stats.incCompletedJobsException(throwable.getMessage());
         }
