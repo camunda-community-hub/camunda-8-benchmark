@@ -1,6 +1,7 @@
 package org.camunda.community.benchmarks;
 
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.Timer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -34,12 +35,14 @@ public class StatisticsCollector {
         long count = getStartedPiMeter().getCount();
         long backpressure = getBackpressureOnStartPiMeter().getCount();
         System.out.println("PI STARTED:     " + f(count) + " (+ " + f(count-lastPrintStartedProcessInstances) + ") Last minute rate: " + f(getStartedPiMeter().getOneMinuteRate()));
-        System.out.println("  Backpressure: " + f(backpressure) + " (+ " + f(backpressure - lastPrintStartedProcessInstancesBackpressure) + ") Last minute rate: " + f(getBackpressureOnStartPiMeter().getOneMinuteRate()) + ". Percentage: " + fpercent(getBackpressureOnStartPercentage()) + " %");
+        System.out.print("  Backpressure: " + f(backpressure) + " (+ " + f(backpressure - lastPrintStartedProcessInstancesBackpressure) + ") Last minute rate: " + f(getBackpressureOnStartPiMeter().getOneMinuteRate()));
+        System.out.println(". Percentage: " + fpercent(getBackpressureOnStartPercentage()) + " %");
         lastPrintStartedProcessInstances = count;
         lastPrintStartedProcessInstancesBackpressure = backpressure;
 
         count = getCompletedProcessInstancesMeter().getCount();
-        System.out.println("PI COMPLETED:   " + f(count) + " (+ " + f(count-lastPrintCompletedProcessInstances) + ") Last minute rate: " + f(getCompletedProcessInstancesMeter().getOneMinuteRate()));
+        System.out.print("PI COMPLETED:   " + f(count) + " (+ " + f(count-lastPrintCompletedProcessInstances) + ") Last minute rate: " + f(getCompletedProcessInstancesMeter().getOneMinuteRate()));
+        System.out.println( ". Average cycle time: " + getCompletedProcessInstancesTimer().getOneMinuteRate());
         lastPrintCompletedProcessInstances = count;
 
         count = getCompletedJobsMeter().getCount();
@@ -63,7 +66,7 @@ public class StatisticsCollector {
     }
 
     public double getBackpressureOnStartPercentage() {
-        return getBackpressureOnStartPiMeter().getOneMinuteRate() / getStartedPiMeter().getOneMinuteRate() * 100;
+        return (getBackpressureOnStartPiMeter().getOneMinuteRate() / getStartedPiMeter().getOneMinuteRate()) * 100;
     }
 
     public Meter getStartedPiMeter() {
@@ -74,6 +77,9 @@ public class StatisticsCollector {
     }
     public Meter getCompletedProcessInstancesMeter() {
         return dropwizardMetricRegistry.meter("pi_completed" );
+    }
+    public Timer getCompletedProcessInstancesTimer() {
+        return dropwizardMetricRegistry.timer("pi_cycletime");
     }
     public Meter getBackpressureOnStartPiMeter() {
         return dropwizardMetricRegistry.meter("pi_backpressure" );
@@ -99,6 +105,7 @@ public class StatisticsCollector {
     }
     public void incCompletedProcessInstances(long startMillis, long endMillis) {
         incCompletedProcessInstances();
+        getCompletedProcessInstancesTimer().update(endMillis - startMillis, TimeUnit.MILLISECONDS);
         micrometerMetricRegistry.timer("pi_cycletime").record(endMillis - startMillis, TimeUnit.MILLISECONDS);
     }
 

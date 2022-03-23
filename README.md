@@ -125,6 +125,52 @@ This will scrape those metrics and allow inspecting it
 
 ![Grafana Screenshot](grafana.png)
 
+# Run via Kubernetes
+
+You can run this benchmark starter via Kubernetes, e.g. in the cluster that also runs your self-managed Camunda Cloud:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: camunda-cloud-benchmark
+  labels:
+    app: camunda-cloud-benchmark
+spec:
+  selector:
+    matchLabels:
+      app: camunda-cloud-benchmark
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: camunda-cloud-benchmark
+    spec:
+      containers:
+      - name: camunda-cloud-benchmark
+        image: berndruecker/camunda-cloud-benchmark:main
+        imagePullPolicy: Always
+        env:
+          - name: JAVA_OPTIONS
+            value: >-
+              -Dzeebe.client.broker.gateway-address=zeebe-gateway:26500
+              -Dzeebe.client.security.plaintext=true
+              -Dbenchmark.startPiPerSecond=1000
+              -Dbenchmark.taskCompletionDelay=10
+              -Dbenchmark.bpmnProcessId=benchmark
+              -Dbenchmark.jobType=benchmark-task
+              -Dbenchmark.payloadPath=bpmn/typical_payload.json
+              -Dbenchmark.autoDeployProcess=true
+        resources:
+          limits:
+            cpu: 15
+            memory: 29Gi
+          requests:
+            cpu: 1
+            memory: 1Gi
+```
+
+
 # Todos
 
 - Only pick up jobs from "my" process

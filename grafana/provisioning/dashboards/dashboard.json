@@ -154,10 +154,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           },
@@ -258,7 +254,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "short"
         },
         "overrides": []
       },
@@ -365,7 +362,7 @@
       "options": {
         "legend": {
           "calcs": [],
-          "displayMode": "list",
+          "displayMode": "hidden",
           "placement": "bottom"
         },
         "tooltip": {
@@ -387,7 +384,7 @@
           "refId": "A"
         }
       ],
-      "title": "Cycle Time Rate in ms [1m]",
+      "title": "Cycle time in ms [1m]",
       "type": "timeseries"
     },
     {
@@ -575,7 +572,7 @@
     "list": []
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
