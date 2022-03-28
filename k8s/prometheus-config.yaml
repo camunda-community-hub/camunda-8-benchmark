@@ -13,35 +13,29 @@ data:
         
         tls_config:
           insecure_skip_verify: true
-        
         kubernetes_sd_configs:
           - role: pod
-        
         relabel_configs:
           # "prometheus.io/scrape = true" annotation.
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
             action: keep
             regex: true
-          
           # "prometheus.io/path = <metric path>" annotation.
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
             action: replace
             target_label: __metrics_path__
             regex: (.+)
-          
           # "prometheus.io/port = <port>" annotation.
           - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
             action: replace
             regex: ([^:]+)(?::\d+)?;(\d+)
             replacement: $1:$2
-            target_label: __address__
-          
+            target_label: __address__          
           # "prometheus.io/scheme = https" annotation.
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
             action: replace
             target_label: __scheme__
             regex: (https?)
-  
           - action: labelmap
             regex: __meta_kubernetes_pod_label_(.+)
           - source_labels: [__meta_kubernetes_namespace]
@@ -49,5 +43,4 @@ data:
             target_label: kubernetes_namespace
           - source_labels: [__meta_kubernetes_pod_name]
             action: replace
-  
-
+            target_label: kubernetes_pod_name
