@@ -39,7 +39,7 @@ public class StatisticsCollector {
                 .register(micrometerMetricRegistry);
     }
 
-    @Scheduled(fixedRate = 10*1000)
+    @Scheduled(fixedRate = 60*1000)
     public void printStatus() {
         System.out.println("------------------- " + Instant.now() + " Current goal (PI/s): " + piPerSecondGoal);
 
@@ -54,7 +54,7 @@ public class StatisticsCollector {
         count = getCompletedProcessInstancesMeter().getCount();
         System.out.print("PI COMPLETED:   " + f(count) + " (+ " + f(count-lastPrintCompletedProcessInstances) + ") Last minute rate: " + f(getCompletedProcessInstancesMeter().getOneMinuteRate()));
         Snapshot snapshot = getCompletedProcessInstancesTimer().getSnapshot();
-        System.out.println( ". Mean: " + fd(snapshot.getMean()) + ". Percentile .95: " + fd(snapshot.get95thPercentile()) + ". Percentile .99: " + fd(snapshot.get99thPercentile()));
+        System.out.println( ". Mean: " + fd(snapshot.getMean()/1000/1000) + ". Percentile .95: " + fd(snapshot.get95thPercentile()/1000/1000) + ". Percentile .99: " + fd(snapshot.get99thPercentile()/1000/1000));
         lastPrintCompletedProcessInstances = count;
 
         count = getCompletedJobsMeter().getCount();

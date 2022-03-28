@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: camunda-cloud-benchmark
+  labels:
+    app: camunda-cloud-benchmark
+spec:
+  selector:
+    matchLabels:
+      app: camunda-cloud-benchmark
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app: camunda-cloud-benchmark
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8088"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      containers:
+        - name: camunda-cloud-benchmark
+          image: berndruecker/camunda-cloud-benchmark:main
+          imagePullPolicy: Always
+          env:
+            - name: JAVA_OPTIONS
+              value: >-
+                -Dzeebe.client.cloud.cluster-id=3e93d2f8-adf2-4d45-86f6-19581c016972
+                -Dzeebe.client.cloud.client-id=I_oMjQexfkOtc._h0gEE4MkEnsAMEbWl
+                -Dzeebe.client.cloud.client-secret=rlQDE_4jasBgtZIhk93LJ7R5_-ic1D~uYA8ywrN6IhiO9dvTAAhvljq6jFAm.xMi
+                -Dzeebe.client.cloud.region=bru-3
+                -Dzeebe.client.cloud.baseUrl=zeebe.ultrawombat.com
+                -Dzeebe.client.worker.max-jobs-active=100
+                -Dzeebe.client.cloud.port=443
+                -Dzeebe.client.cloud.authUrl=https://login.cloud.ultrawombat.com/oauth/token
+                -Dbenchmark.startPiPerSecond=25
+                -Dbenchmark.taskCompletionDelay=10
+                -Dbenchmark.bpmnProcessId=benchmark
+                -Dbenchmark.jobType=benchmark-task
+                -Dbenchmark.payloadPath=bpmn/typical_payload.json
+                -Dbenchmark.autoDeployProcess=true                
+                -Dbenchmark.maxBackpressurePercentage=10.0
+                -Dbenchmark.startPiReduceFactor=1
+                -Dbenchmark.startPiIncreaseFactor=1
+          resources:
+            limits:
+              cpu: 15
+              memory: 29Gi
+            requests:
+              cpu: 1
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: camunda-cloud-benchmark
+
+spec:
+  selector:
+    app: camunda-cloud-benchmark
+  ports:
+    - port: 8088
+      targetPort: 8088

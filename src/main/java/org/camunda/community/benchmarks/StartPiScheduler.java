@@ -59,7 +59,7 @@ public class StartPiScheduler {
      * 10 ms is what the Java platform seems to be able to do reliably in different environments
      * Add some initial delay to give the workers time to connect
      */
-    @Async
+    //@Async
     @Scheduled(fixedRate = 10, initialDelay = 5000)
     public void startSomeProcessInstances() {
         long currentTime = System.currentTimeMillis();
@@ -125,13 +125,13 @@ public class StartPiScheduler {
             double backpressurePercentage = stats.getBackpressureOnStartPercentage();
             if (backpressurePercentage > config.getMaxBackpressurePercentage()) {
                 // Backpressure too high - reduce start rate
-                long rate = Math.round( (config.getMaxBackpressurePercentage() - backpressurePercentage) * config.getStartPiReduceFactor());
+                long rate = Math.round( (config.getMaxBackpressurePercentage() - backpressurePercentage)/100 * piStartedGoal * config.getStartPiReduceFactor());
                 LOG.info("Backpressure percentage too high ("+backpressurePercentage+" > "+config.getMaxBackpressurePercentage()+"), reducing start rate by " + rate );
                 adjustStartRateBy(rate);
             } else{
                 // Backpressure is there, but lower than the maximum considered optimal for throughput
                 // slightly increase start rate
-                long rate = Math.round( (config.getMaxBackpressurePercentage() - backpressurePercentage) * config.getStartPiIncreaseFactor());
+                long rate = Math.round( (config.getMaxBackpressurePercentage() - backpressurePercentage)/100 * piStartedGoal * config.getStartPiIncreaseFactor());
                 LOG.info("Backpressure percentage too low ("+backpressurePercentage+" <= "+config.getMaxBackpressurePercentage()+"), increasing start rate by " + rate );
                 adjustStartRateBy(rate);
             }

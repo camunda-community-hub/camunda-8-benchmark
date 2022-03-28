@@ -1,0 +1,7 @@
+resources:
+    - monitoring-namespace.yaml
+    - prometheus-cluster-role.yaml
+    - prometheus-config.yaml
+    - prometheus-deployment.yaml
+    - grafana-datasource-config.yaml
+    - grafana-deployment.yaml

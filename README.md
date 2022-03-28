@@ -125,57 +125,58 @@ This will scrape those metrics and allow inspecting it
 
 ![Grafana Screenshot](grafana.png)
 
-# Run via Kubernetes
+# Run Starter via Kubernetes and connect to Camunda SaaS
 
-You can run this benchmark starter via Kubernetes, e.g. in the cluster that also runs your self-managed Camunda Cloud:
+You need a Kubernetes cluster, e.g. on GCP:
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: camunda-cloud-benchmark
-  labels:
-    app: camunda-cloud-benchmark
-spec:
-  selector:
-    matchLabels:
-      app: camunda-cloud-benchmark
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: camunda-cloud-benchmark
-    spec:
-      containers:
-      - name: camunda-cloud-benchmark
-        image: berndruecker/camunda-cloud-benchmark:main
-        imagePullPolicy: Always
-        env:
-          - name: JAVA_OPTIONS
-            value: >-
-              -Dzeebe.client.broker.gateway-address=zeebe-gateway:26500
-              -Dzeebe.client.security.plaintext=true
-              -Dbenchmark.startPiPerSecond=1000
-              -Dbenchmark.taskCompletionDelay=10
-              -Dbenchmark.bpmnProcessId=benchmark
-              -Dbenchmark.jobType=benchmark-task
-              -Dbenchmark.payloadPath=bpmn/typical_payload.json
-              -Dbenchmark.autoDeployProcess=true
-        resources:
-          limits:
-            cpu: 15
-            memory: 29Gi
-          requests:
-            cpu: 1
-            memory: 1Gi
+````bash
+gcloud init
+gcloud container clusters get-credentials bernd-benchmark --zone europe-west1-b
+
+````
+
+In order to see something, install Prometheus and Grafana
+
+````bash
+kubectl apply -k k8s/ -n monitoring
+````
+
+You can use port forwarding to access those tools:
+
+```bash
+kubectl --namespace monitoring port-forward svc/prometheus-service 9090
+kubectl --namespace monitoring port-forward svc/grafana 3000
 ```
+
+Goto http://localhost:3000/
+
+Now you can run this benchmark starter via Kubernetes, e.g. in the cluster that also runs your self-managed Camunda Cloud:
+
+````bash
+kubectl apply -f k8s/benchmark.yaml
+````
 
 
 # Todos
 
 - Extract stuff so that it can be used as library and provide an example (Benchmark Starter), own code for startzing and job completion (but recognize/handle backpressure)
-- Get information about job activation back pressure / Check if we need to look at JobActivation-Backoff?
 - Document properties and examples
   - Process Model from URL
   - Payload from URL
   - Pool Size Parameters
+- Get information about job activation back pressure / Check if we need to look at JobActivation-Backoff?
+```log
+09:19:23.695 [grpc-default-executor-168] WARN  io.camunda.zeebe.client.job.poller - Failed to activated jobs for worker default and job type benchmark-task-benchmarkStarter1
+  io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: deadline exceeded after 19.999980100s. [closed=[UNAVAILABLE], committed=[remote_addr=3e93d2f8-adf2-4d45-86f6-19581c016972.bru-3.zeebe.ultrawombat.com/34.76.29.41:443]]
+  at io.grpc.Status.asRuntimeException(Status.java:535)
+  at io.grpc.stub.ClientCalls$StreamObserverToCallListenerAdapter.onClose(ClientCalls.java:479)
+  at io.grpc.internal.ClientCallImpl.closeObserver(ClientCallImpl.java:562)
+  at io.grpc.internal.ClientCallImpl.access$300(ClientCallImpl.java:70)
+  at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInternal(ClientCallImpl.java:743)
+  at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInContext(ClientCallImpl.java:722)
+  at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
+  at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133)
+  at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+  at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+  at java.base/java.lang.Thread.run(Thread.java:833)
+```

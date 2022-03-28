@@ -33,10 +33,6 @@ public class StartPiExecutor {
     @Autowired
     private BenchmarkStartPiExceptionHandlingStrategy exceptionHandlingStrategy;
 
-    // TODO: Check if we can/need to check if the scheduler can catch up with all its work (or if it is overwhelmed)
-    @Autowired
-    private TaskScheduler scheduler;
-
     @Autowired
     private ZeebeClientConfiguration zeebeClientConfiguration;
 

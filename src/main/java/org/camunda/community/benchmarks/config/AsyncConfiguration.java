@@ -30,6 +30,9 @@ public class AsyncConfiguration {
     @Value("${scheduler.poolSize}")
     private int schedulerPoolSize;
 
+    /**
+     * Executor to run everything that is @Async
+     */
     @Bean
     public Executor taskExecutor() {
         LOGGER.debug("Creating Async Task Executor");
@@ -41,9 +44,12 @@ public class AsyncConfiguration {
         return executor;
     }
 
+    /**
+     * Executor to run everything that is scheduled (also @Scheduled)
+     */
     @Bean
     public TaskScheduler taskScheduler() {
-        LOGGER.debug("Creating Async Task Executor");
+        LOGGER.debug("Creating Async Task Scheduler");
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(corePoolSize);
         scheduler.setThreadNamePrefix("ThreadPoolTaskScheduler-");
