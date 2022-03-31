@@ -11,6 +11,9 @@ The project
 
 # How-to run
 
+You only need to run this one application for driving your benchmark, but you might scale this application if you need to produce more load to utilize your cluster(you might want to adjust the `benchmark.startPiReduceFactor` of the properties as backpressure is then "distributed" over various load generators)
+
+
 ```bash
 mvn spring-boot:run
 ```
@@ -25,17 +28,28 @@ You can configure
 - everything [Spring Zeebe](https://github.com/camunda-community-hub/spring-zeebe) understands
 - additional parameters for the benchmark as listed below
 
-The design is, that you only run this one application for driving your benchmark. 
+The most common parameters to adjust are:
 
-If you benchmark big clusters and cannot produce enough load, you can simply scale this application (you might want to adjust the `benchmark.startPiReduceFactor` of the properties as backpressure is then "distributed" over various load generators)
+- The BPMN process model itself, which might also mean you have to adjust the bpmnProcessId of processes being started and the taskType of service tasks being worked on.
+- The taskCompletionDelay, simulating how long a service task typically takes.
+- The payload, which shall be passed to your process instances.
+- The processInstanceStartRate to begin with. While this is adjusted, a realistic start value makes the benchmark quicker to yield a stable result.
+
  
-## Define your process
+# Define your process
 
-### Measure cycle time
+## Typical process
 
-You can mark your last service task in the process, so that the benchmark starter will use this to measure the cycle time. While this is not a 100% correct, it is a good approximation and sufficient for typical load tests.
+If you do not specify a process model, the [typical process](blob/main/src/main/resources/bpmn/typical_process.bpmn) is used as a process model showing a typical model size we see at customers (around 10 to 30 tasks). It is intentional, that there are not much other elements (like gateways or events), as this did not influence benchmark too much in our experiments, so we preferred to keep it simple.
 
-Therefore, just add ``-completed`` to the task type of the last service task:
+![Typical Process](typical_process.png)
+
+## Defining your own process
+
+You can also define your own process model completely, but it has to comply with the following requirements:
+
+- All service tasks must have the same ``service task type``, if this is not `benchmark-task` you have to configure the task type via `benchmark.jobType`
+- You must add ``-completed`` to the task type of the last service task:
 
 ```xml
  <bpmn:serviceTask id="lastTask">
@@ -43,6 +57,15 @@ Therefore, just add ``-completed`` to the task type of the last service task:
     <zeebe:taskDefinition type="benchmark-task-completed" />
   </bpmn:extensionElements>
 ```
+
+This allows the benchmark to measure the cycle time. While this is not a 100% correct, it is a good approximation and sufficient for typical load tests.
+
+With this process model you need to
+
+1. Make sure it is deployed: You can either deploy it yourself to the cluster, or set ``benchmark.bpmnResource`` accordingly (it is a Spring resource)
+2. Make sure it is used and configure ``benchmark.bpmnProcessId`` to your process Id.
+
+
 
 
 
@@ -74,6 +97,7 @@ Normally you simply configure the task type via the modeler:
 ## Configuration Properties
 
 See https://github.com/camunda-community-hub/camunda-cloud-benchmark/blob/main/src/main/resources/application.properties
+
 
 ## Thoughts on load generation
 
@@ -111,21 +135,22 @@ benchmark.maxBackpressurePercentage=10.0
 
 The application provides some metrics via Spring Actuator that can be used via http://localhost:8088/actuator/prometheus for Prometheus.
 
-The contained docker-compose starts up a prometheus/grafana combo  
+To work locally, this project contains a docker-compose file that starts up a prometheus/grafana combo which scrapes the local Java application:  
 
 ```
 cd grafana
 docker compose up
 ```
 
-This will scrape those metrics and allow inspecting it
+Now you can inspect metrics:
 
 * via Prometheus, e.g. http://localhost:9090/graph?g0.expr=startedPi_total&g0.tab=0&g0.stacked=0&g0.show_exemplars=0&g0.range_input=1h 
 * via Grafana, e.g. http://localhost:3000/d/VEPGQXPnk/benchmark?orgId=1&from=now-15m&to=now
 
 ![Grafana Screenshot](grafana.png)
 
-# Run Starter via Kubernetes and connect to Camunda SaaS
+
+# Run Starter via Kubernetes
 
 You need a Kubernetes cluster, e.g. on GCP:
 
@@ -148,22 +173,24 @@ kubectl --namespace monitoring port-forward svc/prometheus-service 9090
 kubectl --namespace monitoring port-forward svc/grafana 3000
 ```
 
-Goto http://localhost:3000/
+* http://localhost:9090/
+* http://localhost:3000/
 
-Now you can run this benchmark starter via Kubernetes, e.g. in the cluster that also runs your self-managed Camunda Cloud:
+Now you can run the benchmark starter via Kubernetes. First, make sure to set the right configuration in the YAML file to connect to your cluster:
 
 ````bash
 kubectl apply -f k8s/benchmark.yaml
 ````
 
 
-# Todos
+# Todos and open issues
 
 - Extract stuff so that it can be used as library and provide an example (Benchmark Starter), own code for startzing and job completion (but recognize/handle backpressure)
 - Document properties and examples
   - Process Model from URL
   - Payload from URL
   - Pool Size Parameters
+- Add message correlation
 - Get information about job activation back pressure / Check if we need to look at JobActivation-Backoff?
 ```log
 09:19:23.695 [grpc-default-executor-168] WARN  io.camunda.zeebe.client.job.poller - Failed to activated jobs for worker default and job type benchmark-task-benchmarkStarter1

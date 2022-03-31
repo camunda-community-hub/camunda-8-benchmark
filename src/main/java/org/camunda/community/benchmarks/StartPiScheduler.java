@@ -112,9 +112,50 @@ public class StartPiScheduler {
     private static final double BACKPRESSURE_MAX_RATE_PER_SECOND_SMALL = 3;
     private static final long BACKPRESSURE_ADJUSTEMENT_AMOUNT_SMALL = 1;
 
+    private double lastRatio = 0;
+    //private boolean startingPhase = true;
+    private double bestRatio = 0;
+    private long bestStartRate = 0;
+
     @Scheduled(fixedDelay = 30000, initialDelay = 30000)
     public void adjustStartRates() {
+        adjustByUsingBackpressure();
+        //adjustByUsingJobCompletionRatio();
+    }
 
+    public void adjustByUsingJobCompletionRatio() {
+        // TODO! This does not yield good results and need more thoughts
+
+        // Calculate current ration jobCompletion/startRate
+        double ratio = stats.getCompletedJobsMeter().getOneMinuteRate() / stats.getStartedPiMeter().getOneMinuteRate();
+
+        if (ratio >= bestRatio) {
+            bestRatio = ratio;
+            LOG.info("Found better ratio: "+ratio+" (instead of "+bestRatio+"). Remember start rate " + piStartedGoal);
+            bestStartRate = piStartedGoal;
+        } else {
+            LOG.info("Ratio is getting worse: "+ratio+" (instead of "+bestRatio+"). Set original start rate " + bestStartRate);
+            adjustStartRateBy( bestStartRate );
+        }
+
+        // Compare against last minute rate
+        if (ratio - 0.5 <= config.getTaskPiRatio()) { // keep slightly bigger then 0 to make sure we are going to the limit and not stay in a relaxed rate that fulfills the ratio
+            // if it drops - go back in start rate
+            long rate = Math.round(Math.ceil(config.getStartPiPerSecond()/10));
+            //LOG.info("Job/PI ratio dropped from "+lastRatio+" to "+ratio+", decrease start rate by " + rate );
+            LOG.info("Task/PI too low: "+ratio+", increase start rate by " + rate );
+            adjustStartRateBy( rate );
+        } else {
+            // otherwise increase start rate
+            long rate = Math.round(Math.ceil(config.getStartPiPerSecond()/10));
+            //LOG.info("Job/PI ratio increased from "+lastRatio+" to "+ratio+", increase start rate by " + rate );
+            LOG.info("Task/PI too high: "+ratio+", decrease start rate by " + rate );
+            adjustStartRateBy( -1 * rate );
+        }
+        lastRatio = ratio;
+    }
+
+    public void adjustByUsingBackpressure() {
         // Handle "almost no backressure" as special case with small numbers
         if (stats.getBackpressureOnStartPiMeter().getOneMinuteRate() < 1) {
             // increase it by bigger junk (10% of goal)
@@ -136,6 +177,14 @@ public class StartPiScheduler {
                 adjustStartRateBy(rate);
             }
         }
+    }
+
+    private void adjustStartRateTo(long amount) {
+        long newGoal =  amount;
+        if (newGoal<=0) {
+            newGoal = 1;
+        }
+        calculateParameters(newGoal);
     }
 
     private void adjustStartRateBy(long amount) {

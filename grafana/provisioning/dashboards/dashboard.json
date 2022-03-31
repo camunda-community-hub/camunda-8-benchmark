@@ -142,7 +142,35 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "PI Completed",
+                  "PI Started",
+                  "Jobs Completed",
+                  "Task/PI Ratio"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -209,6 +237,18 @@
           "interval": "",
           "legendFormat": "PI Completed",
           "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "rate(jobs_completed_total[1m]) / rate(pi_started_total[1m])",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "Task/PI Ratio",
+          "refId": "E"
         }
       ],
       "title": "Rates [m]",
@@ -371,6 +411,7 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -383,10 +424,13 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
               }
             ]
-          },
-          "unit": "short"
+          }
         },
         "overrides": []
       },
@@ -396,9 +440,9 @@
         "x": 0,
         "y": 15
       },
-      "id": 6,
+      "id": 24,
       "options": {
-        "colorMode": "none",
+        "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -419,48 +463,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "exemplar": true,
-          "expr": "sum(pi_started_total)",
+          "expr": "rate(jobs_completed_total[1m]) / rate(pi_started_total[1m])",
           "interval": "",
-          "legendFormat": "PI",
+          "legendFormat": "",
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "exemplar": true,
-          "expr": "sum(pi_exception_total)",
-          "hide": false,
-          "interval": "",
-          "legendFormat": "Errors",
-          "refId": "B"
         }
       ],
-      "title": "Started PI in total in range",
-      "transformations": [
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "PI without errors",
-            "binary": {
-              "left": "PI",
-              "operator": "-",
-              "reducer": "sum",
-              "right": "Errors"
-            },
-            "mode": "binary",
-            "reduce": {
-              "include": [
-                "PI",
-                "error"
-              ],
-              "reducer": "diff"
-            },
-            "replaceFields": true
-          }
-        }
-      ],
+      "title": "Jobs / PI Ratio",
       "type": "stat"
     },
     {
@@ -647,6 +656,103 @@
       "fieldConfig": {
         "defaults": {
           "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 7,
+        "x": 0,
+        "y": 23
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.3.4",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "sum(pi_started_total)",
+          "interval": "",
+          "legendFormat": "PI",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": true,
+          "expr": "sum(pi_exception_total)",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "Errors",
+          "refId": "B"
+        }
+      ],
+      "title": "Started PI in total in range",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "PI without errors",
+            "binary": {
+              "left": "PI",
+              "operator": "-",
+              "reducer": "sum",
+              "right": "Errors"
+            },
+            "mode": "binary",
+            "reduce": {
+              "include": [
+                "PI",
+                "error"
+              ],
+              "reducer": "diff"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
             "mode": "palette-classic"
           },
           "custom": {
@@ -697,7 +803,7 @@
       "gridPos": {
         "h": 8,
         "w": 9,
-        "x": 0,
+        "x": 7,
         "y": 23
       },
       "id": 16,
@@ -787,8 +893,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 15,
-        "x": 9,
+        "w": 8,
+        "x": 16,
         "y": 23
       },
       "id": 22,
@@ -834,6 +940,6 @@
   "timezone": "",
   "title": "Benchmark",
   "uid": "VEPGQXPnk",
-  "version": 3,
+  "version": 4,
   "weekStart": ""
 }

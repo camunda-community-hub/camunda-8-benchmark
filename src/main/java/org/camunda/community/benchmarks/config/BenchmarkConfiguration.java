@@ -24,6 +24,16 @@ public class BenchmarkConfiguration {
     private double startPiReduceFactor = 0.4;
     private double startPiIncreaseFactor = 0.4;
 
+    private int taskPiRatio;
+
+    public int getTaskPiRatio() {
+        return taskPiRatio;
+    }
+
+    public void setTaskPiRatio(int taskPiRatio) {
+        this.taskPiRatio = taskPiRatio;
+    }
+
     public String getPayloadPath() {
         return payloadPath;
     }
