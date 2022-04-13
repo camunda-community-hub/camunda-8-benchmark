@@ -1,6 +1,6 @@
-# Camunda Cloud Benchmark Starter
+# Camunda 8 Benchmark Starter
 
-Spring Boot project to run benchmarks on Camunda Cloud.
+Spring Boot project to run benchmarks on Camunda Platform 8.
 
 The project 
 
@@ -20,7 +20,7 @@ mvn spring-boot:run
 
 Or 
 ```bash
-docker run berndruecker/camunda-cloud-benchmark:main
+docker run berndruecker/camunda-8-benchmark:main
 ```
 
 You can configure 
@@ -96,7 +96,7 @@ Normally you simply configure the task type via the modeler:
 
 ## Configuration Properties
 
-See https://github.com/camunda-community-hub/camunda-cloud-benchmark/blob/main/src/main/resources/application.properties
+See https://github.com/camunda-community-hub/camunda-8-benchmark/blob/main/src/main/resources/application.properties
 
 
 ## Thoughts on load generation

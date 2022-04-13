@@ -1,39 +1,39 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: camunda-cloud-benchmark
+  name: camunda-8-benchmark
   labels:
-    app: camunda-cloud-benchmark
+    app: camunda-8-benchmark
 spec:
   selector:
     matchLabels:
-      app: camunda-cloud-benchmark
-  replicas: 5
+      app: camunda-8-benchmark
+  replicas: 1
   template:
     metadata:
       labels:
-        app: camunda-cloud-benchmark
+        app: camunda-8-benchmark
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8088"
         prometheus.io/path: "/actuator/prometheus"
     spec:
       containers:
-        - name: camunda-cloud-benchmark
-          image: berndruecker/camunda-cloud-benchmark:main
+        - name: camunda-8-benchmark
+          image: berndruecker/camunda-8-benchmark:main
           imagePullPolicy: Always
           env:
             - name: JAVA_OPTIONS
               value: >-
-                -Dzeebe.client.cloud.cluster-id=d2650c1c-c6c5-4a1f-bebb-3f004a96c646
-                -Dzeebe.client.cloud.client-id=8I7vmH8J7Nxr8wX_1ohIzXw7kQdn-UcD
-                -Dzeebe.client.cloud.client-secret=Z.kUWxf1kbSXfg-2PV2pqx.eUQU2hDm.SYbsR9FdLNFCexAtPeOFies8.~EiLrbT
+                -Dzeebe.client.cloud.cluster-id=a75eec75-1548-473f-a517-df2808d7f39b
+                -Dzeebe.client.cloud.client-id=VR6BjC8GFvl2feHFiWaCnwMlm4kHIx-S
+                -Dzeebe.client.cloud.client-secret=u1i.Pr1dYbQ3Drf_mciHVLRXHs4Or-MawK8XF0lVRDuTKQz0MJmU_egXZI.VzRzl
                 -Dzeebe.client.cloud.region=bru-3
                 -Dzeebe.client.cloud.baseUrl=zeebe.ultrawombat.com
                 -Dzeebe.client.worker.max-jobs-active=1000
                 -Dzeebe.client.cloud.port=443
                 -Dzeebe.client.cloud.authUrl=https://login.cloud.ultrawombat.com/oauth/token
-                -Dbenchmark.startPiPerSecond=25
+                -Dbenchmark.startPiPerSecond=200
                 -Dbenchmark.taskCompletionDelay=10
                 -Dbenchmark.bpmnProcessId=benchmark
                 -Dbenchmark.jobType=benchmark-task
@@ -53,11 +53,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: camunda-cloud-benchmark
+  name: camunda-8-benchmark
 
 spec:
   selector:
-    app: camunda-cloud-benchmark
+    app: camunda-8-benchmark
   ports:
     - port: 8088
       targetPort: 8088
