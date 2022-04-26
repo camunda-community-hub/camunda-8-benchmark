@@ -20,11 +20,21 @@ public class BenchmarkConfiguration {
     private Resource bpmnResource;
     private boolean autoDeployProcess = true;
 
+    private long warmupPhaseDurationMillis = 0;
+
     private double maxBackpressurePercentage = 10;
     private double startPiReduceFactor = 0.4;
     private double startPiIncreaseFactor = 0.4;
 
     private int taskPiRatio;
+
+    public long getWarmupPhaseDurationMillis() {
+        return warmupPhaseDurationMillis;
+    }
+
+    public void setWarmupPhaseDurationMillis(long warmupPhaseDurationMillis) {
+        this.warmupPhaseDurationMillis = warmupPhaseDurationMillis;
+    }
 
     public int getTaskPiRatio() {
         return taskPiRatio;

@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.time.Instant;
 
 @Component
 public class StartPiScheduler {
@@ -117,8 +118,25 @@ public class StartPiScheduler {
     private double bestRatio = 0;
     private long bestStartRate = 0;
 
+    private long warmupPhaseEndMillis;
+
+    /**
+     * Every 30 seconds the start rate might be adjusted based on the configured algorithm.
+     * This starts after an initial warm-up-phase that can be configured.
+     */
     @Scheduled(fixedDelay = 30000, initialDelay = 30000)
     public void adjustStartRates() {
+        if (config.getWarmupPhaseDurationMillis() > 0 ) {
+            if (warmupPhaseEndMillis == 0) {
+                warmupPhaseEndMillis = Instant.now().toEpochMilli() + config.getWarmupPhaseDurationMillis();
+            }
+            // skip adjustment, if warmup phase is not yet finished
+            if (Instant.now().toEpochMilli() < warmupPhaseEndMillis) {
+                LOG.info("Benchmark is still in warmup phase");
+                return;
+            }
+        }
+
         adjustByUsingBackpressure();
         //adjustByUsingJobCompletionRatio();
     }
