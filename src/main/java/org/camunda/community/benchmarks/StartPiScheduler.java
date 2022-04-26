@@ -137,8 +137,15 @@ public class StartPiScheduler {
             }
         }
 
-        adjustByUsingBackpressure();
-        //adjustByUsingJobCompletionRatio();
+        if ("none".equals(config.getStartRateAdjustmentStrategy())) {
+            LOG.info("Start rate is fixed and will not be adjusted");
+        } else if ("backpressure".equals(config.getStartRateAdjustmentStrategy())) {
+            adjustByUsingBackpressure();
+        } else if ("jobRatio".equals(config.getStartRateAdjustmentStrategy())) {
+            adjustByUsingJobCompletionRatio();
+        } else {
+            throw new RuntimeException("Invalid value for startRateAdjustmentStrategy: " + config.getStartRateAdjustmentStrategy());
+        }
     }
 
     public void adjustByUsingJobCompletionRatio() {

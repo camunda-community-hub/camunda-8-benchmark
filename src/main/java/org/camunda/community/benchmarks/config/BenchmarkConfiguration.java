@@ -21,12 +21,21 @@ public class BenchmarkConfiguration {
     private boolean autoDeployProcess = true;
 
     private long warmupPhaseDurationMillis = 0;
+    private String startRateAdjustmentStrategy="backpressure";
 
     private double maxBackpressurePercentage = 10;
     private double startPiReduceFactor = 0.4;
     private double startPiIncreaseFactor = 0.4;
 
     private int taskPiRatio;
+
+    public String getStartRateAdjustmentStrategy() {
+        return startRateAdjustmentStrategy;
+    }
+
+    public void setStartRateAdjustmentStrategy(String startRateAdjustmentStrategy) {
+        this.startRateAdjustmentStrategy = startRateAdjustmentStrategy;
+    }
 
     public long getWarmupPhaseDurationMillis() {
         return warmupPhaseDurationMillis;
