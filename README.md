@@ -8,6 +8,7 @@ The project
 * The rate will be adjusted based on backpressure, so it should find a sustainable starter rate automatically
 * Completes tasks in the processes
 
+You can find a blog post describing this benchmarks in more detail here: [How to Benchmark Your Camunda 8 Cluster](https://blog.bernd-ruecker.com/how-to-benchmark-your-camunda-8-cluster-48ada4b047b6).
 
 # How-to run
 
