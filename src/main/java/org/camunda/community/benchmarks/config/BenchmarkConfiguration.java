@@ -17,7 +17,7 @@ public class BenchmarkConfiguration {
     private long taskCompletionDelay = 200;
     private String bpmnProcessId = "benchmark";
     private String payloadPath = "bpmn/typical_payload.json";
-    private Resource bpmnResource;
+    private Resource[] bpmnResource;
     private boolean autoDeployProcess = true;
 
     private long warmupPhaseDurationMillis = 0;
@@ -122,11 +122,11 @@ public class BenchmarkConfiguration {
         this.autoDeployProcess = autoDeployProcess;
     }
 
-    public Resource getBpmnResource() {
+    public Resource[] getBpmnResource() {
         return bpmnResource;
     }
 
-    public void setBpmnResource(Resource bpmnResource) {
+    public void setBpmnResource(Resource[] bpmnResource) {
         this.bpmnResource = bpmnResource;
     }
 
