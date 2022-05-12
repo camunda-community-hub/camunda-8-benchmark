@@ -31,9 +31,9 @@
     <bpmn:sequenceFlow id="Flow_1kedjft" sourceRef="StartEvent_1" targetRef="Event_1orpd24" />
     <bpmn:sequenceFlow id="Flow_1mqocbt" sourceRef="Event_1orpd24" targetRef="Activity_1ab9tjw" />
     <bpmn:endEvent id="Event_1hr99hk">
-      <bpmn:incoming>Flow_0vsr9m0</bpmn:incoming>
+      <bpmn:incoming>Flow_147jeh7</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_0vsr9m0" sourceRef="Activity_1ab9tjw" targetRef="Event_1hr99hk" />
+    <bpmn:sequenceFlow id="Flow_0vsr9m0" sourceRef="Activity_1ab9tjw" targetRef="task10" />
     <bpmn:intermediateCatchEvent id="Event_1orpd24" name="5S">
       <bpmn:incoming>Flow_1kedjft</bpmn:incoming>
       <bpmn:outgoing>Flow_1mqocbt</bpmn:outgoing>
@@ -41,12 +41,20 @@
         <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT5S</bpmn:timeDuration>
       </bpmn:timerEventDefinition>
     </bpmn:intermediateCatchEvent>
+    <bpmn:serviceTask id="task10" name="Process Instance Completion Marker">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="= &#34;benchmark-task-&#34; + benchmark_starter_id + &#34;-completed&#34;" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0vsr9m0</bpmn:incoming>
+      <bpmn:outgoing>Flow_147jeh7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_147jeh7" sourceRef="task10" targetRef="Event_1hr99hk" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="benchmark-complex">
       <bpmndi:BPMNEdge id="Flow_0vsr9m0_di" bpmnElement="Flow_0vsr9m0">
-        <di:waypoint x="690" y="150" />
-        <di:waypoint x="732" y="150" />
+        <di:waypoint x="690" y="160" />
+        <di:waypoint x="740" y="160" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1mqocbt_di" bpmnElement="Flow_1mqocbt">
         <di:waypoint x="308" y="150" />
@@ -56,11 +64,19 @@
         <di:waypoint x="215" y="150" />
         <di:waypoint x="272" y="150" />
       </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_147jeh7_di" bpmnElement="Flow_147jeh7">
+        <di:waypoint x="840" y="160" />
+        <di:waypoint x="892" y="160" />
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
         <dc:Bounds x="179" y="132" width="36" height="36" />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_0iryuae_di" bpmnElement="task10">
+        <dc:Bounds x="740" y="120" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_1hr99hk_di" bpmnElement="Event_1hr99hk">
-        <dc:Bounds x="732" y="132" width="36" height="36" />
+        <dc:Bounds x="892" y="142" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1ab9tjw_di" bpmnElement="Activity_1ab9tjw" isExpanded="true">
         <dc:Bounds x="340" y="80" width="350" height="140" />
