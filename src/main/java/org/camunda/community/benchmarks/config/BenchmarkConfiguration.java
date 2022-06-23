@@ -14,6 +14,7 @@ public class BenchmarkConfiguration {
 
     private long startPiPerSecond = 500;
     private String jobType = "benchmark-task";
+    private int multipleJobTypes = 0;
     private long taskCompletionDelay = 200;
     private String bpmnProcessId = "benchmark";
     private String payloadPath = "bpmn/typical_payload.json";
@@ -76,6 +77,14 @@ public class BenchmarkConfiguration {
 
     public void setJobType(String jobType) {
         this.jobType = jobType;
+    }
+
+    public int getMultipleJobTypes() {
+        return multipleJobTypes;
+    }
+
+    public void setMultipleJobTypes(int multipleJobTypes) {
+        this.multipleJobTypes = multipleJobTypes;
     }
 
     public long getStartPiPerSecond() {
