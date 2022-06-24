@@ -48,37 +48,39 @@ public class JobWorker {
 
         Integer numberOfJobTypes = config.getMultipleJobTypes();
         if(numberOfJobTypes <= 0) {
+
             // worker for normal task type
             client.newWorker()
                     .jobType(taskType)
                     .handler(new SimpleDelayCompletionHandler(false))
                     .open();
+            // worker for normal "task-type-{starterId}"
+            client.newWorker()
+                    .jobType(taskType + "-" + config.getStarterId())
+                    .handler(new SimpleDelayCompletionHandler(false))
+                    .open();
+            // worker marking completion of process instance via "task-type-complete"
+            client.newWorker()
+                    .jobType(taskType + "-completed")
+                    .handler(new SimpleDelayCompletionHandler(true))
+                    .open();
+            // worker marking completion of process instance via "task-type-complete"
+            client.newWorker()
+                    .jobType(taskType + "-" + config.getStarterId() + "-completed")
+                    .handler(new SimpleDelayCompletionHandler(true))
+                    .open();
+
         } else {
+
             for(int i=0; i<numberOfJobTypes; i++) {
                 client.newWorker()
                         .jobType(taskType + "-" + (i+1))
                         .handler(new SimpleDelayCompletionHandler(false))
                         .open();
             }
+
         }
 
-        /*
-        // worker for normal "task-type-{starterId}"
-        client.newWorker()
-                .jobType(taskType + "-" + config.getStarterId())
-                .handler(new SimpleDelayCompletionHandler(false))
-                .open();
-        // worker marking completion of process instance via "task-type-complete"
-        client.newWorker()
-                .jobType(taskType + "-completed")
-                .handler(new SimpleDelayCompletionHandler(true))
-                .open();
-        // worker marking completion of process instance via "task-type-complete"
-        client.newWorker()
-                .jobType(taskType + "-" + config.getStarterId() + "-completed")
-                .handler(new SimpleDelayCompletionHandler(true))
-                .open();
-                */
     }
 
     public class SimpleDelayCompletionHandler implements JobHandler {
