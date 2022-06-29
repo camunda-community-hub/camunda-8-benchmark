@@ -30,6 +30,8 @@ public class BenchmarkConfiguration {
 
     private int taskPiRatio;
 
+    private long fixedBackOffDelay = 0;
+
     public String getStartRateAdjustmentStrategy() {
         return startRateAdjustmentStrategy;
     }
@@ -149,5 +151,13 @@ public class BenchmarkConfiguration {
 
     public void setStarterId(String starterId) {
         this.starterId = starterId;
+    }
+
+    public long getFixedBackOffDelay() {
+        return fixedBackOffDelay;
+    }
+
+    public void setFixedBackOffDelay(long fixedBackOffDelay) {
+        this.fixedBackOffDelay = fixedBackOffDelay;
     }
 }

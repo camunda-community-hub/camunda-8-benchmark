@@ -41,42 +41,46 @@ public class JobWorker {
     @Autowired
     private StatisticsCollector stats;
 
+    private void registerWorker(String jobType) {
+
+        long fixedBackOffDelay = config.getFixedBackOffDelay();
+
+        JobWorkerBuilderStep1.JobWorkerBuilderStep3 step3 = client.newWorker()
+                .jobType(jobType)
+                .handler(new SimpleDelayCompletionHandler(false));
+
+        if(fixedBackOffDelay > 0) {
+            step3.backoffSupplier(new FixedBackoffSupplier(fixedBackOffDelay));
+        }
+
+        step3.open();
+    }
+
     // Don't do @PostConstruct as this is too early in the Spring lifecycle
     //@PostConstruct
     public void startWorkers() {
         String taskType = config.getJobType();
 
-        Integer numberOfJobTypes = config.getMultipleJobTypes();
+        int numberOfJobTypes = config.getMultipleJobTypes();
+
         if(numberOfJobTypes <= 0) {
 
             // worker for normal task type
-            client.newWorker()
-                    .jobType(taskType)
-                    .handler(new SimpleDelayCompletionHandler(false))
-                    .open();
+            registerWorker(taskType);
+
             // worker for normal "task-type-{starterId}"
-            client.newWorker()
-                    .jobType(taskType + "-" + config.getStarterId())
-                    .handler(new SimpleDelayCompletionHandler(false))
-                    .open();
+            registerWorker(taskType + "-" + config.getStarterId());
+
             // worker marking completion of process instance via "task-type-complete"
-            client.newWorker()
-                    .jobType(taskType + "-completed")
-                    .handler(new SimpleDelayCompletionHandler(true))
-                    .open();
+            registerWorker(taskType + "-completed");
+
             // worker marking completion of process instance via "task-type-complete"
-            client.newWorker()
-                    .jobType(taskType + "-" + config.getStarterId() + "-completed")
-                    .handler(new SimpleDelayCompletionHandler(true))
-                    .open();
+            registerWorker(taskType + "-" + config.getStarterId() + "-completed");
 
         } else {
 
             for(int i=0; i<numberOfJobTypes; i++) {
-                client.newWorker()
-                        .jobType(taskType + "-" + (i+1))
-                        .handler(new SimpleDelayCompletionHandler(false))
-                        .open();
+                registerWorker(taskType + "-" + (i+1));
             }
 
         }
