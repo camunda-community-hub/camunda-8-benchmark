@@ -1,25 +1,20 @@
 package org.camunda.community.benchmarks;
 
 import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.api.JsonMapper;
 import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
 import io.camunda.zeebe.client.api.worker.JobWorkerBuilderStep1;
-import io.camunda.zeebe.spring.client.annotation.ZeebeWorker;
 import io.camunda.zeebe.spring.client.exception.ZeebeBpmnError;
 import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
-import io.camunda.zeebe.spring.client.jobhandling.JobHandlerInvokingSpringBeans;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import java.time.Duration;
 import java.time.Instant;
 
 @Component
@@ -61,26 +56,31 @@ public class JobWorker {
     public void startWorkers() {
         String taskType = config.getJobType();
 
+        boolean startWorkers = config.isStartWorkers();
         int numberOfJobTypes = config.getMultipleJobTypes();
 
-        if(numberOfJobTypes <= 0) {
+        if(startWorkers) {
 
-            // worker for normal task type
-            registerWorker(taskType);
+            if (numberOfJobTypes <= 0) {
 
-            // worker for normal "task-type-{starterId}"
-            registerWorker(taskType + "-" + config.getStarterId());
+                // worker for normal task type
+                registerWorker(taskType);
 
-            // worker marking completion of process instance via "task-type-complete"
-            registerWorker(taskType + "-completed");
+                // worker for normal "task-type-{starterId}"
+                registerWorker(taskType + "-" + config.getStarterId());
 
-            // worker marking completion of process instance via "task-type-complete"
-            registerWorker(taskType + "-" + config.getStarterId() + "-completed");
+                // worker marking completion of process instance via "task-type-complete"
+                registerWorker(taskType + "-completed");
 
-        } else {
+                // worker marking completion of process instance via "task-type-complete"
+                registerWorker(taskType + "-" + config.getStarterId() + "-completed");
 
-            for(int i=0; i<numberOfJobTypes; i++) {
-                registerWorker(taskType + "-" + (i+1));
+            } else {
+
+                for (int i = 0; i < numberOfJobTypes; i++) {
+                    registerWorker(taskType + "-" + (i + 1));
+                }
+
             }
 
         }

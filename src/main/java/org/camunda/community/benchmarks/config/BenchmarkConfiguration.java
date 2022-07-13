@@ -4,8 +4,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 
-import java.util.concurrent.TimeUnit;
-
 @Configuration
 @ConfigurationProperties(prefix = "benchmark")
 public class BenchmarkConfiguration {
@@ -15,6 +13,7 @@ public class BenchmarkConfiguration {
     private long startPiPerSecond = 500;
     private String jobType = "benchmark-task";
     private int multipleJobTypes = 0;
+    private boolean startWorkers = true;
     private long taskCompletionDelay = 200;
     private String bpmnProcessId = "benchmark";
     private String payloadPath = "bpmn/typical_payload.json";
@@ -87,6 +86,14 @@ public class BenchmarkConfiguration {
 
     public void setMultipleJobTypes(int multipleJobTypes) {
         this.multipleJobTypes = multipleJobTypes;
+    }
+
+    public boolean isStartWorkers() {
+        return startWorkers;
+    }
+
+    public void setStartWorkers(boolean startWorkers) {
+        this.startWorkers = startWorkers;
     }
 
     public long getStartPiPerSecond() {
