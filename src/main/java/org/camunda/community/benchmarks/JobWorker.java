@@ -1,25 +1,20 @@
 package org.camunda.community.benchmarks;
 
 import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.api.JsonMapper;
 import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
 import io.camunda.zeebe.client.api.worker.JobWorkerBuilderStep1;
-import io.camunda.zeebe.spring.client.annotation.ZeebeWorker;
 import io.camunda.zeebe.spring.client.exception.ZeebeBpmnError;
 import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
-import io.camunda.zeebe.spring.client.jobhandling.JobHandlerInvokingSpringBeans;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import java.time.Duration;
 import java.time.Instant;
 
 @Component
@@ -41,31 +36,55 @@ public class JobWorker {
     @Autowired
     private StatisticsCollector stats;
 
+    private void registerWorker(String jobType) {
+
+        long fixedBackOffDelay = config.getFixedBackOffDelay();
+
+        JobWorkerBuilderStep1.JobWorkerBuilderStep3 step3 = client.newWorker()
+                .jobType(jobType)
+                .handler(new SimpleDelayCompletionHandler(false));
+
+        if(fixedBackOffDelay > 0) {
+            step3.backoffSupplier(new FixedBackoffSupplier(fixedBackOffDelay));
+        }
+
+        step3.open();
+    }
+
     // Don't do @PostConstruct as this is too early in the Spring lifecycle
     //@PostConstruct
     public void startWorkers() {
         String taskType = config.getJobType();
 
-        // worker for normal task type
-        client.newWorker()
-                .jobType(taskType)
-                .handler(new SimpleDelayCompletionHandler(false))
-                .open();
-        // worker for normal "task-type-{starterId}"
-        client.newWorker()
-                .jobType(taskType + "-" + config.getStarterId())
-                .handler(new SimpleDelayCompletionHandler(false))
-                .open();
-        // worker marking completion of process instance via "task-type-complete"
-        client.newWorker()
-                .jobType(taskType + "-completed")
-                .handler(new SimpleDelayCompletionHandler(true))
-                .open();
-        // worker marking completion of process instance via "task-type-complete"
-        client.newWorker()
-                .jobType(taskType + "-" + config.getStarterId() + "-completed")
-                .handler(new SimpleDelayCompletionHandler(true))
-                .open();
+        boolean startWorkers = config.isStartWorkers();
+        int numberOfJobTypes = config.getMultipleJobTypes();
+
+        if(startWorkers) {
+
+            if (numberOfJobTypes <= 0) {
+
+                // worker for normal task type
+                registerWorker(taskType);
+
+                // worker for normal "task-type-{starterId}"
+                registerWorker(taskType + "-" + config.getStarterId());
+
+                // worker marking completion of process instance via "task-type-complete"
+                registerWorker(taskType + "-completed");
+
+                // worker marking completion of process instance via "task-type-complete"
+                registerWorker(taskType + "-" + config.getStarterId() + "-completed");
+
+            } else {
+
+                for (int i = 0; i < numberOfJobTypes; i++) {
+                    registerWorker(taskType + "-" + (i + 1));
+                }
+
+            }
+
+        }
+
     }
 
     public class SimpleDelayCompletionHandler implements JobHandler {
