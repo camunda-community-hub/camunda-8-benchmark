@@ -4,8 +4,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 
-import java.util.concurrent.TimeUnit;
-
 @Configuration
 @ConfigurationProperties(prefix = "benchmark")
 public class BenchmarkConfiguration {
@@ -14,6 +12,8 @@ public class BenchmarkConfiguration {
 
     private long startPiPerSecond = 500;
     private String jobType = "benchmark-task";
+    private int multipleJobTypes = 0;
+    private boolean startWorkers = true;
     private long taskCompletionDelay = 200;
     private String bpmnProcessId = "benchmark";
     private String payloadPath = "bpmn/typical_payload.json";
@@ -28,6 +28,8 @@ public class BenchmarkConfiguration {
     private double startPiIncreaseFactor = 0.4;
 
     private int taskPiRatio;
+
+    private long fixedBackOffDelay = 0;
 
     public String getStartRateAdjustmentStrategy() {
         return startRateAdjustmentStrategy;
@@ -76,6 +78,22 @@ public class BenchmarkConfiguration {
 
     public void setJobType(String jobType) {
         this.jobType = jobType;
+    }
+
+    public int getMultipleJobTypes() {
+        return multipleJobTypes;
+    }
+
+    public void setMultipleJobTypes(int multipleJobTypes) {
+        this.multipleJobTypes = multipleJobTypes;
+    }
+
+    public boolean isStartWorkers() {
+        return startWorkers;
+    }
+
+    public void setStartWorkers(boolean startWorkers) {
+        this.startWorkers = startWorkers;
     }
 
     public long getStartPiPerSecond() {
@@ -140,5 +158,13 @@ public class BenchmarkConfiguration {
 
     public void setStarterId(String starterId) {
         this.starterId = starterId;
+    }
+
+    public long getFixedBackOffDelay() {
+        return fixedBackOffDelay;
+    }
+
+    public void setFixedBackOffDelay(long fixedBackOffDelay) {
+        this.fixedBackOffDelay = fixedBackOffDelay;
     }
 }
