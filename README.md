@@ -32,10 +32,12 @@ You can configure
 The most common parameters to adjust are:
 
 - The BPMN process model itself, which might also mean you have to adjust the bpmnProcessId of processes being started and the taskType of service tasks being worked on.
-- The taskCompletionDelay, simulating how long a service task typically takes.
-- The payload, which shall be passed to your process instances.
-- The processInstanceStartRate to begin with. While this is adjusted, a realistic start value makes the benchmark quicker to yield a stable result.
-
+- The `taskCompletionDelay`, simulating how long a service task typically takes.
+- The `payload`, which shall be passed to your process instances.
+- The `processInstanceStartRate` to begin with. While this is adjusted, a realistic start value makes the benchmark quicker to yield a stable result.
+- If workers shall be started (`startWorkers`). If set to false, the benchmark will only start process instances, not start any workers.
+- If all jobs shall be of the same type, of if multiple types will be used (`multipleJobTypes`). If set to 0, only one worker is started for job type `benchmark-task` (unless the name is overwritten), otherwise, there is the configured number of workers started, e.g. if set to 2, it will start workers for `benchmark-test-1` and `benchmark-test-2`. We noticed that changing to use a 8 unique job types (different job type for each service task) allowed the gateway to distribute the work more evenly across brokers. There is a measurable improvement in performance and it is more realistic, so it is actually recommended.
+- `fixedBackOffDelay`:  When set to 0, will default to Exponential Backoff Delay. Otherwise, specify fixed number of millis backoff
  
 # Define your process
 

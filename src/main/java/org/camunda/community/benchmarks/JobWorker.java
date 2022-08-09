@@ -60,31 +60,28 @@ public class JobWorker {
         int numberOfJobTypes = config.getMultipleJobTypes();
 
         if(startWorkers) {
-
             if (numberOfJobTypes <= 0) {
-
-                // worker for normal task type
-                registerWorker(taskType);
-
-                // worker for normal "task-type-{starterId}"
-                registerWorker(taskType + "-" + config.getStarterId());
-
-                // worker marking completion of process instance via "task-type-complete"
-                registerWorker(taskType + "-completed");
-
-                // worker marking completion of process instance via "task-type-complete"
-                registerWorker(taskType + "-" + config.getStarterId() + "-completed");
-
+                registerWorkersForTaskType(taskType);
             } else {
-
                 for (int i = 0; i < numberOfJobTypes; i++) {
-                    registerWorker(taskType + "-" + (i + 1));
+                    registerWorkersForTaskType(taskType + "-" + (i + 1));
                 }
-
             }
-
         }
+    }
 
+    private void registerWorkersForTaskType(String taskType) {
+        // worker for normal task type
+        registerWorker(taskType);
+
+        // worker for normal "task-type-{starterId}"
+        registerWorker(taskType + "-" + config.getStarterId());
+
+        // worker marking completion of process instance via "task-type-complete"
+        registerWorker(taskType + "-completed");
+
+        // worker marking completion of process instance via "task-type-complete"
+        registerWorker(taskType + "-" + config.getStarterId() + "-completed");
     }
 
     public class SimpleDelayCompletionHandler implements JobHandler {
