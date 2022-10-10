@@ -37,7 +37,7 @@ spec:
                 -Dbenchmark.taskCompletionDelay=10
                 -Dbenchmark.bpmnProcessId=benchmark
                 -Dbenchmark.jobType=benchmark-task
-                -Dbenchmark.payloadPath=bpmn/typical_payload.json
+                -Dbenchmark.payloadPath=classpath:bpmn/typical_payload.json
                 -Dbenchmark.autoDeployProcess=true                
                 -Dbenchmark.maxBackpressurePercentage=10.0
                 -Dbenchmark.startPiReduceFactor=1

@@ -3,6 +3,7 @@ package org.camunda.community.benchmarks.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 
 @Configuration
 @ConfigurationProperties(prefix = "benchmark")
@@ -16,7 +17,7 @@ public class BenchmarkConfiguration {
     private boolean startWorkers = true;
     private long taskCompletionDelay = 200;
     private String bpmnProcessId = "benchmark";
-    private String payloadPath = "bpmn/typical_payload.json";
+    private Resource payloadPath; // = new UrlResource("classpath:bpmn/typical_payload.json");
     private Resource[] bpmnResource;
     private boolean autoDeployProcess = true;
 
@@ -55,11 +56,11 @@ public class BenchmarkConfiguration {
         this.taskPiRatio = taskPiRatio;
     }
 
-    public String getPayloadPath() {
+    public Resource getPayloadPath() {
         return payloadPath;
     }
 
-    public void setPayloadPath(String payloadPath) {
+    public void setPayloadPath(Resource payloadPath) {
         this.payloadPath = payloadPath;
     }
 

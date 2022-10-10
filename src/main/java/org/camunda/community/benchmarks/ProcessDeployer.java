@@ -39,7 +39,7 @@ public class ProcessDeployer {
                 }
                 deployResourceCommand.send().join();
             } catch (Exception ex) {
-                throw new RuntimeException("Could not read resources for deployment: " + ex.getMessage(), ex);
+                throw new RuntimeException("Could not deploy to Zeebe: " + ex.getMessage(), ex);
             }
         }
     }

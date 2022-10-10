@@ -40,8 +40,17 @@ The most common parameters to adjust are:
 - If workers shall be started (`startWorkers`). If set to false, the benchmark will only start process instances, not start any workers.
 - If all jobs shall be of the same type, of if multiple types will be used (`multipleJobTypes`). If set to 0, only one worker is started for job type `benchmark-task` (unless the name is overwritten), otherwise, there is the configured number of workers started, e.g. if set to 2, it will start workers for `benchmark-test-1` and `benchmark-test-2`. We noticed that changing to use a 8 unique job types (different job type for each service task) allowed the gateway to distribute the work more evenly across brokers. There is a measurable improvement in performance and it is more realistic, so it is actually recommended.
 - `fixedBackOffDelay`:  When set to 0, will default to Exponential Backoff Delay. Otherwise, specify fixed number of millis backoff
- 
-# Define your process
+- `startRateAdjustmentStrategy` can be `backoff` or `none` - when set to none, the start rate is constant  
+
+# Define your process and payload
+
+You can define your own models and payload. You could for example create a public Gist on Github to directly use it, for example:
+
+```properties
+benchmark.bpmnResource=url:https://gist.githubusercontent.com/berndruecker/7a40738c43de5886b42c910cc91fd866/raw/66d5250be962f9b8083be9b0431ceced4988d902/bpmn-for-dmn-benchmark.bpmn,classpath:bpmn/complex_decision.dmn
+benchmark.bpmnProcessId=benchmark-dmn
+benchmark.payloadPath=url:https://gist.githubusercontent.com/berndruecker/ec94642075548d2c84404336d77ea6f1/raw/11cd080fd387c2de64e0e718bedf25f4412f0981/data.json
+```
 
 ## Typical process
 

@@ -39,8 +39,8 @@ public class StartPiExecutor {
     private Map<String, Object> benchmarkPayload;
 
     @PostConstruct
-    public void init() {
-        String variablesJsonString = readVariables(config.getPayloadPath());
+    public void init() throws IOException {
+        String variablesJsonString = tryReadVariables(config.getPayloadPath().getInputStream());
         benchmarkPayload = zeebeClientConfiguration.getJsonMapper().fromJsonAsMap(variablesJsonString);
     }
 
@@ -63,22 +63,6 @@ public class StartPiExecutor {
         command.executeAsync();
     }
 
-    protected String readVariables(final String payloadPath) {
-        try {
-            final var classLoader = StartPiExecutor.class.getClassLoader();
-            try (final InputStream fromResource = classLoader.getResourceAsStream(payloadPath)) {
-                if (fromResource != null) {
-                    return tryReadVariables(fromResource);
-                }
-                // unable to find from resources, try as regular file
-                try (final InputStream fromFile = new FileInputStream(payloadPath)) {
-                    return tryReadVariables(fromFile);
-                }
-            }
-        } catch (final IOException e) {
-            throw new UncheckedExecutionException(e);
-        }
-    }
     private String tryReadVariables(final InputStream inputStream) throws IOException {
         final StringBuilder stringBuilder = new StringBuilder();
         try (final InputStreamReader reader = new InputStreamReader(inputStream)) {
