@@ -11,6 +11,7 @@ public class BenchmarkConfiguration {
 
     private String starterId = "benchmarkStarter1";
 
+    private boolean startProcesses = true;
     private long startPiPerSecond = 500;
     private String jobType = "benchmark-task";
     private int multipleJobTypes = 0;
@@ -31,6 +32,10 @@ public class BenchmarkConfiguration {
     private int taskPiRatio;
 
     private long fixedBackOffDelay = 0;
+    
+    private Resource messageScenario;
+    private long messagesPerSecond;
+    private long messagesTotal;
 
     public String getStartRateAdjustmentStrategy() {
         return startRateAdjustmentStrategy;
@@ -167,5 +172,36 @@ public class BenchmarkConfiguration {
 
     public void setFixedBackOffDelay(long fixedBackOffDelay) {
         this.fixedBackOffDelay = fixedBackOffDelay;
+    }
+    public boolean isStartProcesses() {
+      return startProcesses;
+    }
+
+    public void setStartProcesses(boolean startProcesses) {
+      this.startProcesses = startProcesses;
+    }
+
+    public Resource getMessageScenario() {
+      return messageScenario;
+    }
+
+    public void setMessageScenario(Resource messageScenario) {
+      this.messageScenario = messageScenario;
+    }
+
+    public long getMessagesPerSecond() {
+      return messagesPerSecond;
+    }
+
+    public void setMessagesPerSecond(long messagesPerSecond) {
+      this.messagesPerSecond = messagesPerSecond;
+    }
+
+    public long getMessagesTotal() {
+      return messagesTotal;
+    }
+
+    public void setMessagesTotal(long messagesTotal) {
+      this.messagesTotal = messagesTotal;
     }
 }
