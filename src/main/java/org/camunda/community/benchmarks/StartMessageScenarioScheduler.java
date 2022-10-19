@@ -32,7 +32,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 @ConditionalOnProperty(name = "benchmark.messageScenario", matchIfMissing = false)
 public class StartMessageScenarioScheduler {
 
-  private static final Logger LOG = LoggerFactory.getLogger(StartPiScheduler.class);
+  private static final Logger LOG = LoggerFactory.getLogger(StartMessageScenarioScheduler.class);
 
   @Autowired
   private BenchmarkConfiguration config;
@@ -64,6 +64,10 @@ public class StartMessageScenarioScheduler {
       MessagesScenario pendingScenario = pending.getValue();
       Message message = pendingScenario.getMessageSequence().get(pendingScenario.getCurrentPosition());
       Map<String, Object> variables = message.getVariables();
+      if (variables.containsKey("transactionId")) {
+        String transactionId = (String) variables.get("transactionId");
+        variables.put("transactionId", transactionId.replace("${COUNT}", String.valueOf(counter)));
+      }
       if (variables.containsKey("parcelIds")) {
         List<String> parcels = (List<String>) variables.get("parcelIds");
         variables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", String.valueOf(counter))));
