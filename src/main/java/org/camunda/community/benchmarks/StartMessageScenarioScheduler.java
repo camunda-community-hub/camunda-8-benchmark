@@ -19,6 +19,7 @@ import org.camunda.community.benchmarks.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +29,7 @@ import com.fasterxml.jackson.databind.DatabindException;
 import io.camunda.zeebe.client.ZeebeClient;
 
 @Component
+@ConditionalOnProperty(name = "benchmark.messageScenario", matchIfMissing = false)
 public class StartMessageScenarioScheduler {
 
   private static final Logger LOG = LoggerFactory.getLogger(StartPiScheduler.class);
@@ -53,7 +55,7 @@ public class StartMessageScenarioScheduler {
     
   }
   
-  //every 1000ms
+  //every 100ms
   @Scheduled(fixedRate = 100, initialDelay = 2000)
   public void startSomeProcessInstances() {
     Set<Long> toBeRemoved = new HashSet<>();
@@ -70,7 +72,7 @@ public class StartMessageScenarioScheduler {
           .newPublishMessageCommand()
           .messageName(message.getMessageName())
           .correlationKey(message.getCorrelationKey().replace("${COUNT}", String.valueOf(counter)))
-          .timeToLive(Duration.ofSeconds(30))
+          .timeToLive(Duration.ofSeconds(45))
           .variables(variables)
           .send();
       pendingScenario.incrementPosition();
