@@ -43,7 +43,8 @@ public class StartMessageScenarioScheduler {
   private MessagesScenario scenario;
   
   private Map<Long, MessagesScenario> pendingScenarios = new HashMap<>();
-  
+ 
+  private long nbScenario=0;
   private long scenarioPerDecisecond=0;
   
   private AtomicLong scenarioCounter = new AtomicLong(0);
@@ -55,7 +56,7 @@ public class StartMessageScenarioScheduler {
   public void init() throws StreamReadException, DatabindException, IOException {
     scenario = JsonUtils.fromJsonFile(config.getMessageScenario().getFile(), MessagesScenario.class);
     scenarioPerDecisecond = config.getMessagesPerSecond() / (scenario.getMessageSequence().size()*10);
-    
+    nbScenario = config.getMessagesTotal() / scenario.getMessageSequence().size();
   }
   
   //every 100ms
@@ -77,7 +78,7 @@ public class StartMessageScenarioScheduler {
     for(Long toRemove : toBeRemoved) {
       pendingScenarios.remove(toRemove);
     }
-    if (scenarioCounter.get()<config.getMessagesTotal()) {
+    if (scenarioCounter.get()<nbScenario) {
       for(int i = 0; i < scenarioPerDecisecond; i++) {
         long counter = scenarioCounter.incrementAndGet();
         MessagesScenario newScenario = (MessagesScenario) SerializationUtils.clone(scenario);
@@ -94,13 +95,17 @@ public class StartMessageScenarioScheduler {
 
   private void prepareAndSendMessage(Message message, String counter, Duration ttl) {
     Map<String, Object> variables = message.getVariables();
-    if (variables.containsKey("transactionId")) {
-      String transactionId = (String) variables.get("transactionId");
-      variables.put("transactionId", transactionId.replace("${COUNT}", counter));
-    }
-    if (variables.containsKey("parcelIds")) {
-      List<String> parcels = (List<String>) variables.get("parcelIds");
-      variables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", counter)));
+    if (variables!=null) {
+      if (variables.containsKey("transactionId")) {
+        String transactionId = (String) variables.get("transactionId");
+        variables.put("transactionId", transactionId.replace("${COUNT}", counter));
+      }
+      if (variables.containsKey("parcelIds")) {
+        List<String> parcels = (List<String>) variables.get("parcelIds");
+        variables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", counter)));
+      }
+    } else {
+      variables = new HashMap<>();
     }
     String correlation=message.getCorrelationKey().replace("${COUNT}", counter);
     client

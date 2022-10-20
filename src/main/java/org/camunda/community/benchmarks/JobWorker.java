@@ -42,7 +42,8 @@ public class JobWorker {
 
         JobWorkerBuilderStep1.JobWorkerBuilderStep3 step3 = client.newWorker()
                 .jobType(jobType)
-                .handler(new SimpleDelayCompletionHandler(false));
+                .handler(new SimpleDelayCompletionHandler(false))
+                .name(jobType);
 
         if(fixedBackOffDelay > 0) {
             step3.backoffSupplier(new FixedBackoffSupplier(fixedBackOffDelay));
