@@ -35,7 +35,8 @@ public class BenchmarkConfiguration {
     
     private Resource messageScenario;
     private long messagesPerSecond;
-    private long messagesTotal;
+    private long delayBetweenMessages;
+    private long messagesLoadDuration;
 
     public String getStartRateAdjustmentStrategy() {
         return startRateAdjustmentStrategy;
@@ -197,11 +198,19 @@ public class BenchmarkConfiguration {
       this.messagesPerSecond = messagesPerSecond;
     }
 
-    public long getMessagesTotal() {
-      return messagesTotal;
+    public long getDelayBetweenMessages() {
+      return delayBetweenMessages;
     }
 
-    public void setMessagesTotal(long messagesTotal) {
-      this.messagesTotal = messagesTotal;
+    public void setDelayBetweenMessages(long delayBetweenMessages) {
+      this.delayBetweenMessages = delayBetweenMessages;
+    }
+
+    public long getMessagesLoadDuration() {
+      return messagesLoadDuration;
+    }
+
+    public void setMessagesLoadDuration(long messagesLoadDuration) {
+      this.messagesLoadDuration = messagesLoadDuration;
     }
 }

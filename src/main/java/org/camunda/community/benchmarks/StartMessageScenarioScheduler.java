@@ -44,51 +44,60 @@ public class StartMessageScenarioScheduler {
   
   private Map<Long, MessagesScenario> pendingScenarios = new HashMap<>();
  
-  private long nbScenario=0;
-  private long scenarioPerDecisecond=0;
+  long nbScenario = 0;
+  long nbScenarioPerCycle = 0;
+  long nbCycleBeforeNextStep = 0;
+  int currentPosition = 0;
+  long currentScenario=0;
+  long currentCycle = 0;
+  long loadDuration = 0;
   
-  private AtomicLong scenarioCounter = new AtomicLong(0);
+  long overalRepetition=0;
   
-  private Duration initialMessageTtl = Duration.ofSeconds(0);
-  private Duration nextMessageTtl = Duration.ofSeconds(45);
+  private Duration messageTtl = Duration.ofMinutes(5);
+  
+  
   
   @PostConstruct
   public void init() throws StreamReadException, DatabindException, IOException {
     scenario = JsonUtils.fromJsonFile(config.getMessageScenario().getFile(), MessagesScenario.class);
-    scenarioPerDecisecond = config.getMessagesPerSecond() / (scenario.getMessageSequence().size()*10);
-    nbScenario = config.getMessagesTotal() / scenario.getMessageSequence().size();
+    
+    nbScenario=config.getMessagesPerSecond()*(config.getDelayBetweenMessages()/1000);
+    nbScenarioPerCycle = config.getMessagesPerSecond() / 10;
+    nbCycleBeforeNextStep = config.getDelayBetweenMessages() / 100;
+    
+    for(long i = 0; i < nbScenario; i++) {
+      MessagesScenario newScenario = (MessagesScenario) SerializationUtils.clone(scenario);
+      
+      pendingScenarios.put(i, newScenario);
+    }
   }
   
   //every 100ms
-  @Scheduled(fixedRate = 100, initialDelay = 2000)
-  public void startSomeProcessInstances() {
-    Set<Long> toBeRemoved = new HashSet<>();
-    for(Map.Entry<Long, MessagesScenario> pending : pendingScenarios.entrySet()) {
-      Long counter = pending.getKey();
-      MessagesScenario pendingScenario = pending.getValue();
-      Message message = pendingScenario.getMessageSequence().get(pendingScenario.getCurrentPosition());
-      
-      prepareAndSendMessage(message, String.valueOf(counter), nextMessageTtl);
-      
-      pendingScenario.incrementPosition();
-      if(pendingScenario.getCurrentPosition()>=pendingScenario.getMessageSequence().size()) {
-        toBeRemoved.add(counter);
+  @Scheduled(fixedRate = 100, initialDelay = 6000)
+  public void sendMessages() {
+    if (!pendingScenarios.isEmpty()) {
+      loadDuration+=100;
+      boolean newScenarioLoop = true;
+      while(newScenarioLoop || currentScenario%nbScenarioPerCycle!=0) {
+        MessagesScenario pendingScenario = pendingScenarios.get(currentScenario);
+        Message message = pendingScenario.getMessageSequence().get(currentPosition);
+        prepareAndSendMessage(message, String.valueOf(currentScenario+overalRepetition*nbScenario), messageTtl);
+        newScenarioLoop = false;
+        currentScenario++;
       }
-    }
-    for(Long toRemove : toBeRemoved) {
-      pendingScenarios.remove(toRemove);
-    }
-    if (scenarioCounter.get()<nbScenario) {
-      for(int i = 0; i < scenarioPerDecisecond; i++) {
-        long counter = scenarioCounter.incrementAndGet();
-        MessagesScenario newScenario = (MessagesScenario) SerializationUtils.clone(scenario);
-        
-        Message message = newScenario.getMessageSequence().get(0);
-        
-        prepareAndSendMessage(message, String.valueOf(counter), initialMessageTtl);
-        
-        newScenario.setCurrentPosition(1);
-        pendingScenarios.put(counter, newScenario);
+      currentCycle++;
+      if (currentCycle==nbCycleBeforeNextStep) {
+        currentPosition++;
+        currentScenario=0;
+        currentCycle=0;
+      }
+      if (currentPosition==scenario.getMessageSequence().size()) {
+        if (loadDuration>=config.getMessagesLoadDuration()) {
+          pendingScenarios.clear();//we stop the test here
+        }
+        currentPosition=0;
+        overalRepetition++;
       }
     }
   }
