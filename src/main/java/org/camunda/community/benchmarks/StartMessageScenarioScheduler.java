@@ -48,6 +48,9 @@ public class StartMessageScenarioScheduler {
   
   private AtomicLong scenarioCounter = new AtomicLong(0);
   
+  private Duration initialMessageTtl = Duration.ofSeconds(0);
+  private Duration nextMessageTtl = Duration.ofSeconds(45);
+  
   @PostConstruct
   public void init() throws StreamReadException, DatabindException, IOException {
     scenario = JsonUtils.fromJsonFile(config.getMessageScenario().getFile(), MessagesScenario.class);
@@ -63,22 +66,9 @@ public class StartMessageScenarioScheduler {
       Long counter = pending.getKey();
       MessagesScenario pendingScenario = pending.getValue();
       Message message = pendingScenario.getMessageSequence().get(pendingScenario.getCurrentPosition());
-      Map<String, Object> variables = message.getVariables();
-      if (variables.containsKey("transactionId")) {
-        String transactionId = (String) variables.get("transactionId");
-        variables.put("transactionId", transactionId.replace("${COUNT}", String.valueOf(counter)));
-      }
-      if (variables.containsKey("parcelIds")) {
-        List<String> parcels = (List<String>) variables.get("parcelIds");
-        variables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", String.valueOf(counter))));
-      }
-      client
-          .newPublishMessageCommand()
-          .messageName(message.getMessageName())
-          .correlationKey(message.getCorrelationKey().replace("${COUNT}", String.valueOf(counter)))
-          .timeToLive(Duration.ofSeconds(45))
-          .variables(variables)
-          .send();
+      
+      prepareAndSendMessage(message, String.valueOf(counter), nextMessageTtl);
+      
       pendingScenario.incrementPosition();
       if(pendingScenario.getCurrentPosition()>=pendingScenario.getMessageSequence().size()) {
         toBeRemoved.add(counter);
@@ -94,17 +84,7 @@ public class StartMessageScenarioScheduler {
         
         Message message = newScenario.getMessageSequence().get(0);
         
-        Map<String, Object> variables = message.getVariables();
-        if (variables.containsKey("parcelIds")) {
-          List<String> parcels = (List<String>) variables.get("parcelIds");
-          variables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", String.valueOf(counter))));
-        }
-        client
-            .newPublishMessageCommand()
-            .messageName(message.getMessageName())
-            .correlationKey(message.getCorrelationKey().replace("${COUNT}", String.valueOf(counter)))
-            .variables(variables)
-            .send();
+        prepareAndSendMessage(message, String.valueOf(counter), initialMessageTtl);
         
         newScenario.setCurrentPosition(1);
         pendingScenarios.put(counter, newScenario);
@@ -112,4 +92,25 @@ public class StartMessageScenarioScheduler {
     }
   }
 
+  private void prepareAndSendMessage(Message message, String counter, Duration ttl) {
+    Map<String, Object> variables = message.getVariables();
+    if (variables.containsKey("transactionId")) {
+      String transactionId = (String) variables.get("transactionId");
+      variables.put("transactionId", transactionId.replace("${COUNT}", counter));
+    }
+    if (variables.containsKey("parcelIds")) {
+      List<String> parcels = (List<String>) variables.get("parcelIds");
+      variables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", counter)));
+    }
+    String correlation=message.getCorrelationKey().replace("${COUNT}", counter);
+    client
+        .newPublishMessageCommand()
+        .messageName(message.getMessageName())
+        .correlationKey(correlation)
+        .timeToLive(ttl)
+        .variables(variables)
+        .send();
+    System.out.println("SENT "+message.getMessageName()+" correlation "+correlation);
+  }
+  
 }
