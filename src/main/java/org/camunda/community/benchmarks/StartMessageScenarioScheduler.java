@@ -2,12 +2,9 @@ package org.camunda.community.benchmarks;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.PostConstruct;
 
@@ -18,8 +15,8 @@ import org.camunda.community.benchmarks.model.MessagesScenario;
 import org.camunda.community.benchmarks.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -34,100 +31,95 @@ public class StartMessageScenarioScheduler {
 
   private static final Logger LOG = LoggerFactory.getLogger(StartMessageScenarioScheduler.class);
 
-  @Autowired
   private BenchmarkConfiguration config;
 
-  @Autowired
   private ZeebeClient client;
-  
+
+  private TaskScheduler taskScheduler;
+
+
   private MessagesScenario scenario;
-  
-  private Map<Long, MessagesScenario> pendingScenarios = new HashMap<>();
- 
-  long nbScenario = 0;
-  long nbScenarioPerCycle = 0;
-  long nbCycleBeforeNextStep = 0;
-  int currentPosition = 0;
+  private long nbMessages = 0;
   long currentScenario=0;
-  long currentCycle = 0;
   long loadDuration = 0;
+  private Duration messageTtl = null;
   
-  long overalRepetition=0;
-  
-  private Duration messageTtl = Duration.ofMinutes(5);
-  
-  
-  
+  public StartMessageScenarioScheduler(ZeebeClient client, 
+      BenchmarkConfiguration config,
+      TaskScheduler taskScheduler) {
+    this.client = client;
+    this.config = config;
+    this.taskScheduler = taskScheduler;
+    messageTtl = Duration.ofMinutes(config.getMessagesTtl());
+  }
+
   @PostConstruct
   public void init() throws StreamReadException, DatabindException, IOException {
     scenario = JsonUtils.fromJsonFile(config.getMessageScenario().getFile(), MessagesScenario.class);
-    LOG.warn("Using scenario "+config.getMessageScenario().getFile().getName()+" with "+scenario.getMessageSequence().size()+" steps");
-    
-    nbScenario=config.getMessagesPerSecond()*(config.getDelayBetweenMessages()/1000);
-    nbScenarioPerCycle = config.getMessagesPerSecond() / 10;
-    nbCycleBeforeNextStep = config.getDelayBetweenMessages() / 100;
-    
-    for(long i = 0; i < nbScenario; i++) {
-      MessagesScenario newScenario = (MessagesScenario) SerializationUtils.clone(scenario);
-      
-      pendingScenarios.put(i, newScenario);
-    }
+    nbMessages = scenario.getMessageSequence().size();
+    LOG.warn("Using scenario "+config.getMessageScenario().getFile().getName()+" with "+nbMessages+" steps");
   }
-  
+
   //every 100ms
-  @Scheduled(fixedRate = 100, initialDelay = 6000)
+  @Scheduled(fixedRate = 100, initialDelay = 2000)
   public void sendMessages() {
-    if (!pendingScenarios.isEmpty()) {
+    if (loadDuration<config.getMessagesLoadDuration()) {
       loadDuration+=100;
-      boolean newScenarioLoop = true;
-      while(newScenarioLoop || currentScenario%nbScenarioPerCycle!=0) {
-        MessagesScenario pendingScenario = pendingScenarios.get(currentScenario);
-        Message message = pendingScenario.getMessageSequence().get(currentPosition);
-        prepareAndSendMessage(message, String.valueOf(currentScenario+overalRepetition*nbScenario), messageTtl);
-        newScenarioLoop = false;
+      for(int i=0;i<config.getMessagesScenariiPerSecond()/10;i++) {
+        MessagesScenario newScenario = (MessagesScenario) SerializationUtils.clone(scenario);
+        replacePlaceHolders(newScenario, String.valueOf(currentScenario));
+
+        planNextExecution(newScenario);
         currentScenario++;
-      }
-      currentCycle++;
-      if (currentCycle==nbCycleBeforeNextStep) {
-        currentPosition++;
-        currentScenario=0;
-        currentCycle=0;
-      }
-      if (currentPosition==scenario.getMessageSequence().size()) {
-        if (loadDuration>=config.getMessagesLoadDuration()) {
-          pendingScenarios.clear();//we stop the test here
-        }
-        currentPosition=0;
-        overalRepetition++;
       }
     }
   }
 
-  private void prepareAndSendMessage(Message message, String counter, Duration ttl) {
-    Map<String, Object> localVariables = new HashMap<>();
-    Map<String, Object> variables = message.getVariables();
-    if (variables!=null) {
-      for(Map.Entry<String, Object> mapEntry : variables.entrySet()) {
-        if (mapEntry.getKey().equals("transactionId")) {
-          String transactionId = (String) variables.get("transactionId");
-          localVariables.put("transactionId", transactionId.replace("${COUNT}", counter));
-        } else if (mapEntry.getKey().equals("parcelIds")) {
-          List<String> parcels = (List<String>) variables.get("parcelIds");
-          localVariables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", counter)));
-        } else {
-          localVariables.put(mapEntry.getKey(), mapEntry.getValue());
-        }
+  private void replacePlaceHolders(MessagesScenario scenario, String counter) {
+    for(Message message : scenario.getMessageSequence()) {
+      message.setCorrelationKey(message.getCorrelationKey().replace("${COUNT}", counter));
+      Map<String, Object> variables = message.getVariables();
+      if (variables.containsKey("transactionId")) {
+        String transactionId = (String) variables.get("transactionId");
+        variables.put("transactionId", transactionId.replace("${COUNT}", counter));
+      }
+      if (variables.containsKey("parcelIds")) {
+        List<String> parcels = (List<String>) variables.get("parcelIds");
+        variables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", counter)));
       }
     }
-    String correlation=message.getCorrelationKey().replace("${COUNT}", counter);
-    client
-        .newPublishMessageCommand()
-        .messageName(message.getMessageName())
-        .correlationKey(correlation)
-        .timeToLive(ttl)
-        .variables(localVariables)
-        .send();
-    System.out.println("SENT "+message.getMessageName()+" correlation "+correlation);
   }
-  
+
+  private void planNextExecution(MessagesScenario scenario) {
+    taskScheduler.schedule(
+        new MessageSender(scenario),
+        new Date(System.currentTimeMillis() + config.getDelayBetweenMessages())
+        );
+  }
+
+  class MessageSender implements Runnable{
+    private MessagesScenario scenario;
+
+    public MessageSender(MessagesScenario scenario){
+      this.scenario = scenario;
+    }
+
+    @Override
+    public void run() {
+      Message message = scenario.getMessageSequence().get(scenario.getCurrentPosition());
+      client
+      .newPublishMessageCommand()
+      .messageName(message.getMessageName())
+      .correlationKey(message.getCorrelationKey())
+      .timeToLive(messageTtl)
+      .variables(message.getVariables())
+      .send();
+      System.out.println(System.currentTimeMillis()+" : "+message.getMessageName()+" "+message.getCorrelationKey());
+      scenario.setCurrentPosition(scenario.getCurrentPosition()+1);
+      if (scenario.getCurrentPosition()<nbMessages) {
+        planNextExecution(scenario);
+      }
+    }
+  }
+
 }

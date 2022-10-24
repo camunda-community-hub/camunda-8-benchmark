@@ -3,7 +3,6 @@ package org.camunda.community.benchmarks.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 
 @Configuration
 @ConfigurationProperties(prefix = "benchmark")
@@ -34,7 +33,8 @@ public class BenchmarkConfiguration {
     private long fixedBackOffDelay = 0;
     
     private Resource messageScenario;
-    private long messagesPerSecond;
+    private long messagesTtl;
+    private long messagesScenariiPerSecond;
     private long delayBetweenMessages;
     private long messagesLoadDuration;
 
@@ -189,13 +189,21 @@ public class BenchmarkConfiguration {
     public void setMessageScenario(Resource messageScenario) {
       this.messageScenario = messageScenario;
     }
-
-    public long getMessagesPerSecond() {
-      return messagesPerSecond;
+    
+    public long getMessagesTtl() {
+      return messagesTtl;
     }
 
-    public void setMessagesPerSecond(long messagesPerSecond) {
-      this.messagesPerSecond = messagesPerSecond;
+    public void setMessagesTtl(long messagesTtl) {
+      this.messagesTtl = messagesTtl;
+    }
+
+    public long getMessagesScenariiPerSecond() {
+      return messagesScenariiPerSecond;
+    }
+
+    public void setMessagesScenariiPerSecond(long messagesScenariiPerSecond) {
+      this.messagesScenariiPerSecond = messagesScenariiPerSecond;
     }
 
     public long getDelayBetweenMessages() {
