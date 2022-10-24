@@ -11,6 +11,7 @@
   </parent>
 
   <artifactId>camunda-8-benchmark</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
 
   <licenses>
     <license>
@@ -128,6 +129,7 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>2.7.5</version>
         <executions>
           <execution>
             <goals>

@@ -3,6 +3,7 @@ package org.camunda.community.benchmarks;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -62,14 +63,15 @@ public class StartMessageScenarioScheduler {
 
   //every 100ms
   @Scheduled(fixedRate = 100, initialDelay = 2000)
-  public void sendMessages() {
+  public void startScenarios() {
     if (loadDuration<config.getMessagesLoadDuration()) {
       loadDuration+=100;
       for(int i=0;i<config.getMessagesScenariiPerSecond()/10;i++) {
         MessagesScenario newScenario = (MessagesScenario) SerializationUtils.clone(scenario);
         replacePlaceHolders(newScenario, String.valueOf(currentScenario));
 
-        planNextExecution(newScenario);
+        MessageSender messageSender = new MessageSender(newScenario);
+        messageSender.run();
         currentScenario++;
       }
     }
@@ -79,22 +81,19 @@ public class StartMessageScenarioScheduler {
     for(Message message : scenario.getMessageSequence()) {
       message.setCorrelationKey(message.getCorrelationKey().replace("${COUNT}", counter));
       Map<String, Object> variables = message.getVariables();
-      if (variables.containsKey("transactionId")) {
-        String transactionId = (String) variables.get("transactionId");
-        variables.put("transactionId", transactionId.replace("${COUNT}", counter));
-      }
-      if (variables.containsKey("parcelIds")) {
-        List<String> parcels = (List<String>) variables.get("parcelIds");
-        variables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", counter)));
+      if (variables != null) {
+        if (variables.containsKey("transactionId")) {
+          String transactionId = (String) variables.get("transactionId");
+          variables.put("transactionId", transactionId.replace("${COUNT}", counter));
+        }
+        if (variables.containsKey("parcelIds")) {
+          List<String> parcels = (List<String>) variables.get("parcelIds");
+          variables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", counter)));
+        }
+      } else {
+        message.setVariables(new HashMap<>());
       }
     }
-  }
-
-  private void planNextExecution(MessagesScenario scenario) {
-    taskScheduler.schedule(
-        new MessageSender(scenario),
-        new Date(System.currentTimeMillis() + config.getDelayBetweenMessages())
-        );
   }
 
   class MessageSender implements Runnable{
@@ -117,7 +116,10 @@ public class StartMessageScenarioScheduler {
       System.out.println(System.currentTimeMillis()+" : "+message.getMessageName()+" "+message.getCorrelationKey());
       scenario.setCurrentPosition(scenario.getCurrentPosition()+1);
       if (scenario.getCurrentPosition()<nbMessages) {
-        planNextExecution(scenario);
+        taskScheduler.schedule(
+          this,
+          new Date(System.currentTimeMillis() + config.getDelayBetweenMessages())
+        );
       }
     }
   }
