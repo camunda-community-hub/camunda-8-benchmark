@@ -104,18 +104,20 @@ public class StartMessageScenarioScheduler {
   }
 
   private void prepareAndSendMessage(Message message, String counter, Duration ttl) {
+    Map<String, Object> localVariables = new HashMap<>();
     Map<String, Object> variables = message.getVariables();
     if (variables!=null) {
-      if (variables.containsKey("transactionId")) {
-        String transactionId = (String) variables.get("transactionId");
-        variables.put("transactionId", transactionId.replace("${COUNT}", counter));
+      for(Map.Entry<String, Object> mapEntry : variables.entrySet()) {
+        if (mapEntry.getKey().equals("transactionId")) {
+          String transactionId = (String) variables.get("transactionId");
+          localVariables.put("transactionId", transactionId.replace("${COUNT}", counter));
+        } else if (mapEntry.getKey().equals("parcelIds")) {
+          List<String> parcels = (List<String>) variables.get("parcelIds");
+          localVariables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", counter)));
+        } else {
+          localVariables.put(mapEntry.getKey(), mapEntry.getValue());
+        }
       }
-      if (variables.containsKey("parcelIds")) {
-        List<String> parcels = (List<String>) variables.get("parcelIds");
-        variables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", counter)));
-      }
-    } else {
-      variables = new HashMap<>();
     }
     String correlation=message.getCorrelationKey().replace("${COUNT}", counter);
     client
@@ -123,7 +125,7 @@ public class StartMessageScenarioScheduler {
         .messageName(message.getMessageName())
         .correlationKey(correlation)
         .timeToLive(ttl)
-        .variables(variables)
+        .variables(localVariables)
         .send();
     System.out.println("SENT "+message.getMessageName()+" correlation "+correlation);
   }
