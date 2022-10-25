@@ -34,7 +34,7 @@ public class BenchmarkConfiguration {
     
     private Resource messageScenario;
     private long messagesTtl;
-    private long messagesScenariiPerSecond;
+    private long messagesScenariosPerSecond;
     private long delayBetweenMessages;
     private long messagesLoadDuration;
 
@@ -198,12 +198,12 @@ public class BenchmarkConfiguration {
       this.messagesTtl = messagesTtl;
     }
 
-    public long getMessagesScenariiPerSecond() {
-      return messagesScenariiPerSecond;
+    public long getMessagesScenariosPerSecond() {
+      return messagesScenariosPerSecond;
     }
 
-    public void setMessagesScenariiPerSecond(long messagesScenariiPerSecond) {
-      this.messagesScenariiPerSecond = messagesScenariiPerSecond;
+    public void setMessagesScenariosPerSecond(long messagesScenariosPerSecond) {
+      this.messagesScenariosPerSecond = messagesScenariosPerSecond;
     }
 
     public long getDelayBetweenMessages() {

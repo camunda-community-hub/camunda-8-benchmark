@@ -2,6 +2,7 @@ package org.camunda.community.benchmarks;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -66,7 +67,7 @@ public class StartMessageScenarioScheduler {
   public void startScenarios() {
     if (loadDuration<config.getMessagesLoadDuration()) {
       loadDuration+=100;
-      for(int i=0;i<config.getMessagesScenariiPerSecond()/10;i++) {
+      for(int i=0;i<config.getMessagesScenariosPerSecond()/10;i++) {
         MessagesScenario newScenario = (MessagesScenario) SerializationUtils.clone(scenario);
         replacePlaceHolders(newScenario, String.valueOf(currentScenario));
 
@@ -77,18 +78,24 @@ public class StartMessageScenarioScheduler {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private void replacePlaceHolders(MessagesScenario scenario, String counter) {
     for(Message message : scenario.getMessageSequence()) {
       message.setCorrelationKey(message.getCorrelationKey().replace("${COUNT}", counter));
       Map<String, Object> variables = message.getVariables();
-      if (variables != null) {
-        if (variables.containsKey("transactionId")) {
-          String transactionId = (String) variables.get("transactionId");
-          variables.put("transactionId", transactionId.replace("${COUNT}", counter));
-        }
-        if (variables.containsKey("parcelIds")) {
-          List<String> parcels = (List<String>) variables.get("parcelIds");
-          variables.put("parcelIds", List.of(parcels.get(0).replace("${COUNT}", counter)));
+      if (variables!=null) {
+        for(Map.Entry<String, Object> var : variables.entrySet()) {
+          if (var.getValue() instanceof String) {
+            if (((String)var.getValue()).contains("${COUNT}")) {
+              variables.put(var.getKey(), ((String)var.getValue()).replace("${COUNT}", counter));
+            }
+          } else if (var.getValue() instanceof List) {
+            List<String> newList = new ArrayList<>();
+            for(String listItem : (List<String>)var.getValue()) {
+              newList.add(listItem.replace("${COUNT}", counter));
+            }
+            variables.put(var.getKey(), newList);
+          }
         }
       } else {
         message.setVariables(new HashMap<>());

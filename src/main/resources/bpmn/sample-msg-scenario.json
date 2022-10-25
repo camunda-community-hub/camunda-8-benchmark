@@ -1,0 +1,29 @@
+{
+    "messageSequence": [
+        {
+            "messageName": "ORDER",
+            "correlationKey": "Order-${COUNT}",
+            "variables": {
+                "orderId": "Order-${COUNT}",
+                "items": [
+                    "Product-1-${COUNT}"
+                ],
+                "orderStatus": "received"
+            }
+        },
+        {
+            "messageName": "INTRANSIT",
+            "correlationKey": "Product-1-${COUNT}",
+            "variables": {
+                "itemStatus": "in transit"
+            }
+        },
+        {
+            "messageName": "DELIVERED",
+            "correlationKey": "Product-1-${COUNT}",
+            "variables": {
+                "itemStatus": "delivered"
+            }
+        }
+    ]
+}
