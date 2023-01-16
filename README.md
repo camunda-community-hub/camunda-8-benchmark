@@ -12,6 +12,17 @@ The project
 
 You can find a blog post describing this benchmarks in more detail here: [How to Benchmark Your Camunda 8 Cluster](https://blog.bernd-ruecker.com/how-to-benchmark-your-camunda-8-cluster-48ada4b047b6).
 
+# Plan for the right environment!
+
+When running benchmarks, please make sure to use a realistic environment that can take your load, see also [Sizing your environment](https://docs.camunda.io/docs/components/best-practices/architecture/sizing-your-environment/).
+
+A good environment
+
+* is **not** a SaaS trial, as it contains limited resources and you might hit a bottleneck early on.
+* does **not** run all Camunda components on a developer machine, as this will not produce meaningful results.
+* is either setup in Camunda SaaS with a Camunda representive helping you to get a resonable sized cluster
+* or provisioned self-managed in a properly sized environment.
+
 # How-to run
 
 You only need to run this one application for driving your benchmark, but you might scale this application if you need to produce more load to utilize your cluster(you might want to adjust the `benchmark.startPiReduceFactor` of the properties as backpressure is then "distributed" over various load generators)
