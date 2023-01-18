@@ -21,7 +21,7 @@ A good environment
 * is **not** a SaaS trial, as it contains limited resources and you might hit a bottleneck early on.
 * does **not** run all Camunda components on a developer machine, as this will not produce meaningful results.
 * is either setup in Camunda SaaS with a Camunda representive helping you to get a resonable sized cluster
-* or provisioned self-managed in a properly sized environment.
+* or provisioned [self-managed](https://docs.camunda.io/docs/next/self-managed/platform-deployment/overview/#deployment-recommendation) in a properly sized environment.
 
 # How-to run
 
