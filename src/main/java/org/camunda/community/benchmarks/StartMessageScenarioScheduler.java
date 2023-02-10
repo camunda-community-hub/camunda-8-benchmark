@@ -57,9 +57,9 @@ public class StartMessageScenarioScheduler {
 
   @PostConstruct
   public void init() throws StreamReadException, DatabindException, IOException {
-    scenario = JsonUtils.fromJsonFile(config.getMessageScenario().getFile(), MessagesScenario.class);
+    scenario = JsonUtils.fromJsonInputStream(config.getMessageScenario().getInputStream(), MessagesScenario.class);
     nbMessages = scenario.getMessageSequence().size();
-    LOG.warn("Using scenario "+config.getMessageScenario().getFile().getName()+" with "+nbMessages+" steps");
+    LOG.warn("Using scenario "+config.getMessageScenario()+" with "+nbMessages+" steps");
   }
 
   //every 100ms
