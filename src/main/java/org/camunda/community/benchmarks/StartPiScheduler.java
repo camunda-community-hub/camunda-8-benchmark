@@ -1,17 +1,20 @@
 package org.camunda.community.benchmarks;
 
+import java.time.Instant;
+
+import javax.annotation.PostConstruct;
+
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import java.time.Instant;
-
 @Component
+@ConditionalOnProperty(name = "benchmark.startProcesses", havingValue = "true", matchIfMissing = true)
 public class StartPiScheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(StartPiScheduler.class);
@@ -63,6 +66,7 @@ public class StartPiScheduler {
     //@Async
     @Scheduled(fixedRate = 10, initialDelay = 5000)
     public void startSomeProcessInstances() {
+      
         long currentTime = System.currentTimeMillis();
         long passedTime = currentTime - startTimeInMillis;
 
@@ -97,6 +101,7 @@ public class StartPiScheduler {
         // (the above calculations should always be faster than 10ms, starting a big batch might not)
         // TODO: Think about if we should detect if starting takes longer than the 10ms interval
         startProcessInstances( processInstancesToStart );
+      
     }
 
     @Async

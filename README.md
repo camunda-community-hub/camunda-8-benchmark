@@ -235,6 +235,5 @@ kubectl apply -f k8s/benchmark.yaml
 
 # Building and using an own version of the Docker image
 
-1. To build the docker image you can run `mvn spring-boot:build-image`, which uses [Paketo build packs](https://paketo.io/) to build a nicely layered docker image (helpful for fast development iterations). This will produce an image tagged with e.g. `docker.io/library/camunda-8-benchmark:0.0.1-SNAPSHOT`
-2. For pushing the image into another registry, e.g. Google Container Registry (GCR), you have to change the tag: `docker tag 'docker.io/library/camunda-8-benchmark:0.0.1-SNAPSHOT' 'gcr.io/camunda-researchanddevelopment/falko-camunda-8-benchmark:0.0.1-SNAPSHOT'`
-3. Then you can push the image: `docker push 'gcr.io/camunda-researchanddevelopment/falko-camunda-8-benchmark:0.0.1-SNAPSHOT'`
+1. To build the docker image you can run `docker build . --tag gcr.io/camunda-researchanddevelopment/falko-camunda-8-benchmark:0.0.1-SNAPSHOT`
+2. Then you can push the image: `docker push 'gcr.io/camunda-researchanddevelopment/falko-camunda-8-benchmark:0.0.1-SNAPSHOT'`

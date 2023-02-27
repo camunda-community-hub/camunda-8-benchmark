@@ -3,7 +3,6 @@ package org.camunda.community.benchmarks.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 
 @Configuration
 @ConfigurationProperties(prefix = "benchmark")
@@ -11,6 +10,7 @@ public class BenchmarkConfiguration {
 
     private String starterId = "benchmarkStarter1";
 
+    private boolean startProcesses = true;
     private long startPiPerSecond = 500;
     private String jobType = "benchmark-task";
     private int multipleJobTypes = 0;
@@ -31,6 +31,12 @@ public class BenchmarkConfiguration {
     private int taskPiRatio;
 
     private long fixedBackOffDelay = 0;
+    
+    private Resource messageScenario;
+    private long messagesTtl;
+    private long messagesScenariosPerSecond;
+    private long delayBetweenMessages;
+    private long messagesLoadDuration;
 
     public String getStartRateAdjustmentStrategy() {
         return startRateAdjustmentStrategy;
@@ -167,5 +173,52 @@ public class BenchmarkConfiguration {
 
     public void setFixedBackOffDelay(long fixedBackOffDelay) {
         this.fixedBackOffDelay = fixedBackOffDelay;
+    }
+    public boolean isStartProcesses() {
+      return startProcesses;
+    }
+
+    public void setStartProcesses(boolean startProcesses) {
+      this.startProcesses = startProcesses;
+    }
+
+    public Resource getMessageScenario() {
+      return messageScenario;
+    }
+
+    public void setMessageScenario(Resource messageScenario) {
+      this.messageScenario = messageScenario;
+    }
+    
+    public long getMessagesTtl() {
+      return messagesTtl;
+    }
+
+    public void setMessagesTtl(long messagesTtl) {
+      this.messagesTtl = messagesTtl;
+    }
+
+    public long getMessagesScenariosPerSecond() {
+      return messagesScenariosPerSecond;
+    }
+
+    public void setMessagesScenariosPerSecond(long messagesScenariosPerSecond) {
+      this.messagesScenariosPerSecond = messagesScenariosPerSecond;
+    }
+
+    public long getDelayBetweenMessages() {
+      return delayBetweenMessages;
+    }
+
+    public void setDelayBetweenMessages(long delayBetweenMessages) {
+      this.delayBetweenMessages = delayBetweenMessages;
+    }
+
+    public long getMessagesLoadDuration() {
+      return messagesLoadDuration;
+    }
+
+    public void setMessagesLoadDuration(long messagesLoadDuration) {
+      this.messagesLoadDuration = messagesLoadDuration;
     }
 }
