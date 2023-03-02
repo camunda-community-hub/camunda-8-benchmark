@@ -6,10 +6,12 @@ import io.camunda.zeebe.spring.client.jobhandling.DefaultCommandExceptionHandlin
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ScheduledExecutorService;
 
+@Primary
 @Component
 public class BenchmarkCompleteJobExceptionHandlingStrategy extends DefaultCommandExceptionHandlingStrategy  {
 

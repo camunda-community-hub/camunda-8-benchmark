@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ScheduledExecutorService;
 
-@Primary // workaround for #59
 @Component
 public class BenchmarkStartPiExceptionHandlingStrategy extends DefaultCommandExceptionHandlingStrategy  {
 
