@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: camunda-8-benchmark
-          image: berndruecker/camunda-8-benchmark:main
+          image: camundacommunityhub/camunda-8-benchmark:main
           imagePullPolicy: Always
           env:
             - name: JAVA_OPTIONS
