@@ -87,6 +87,10 @@ public class StatisticsCollector {
     public Meter getStartedPiMeter() {
         return dropwizardMetricRegistry.meter("pi_started" );
     }
+
+    public Meter getStartedDiMeter() {
+        return dropwizardMetricRegistry.meter("di_started" );
+    }
     public Meter getCompletedJobsMeter() {
         return dropwizardMetricRegistry.meter("jobs_completed" );
     }
@@ -107,6 +111,11 @@ public class StatisticsCollector {
     public void incStartedProcessInstances() {
         getStartedPiMeter().mark();
         micrometerMetricRegistry.counter("pi_started").increment();
+    }
+
+    public void incStartedDecisionInstances() {
+        getStartedDiMeter().mark();
+        micrometerMetricRegistry.counter("di_started").increment();
     }
 
     public void incStartedProcessInstancesBackpressure() {

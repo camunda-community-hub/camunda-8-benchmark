@@ -1,9 +1,5 @@
 package org.camunda.community.benchmarks;
 
-import java.time.Instant;
-
-import javax.annotation.PostConstruct;
-
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,11 +9,14 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+import java.time.Instant;
+
 @Component
 @ConditionalOnProperty(name = "benchmark.startProcesses", havingValue = "true", matchIfMissing = true)
-public class StartPiScheduler {
+public class StartDiScheduler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(StartPiScheduler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StartDiScheduler.class);
 
     @Autowired
     private BenchmarkConfiguration config;
@@ -26,11 +25,11 @@ public class StartPiScheduler {
     private StatisticsCollector stats;
 
     @Autowired
-    private StartPiExecutor executor;
+    private StartDiExecutor executor;
 
     private long startTimeInMillis = System.currentTimeMillis();
-    private long piStarted = 0;
-    private long piStartedGoal = 0;
+    private long diStarted = 0;
+    private long diStartedGoal = 0;
     private long counter = 0;
 
     private long batchSize = 1;
@@ -42,9 +41,9 @@ public class StartPiScheduler {
     }
 
     public void calculateParameters(long piPerSecondGoal) {
-        this.piStartedGoal = piPerSecondGoal;
+        this.diStartedGoal = piPerSecondGoal;
         stats.hintOnNewPiPerSecondGoald(piPerSecondGoal);
-        if (piStartedGoal < 100) {
+        if (diStartedGoal < 100) {
             // we can handle this by starting one PI every x times 10 ms
             batchSize = 1;
             // better more than too less, then we can stop when we hit the limit
@@ -78,37 +77,37 @@ public class StartPiScheduler {
             // Check if we should start another batch
             if (counter % howOften == 0) {
                 // now check if we still want to do the full batch
-                if (piStarted + batchSize > piStartedGoal) {
+                if (diStarted + batchSize > diStartedGoal) {
                     // just start the remaining instances
-                    processInstancesToStart = piStartedGoal - piStarted;
-                    piStarted += processInstancesToStart;
+                    processInstancesToStart = diStartedGoal - diStarted;
+                    diStarted += processInstancesToStart;
                 } else {
                     // start the batch size
                     processInstancesToStart = batchSize;
-                    piStarted += batchSize;
+                    diStarted += batchSize;
                 }
             }
         } else {
             // check if we have remaining process instances to start
-            processInstancesToStart = piStartedGoal - piStarted;
+            processInstancesToStart = diStartedGoal - diStarted;
 
             // restart timer
             LOG.debug("One second is over, resetting timer");
-            piStarted = 0;
+            diStarted = 0;
             startTimeInMillis = System.currentTimeMillis();
         }
         // start after all calculations to avoid that the next scheduler run intervenes.
         // (the above calculations should always be faster than 10ms, starting a big batch might not)
         // TODO: Think about if we should detect if starting takes longer than the 10ms interval
-        startProcessInstances( processInstancesToStart );
+        startDecisionInstances( processInstancesToStart );
       
     }
 
     @Async
-    private void startProcessInstances(long batchSize) {
+    private void startDecisionInstances(long batchSize) {
         for (int i = 0; i < batchSize; i++) {
-            executor.startProcessInstance();
-            stats.incStartedProcessInstances();
+            executor.startDecisionInstance();
+            stats.incStartedDecisionInstances();
         }
     }
 
@@ -157,12 +156,12 @@ public class StartPiScheduler {
         // TODO! This does not yield good results and need more thoughts
 
         // Calculate current ration jobCompletion/startRate
-        double ratio = stats.getCompletedJobsMeter().getOneMinuteRate() / stats.getStartedPiMeter().getOneMinuteRate();
+        double ratio = stats.getCompletedJobsMeter().getOneMinuteRate() / stats.getStartedDiMeter().getOneMinuteRate();
 
         if (ratio >= bestRatio) {
             bestRatio = ratio;
-            LOG.info("Found better ratio: "+ratio+" (instead of "+bestRatio+"). Remember start rate " + piStartedGoal);
-            bestStartRate = piStartedGoal;
+            LOG.info("Found better ratio: "+ratio+" (instead of "+bestRatio+"). Remember start rate " + diStartedGoal);
+            bestStartRate = diStartedGoal;
         } else {
             LOG.info("Ratio is getting worse: "+ratio+" (instead of "+bestRatio+"). Set original start rate " + bestStartRate);
             adjustStartRateBy( bestStartRate );
@@ -196,13 +195,13 @@ public class StartPiScheduler {
             double backpressurePercentage = stats.getBackpressureOnStartPercentage();
             if (backpressurePercentage > config.getMaxBackpressurePercentage()) {
                 // Backpressure too high - reduce start rate
-                long rate = Math.round( (config.getMaxBackpressurePercentage() - backpressurePercentage)/100 * piStartedGoal * config.getStartPiReduceFactor());
+                long rate = Math.round( (config.getMaxBackpressurePercentage() - backpressurePercentage)/100 * diStartedGoal * config.getStartPiReduceFactor());
                 LOG.info("Backpressure percentage too high ("+backpressurePercentage+" > "+config.getMaxBackpressurePercentage()+"), reducing start rate by " + rate );
                 adjustStartRateBy(rate);
             } else{
                 // Backpressure is there, but lower than the maximum considered optimal for throughput
                 // slightly increase start rate
-                long rate = Math.round( (config.getMaxBackpressurePercentage() - backpressurePercentage)/100 * piStartedGoal * config.getStartPiIncreaseFactor());
+                long rate = Math.round( (config.getMaxBackpressurePercentage() - backpressurePercentage)/100 * diStartedGoal * config.getStartPiIncreaseFactor());
                 LOG.info("Backpressure percentage too low ("+backpressurePercentage+" <= "+config.getMaxBackpressurePercentage()+"), increasing start rate by " + rate );
                 adjustStartRateBy(rate);
             }
@@ -218,7 +217,7 @@ public class StartPiScheduler {
     }
 
     private void adjustStartRateBy(long amount) {
-        long newGoal =  piStartedGoal + amount;
+        long newGoal =  diStartedGoal + amount;
         if (newGoal<=0) {
             newGoal = 1;
         }

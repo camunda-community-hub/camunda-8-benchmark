@@ -17,6 +17,7 @@ public class BenchmarkConfiguration {
     private boolean startWorkers = true;
     private long taskCompletionDelay = 200;
     private String bpmnProcessId = "benchmark";
+    private String dmnDecisionId = "benchmark";
     private Resource payloadPath; // = new UrlResource("classpath:bpmn/typical_payload.json");
     private Resource[] bpmnResource;
     private boolean autoDeployProcess = true;
@@ -220,5 +221,13 @@ public class BenchmarkConfiguration {
 
     public void setMessagesLoadDuration(long messagesLoadDuration) {
       this.messagesLoadDuration = messagesLoadDuration;
+    }
+
+    public String getDmnDecisionId() {
+        return dmnDecisionId;
+    }
+
+    public void setDmnDecisionId(String dmnDecisionId) {
+        this.dmnDecisionId = dmnDecisionId;
     }
 }

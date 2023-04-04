@@ -6,8 +6,11 @@ import io.camunda.zeebe.spring.client.annotation.ZeebeDeployment;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 
 @SpringBootApplication
 @EnableZeebeClient
@@ -20,8 +23,10 @@ class BenchmarkApplication  {
         ConfigurableApplicationContext context = SpringApplication.run(BenchmarkApplication.class, args);
 
         // Trigger here to make sure it happens AFTER the ApplicationContext is ready
-        context.getBean(ProcessDeployer.class).autoDeploy();
-        context.getBean(JobWorker.class).startWorkers();
+//        context.getBean(ProcessDeployer.class).autoDeploy();
+//        context.getBean(JobWorker.class).startWorkers();
     }
+
+
 
 }
