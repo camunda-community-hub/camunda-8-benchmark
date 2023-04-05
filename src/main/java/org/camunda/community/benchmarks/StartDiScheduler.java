@@ -13,7 +13,7 @@ import javax.annotation.PostConstruct;
 import java.time.Instant;
 
 @Component
-@ConditionalOnProperty(name = "benchmark.startProcesses", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "benchmark.startDecisions", havingValue = "true", matchIfMissing = true)
 public class StartDiScheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(StartDiScheduler.class);
@@ -54,7 +54,7 @@ public class StartDiScheduler {
             // better more than too less, then we can stop when we hit the limit
             batchSize = Math.round(Math.ceil( piPerSecondGoal / 100.0));
         }
-        LOG.info("Configured benchmark to start " + piPerSecondGoal + " PIs per second. This means every " + howOften + ". interval (of the 100 x 10ms intervals in total) with a batch size of " + batchSize);
+        LOG.info("Configured benchmark to start " + piPerSecondGoal + " DIs per second. This means every " + howOften + ". interval (of the 100 x 10ms intervals in total) with a batch size of " + batchSize);
     }
 
     /**

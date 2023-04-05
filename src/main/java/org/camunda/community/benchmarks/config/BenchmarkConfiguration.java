@@ -11,6 +11,7 @@ public class BenchmarkConfiguration {
     private String starterId = "benchmarkStarter1";
 
     private boolean startProcesses = true;
+    private boolean startDecisions = true;
     private long startPiPerSecond = 500;
     private String jobType = "benchmark-task";
     private int multipleJobTypes = 0;
@@ -229,5 +230,13 @@ public class BenchmarkConfiguration {
 
     public void setDmnDecisionId(String dmnDecisionId) {
         this.dmnDecisionId = dmnDecisionId;
+    }
+
+    public boolean isStartDecisions() {
+        return startDecisions;
+    }
+
+    public void setStartDecisions(boolean startDecisions) {
+        this.startDecisions = startDecisions;
     }
 }
