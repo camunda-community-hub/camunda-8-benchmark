@@ -32,7 +32,10 @@ public class StartDiExecutor {
     private ZeebeClient client;
 
     @Autowired
-    private BenchmarkStartPiExceptionHandlingStrategy exceptionHandlingStrategy;
+    private StatisticsCollector stats;
+
+    @Autowired
+    private BenchmarkStartDiExceptionHandlingStrategy exceptionHandlingStrategy;
 
     @Autowired
     private ZeebeClientConfiguration zeebeClientConfiguration;
@@ -48,20 +51,22 @@ public class StartDiExecutor {
     public void startDecisionInstance() {
         HashMap<Object, Object> variables = new HashMap<>();
         variables.putAll(this.benchmarkPayload);
+        variables.put("pincode","515004");
         variables.put("listItem","c");
         variables.put(BENCHMARK_START_DATE_MILLIS, Instant.now().toEpochMilli());
         variables.put(BENCHMARK_STARTER_ID, config.getStarterId());
 
-        // Auto-complete logic from https://github.com/camunda-community-hub/spring-zeebe/blob/ec41c5af1f64e512c8e7a8deea2aeacb35e61a16/client/spring-zeebe/src/main/java/io/camunda/zeebe/spring/client/jobhandling/JobHandlerInvokingSpringBeans.java#L24
         FinalCommandStep createCommand = client.newEvaluateDecisionCommand()
-                .decisionId("benchmark-decision")
+                .decisionId(config.getDmnDecisionId())
                 .variables(variables);
         CommandWrapper command = new RefactoredCommandWrapper(
                 createCommand,
                 System.currentTimeMillis() + 5 * 60 * 1000, // 5 minutes
                 "CreateDi" + config.getDmnDecisionId(),
                 exceptionHandlingStrategy);
-        command.executeAsync();
+         command.executeAsync();
+         stats.incEvaluatedDecisionInstances();
+
     }
 
     private String tryReadVariables(final InputStream inputStream) throws IOException {

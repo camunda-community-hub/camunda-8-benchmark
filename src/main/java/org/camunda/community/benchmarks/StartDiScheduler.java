@@ -37,7 +37,7 @@ public class StartDiScheduler {
 
     @PostConstruct
     public void init() {
-        calculateParameters(config.getStartPiPerSecond());
+        calculateParameters(config.getStartDiPerSecond());
     }
 
     public void calculateParameters(long piPerSecondGoal) {
@@ -108,6 +108,7 @@ public class StartDiScheduler {
         for (int i = 0; i < batchSize; i++) {
             executor.startDecisionInstance();
             stats.incStartedDecisionInstances();
+            //TODO : In case of an exception - eg. Resource exhausted / Unavailable, the above line still increments started DI count, which is incorrect - SOrt this out
         }
     }
 
@@ -130,6 +131,8 @@ public class StartDiScheduler {
      */
     @Scheduled(fixedDelay = 30000, initialDelay = 30000)
     public void adjustStartRates() {
+
+        //TODO: discuss how relevant is backpressure / job completion ratio when it comes to Decision Instances
         if (config.getWarmupPhaseDurationMillis() > 0 ) {
             if (warmupPhaseEndMillis == 0) {
                 warmupPhaseEndMillis = Instant.now().toEpochMilli() + config.getWarmupPhaseDurationMillis();
@@ -146,7 +149,7 @@ public class StartDiScheduler {
         } else if ("backpressure".equals(config.getStartRateAdjustmentStrategy())) {
             adjustByUsingBackpressure();
         } else if ("jobRatio".equals(config.getStartRateAdjustmentStrategy())) {
-            adjustByUsingJobCompletionRatio();
+            //adjustByUsingJobCompletionRatio();
         } else {
             throw new RuntimeException("Invalid value for startRateAdjustmentStrategy: " + config.getStartRateAdjustmentStrategy());
         }
@@ -170,13 +173,13 @@ public class StartDiScheduler {
         // Compare against last minute rate
         if (ratio - 0.5 <= config.getTaskPiRatio()) { // keep slightly bigger then 0 to make sure we are going to the limit and not stay in a relaxed rate that fulfills the ratio
             // if it drops - go back in start rate
-            long rate = Math.round(Math.ceil(config.getStartPiPerSecond()/10));
+            long rate = Math.round(Math.ceil(config.getStartDiPerSecond()/10));
             //LOG.info("Job/PI ratio dropped from "+lastRatio+" to "+ratio+", decrease start rate by " + rate );
             LOG.info("Task/PI too low: "+ratio+", increase start rate by " + rate );
             adjustStartRateBy( rate );
         } else {
             // otherwise increase start rate
-            long rate = Math.round(Math.ceil(config.getStartPiPerSecond()/10));
+            long rate = Math.round(Math.ceil(config.getStartDiPerSecond()/10));
             //LOG.info("Job/PI ratio increased from "+lastRatio+" to "+ratio+", increase start rate by " + rate );
             LOG.info("Task/PI too high: "+ratio+", decrease start rate by " + rate );
             adjustStartRateBy( -1 * rate );
@@ -186,9 +189,9 @@ public class StartDiScheduler {
 
     public void adjustByUsingBackpressure() {
         // Handle "almost no backressure" as special case with small numbers
-        if (stats.getBackpressureOnStartPiMeter().getOneMinuteRate() < 1) {
+        if (stats.getBackpressureOnStartDiMeter().getOneMinuteRate() < 1) {
             // increase it by bigger junk (10% of goal)
-            long rate = Math.round(Math.ceil(config.getStartPiPerSecond()/10));
+            long rate = Math.round(Math.ceil(config.getStartDiPerSecond()/10));
             LOG.info("Backpressure dropped, increasing start rate by " + rate );
             adjustStartRateBy( rate );
         }  else {

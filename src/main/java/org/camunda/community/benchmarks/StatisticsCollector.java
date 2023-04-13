@@ -81,11 +81,16 @@ public class StatisticsCollector {
     }
 
     public double getBackpressureOnStartPercentage() {
-        return (getBackpressureOnStartPiMeter().getOneMinuteRate() / getStartedPiMeter().getOneMinuteRate()) * 100;
+        //TODO : Validate if this logic is correct
+        return ((getBackpressureOnStartPiMeter().getOneMinuteRate() + getBackpressureOnStartDiMeter().getOneMinuteRate()) / (getStartedPiMeter().getOneMinuteRate() + getStartedDiMeter().getOneMinuteRate()))* 100;
     }
 
     public Meter getStartedPiMeter() {
         return dropwizardMetricRegistry.meter("pi_started" );
+    }
+
+    public Meter getEvaluatedDiMeter() {
+        return dropwizardMetricRegistry.meter("di_evaluated" );
     }
 
     public Meter getStartedDiMeter() {
@@ -104,6 +109,10 @@ public class StatisticsCollector {
         return dropwizardMetricRegistry.meter("pi_backpressure" );
     }
 
+    public Meter getBackpressureOnStartDiMeter() {
+        return dropwizardMetricRegistry.meter("di_backpressure" );
+    }
+
     public void hintOnNewPiPerSecondGoald(long piPerSecondGoal) {
         this.piPerSecondGoal = piPerSecondGoal;
     }
@@ -113,11 +122,20 @@ public class StatisticsCollector {
         micrometerMetricRegistry.counter("pi_started").increment();
     }
 
+    public void incEvaluatedDecisionInstances() {
+        getEvaluatedDiMeter().mark();
+        micrometerMetricRegistry.counter("di_evaluated").increment();
+    }
+
     public void incStartedDecisionInstances() {
         getStartedDiMeter().mark();
         micrometerMetricRegistry.counter("di_started").increment();
     }
 
+    public void incStartedDecisionInstancesBackpressure() {
+        getBackpressureOnStartDiMeter().mark();
+        micrometerMetricRegistry.counter("di_backpressure").increment();
+    }
     public void incStartedProcessInstancesBackpressure() {
         getBackpressureOnStartPiMeter().mark();
         micrometerMetricRegistry.counter("pi_backpressure").increment();
@@ -140,6 +158,10 @@ public class StatisticsCollector {
 
     public void incStartedProcessInstancesException(String exceptionMessage) {
         micrometerMetricRegistry.counter("pi_exception", "exception", exceptionMessage).increment();
+    }
+
+    public void incStartedDecisionInstancesException(String exceptionMessage) {
+        micrometerMetricRegistry.counter("di_exception", "exception", exceptionMessage).increment();
     }
 
     public void incCompletedJobsException(String exceptionMessage) {
