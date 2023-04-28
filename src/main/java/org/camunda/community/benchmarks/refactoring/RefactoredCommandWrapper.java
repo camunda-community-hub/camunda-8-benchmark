@@ -21,7 +21,7 @@ public class RefactoredCommandWrapper extends CommandWrapper  {
         private DefaultCommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
         private long currentRetryDelay = 50L;
         private int invocationCounter = 0;
-        private int maxRetries = 0;
+        private int maxRetries = 20;
 
         public RefactoredCommandWrapper(FinalCommandStep<Void> command, long deadline, String entityLogInfo, DefaultCommandExceptionHandlingStrategy commandExceptionHandlingStrategy) {
             super(command, null, commandExceptionHandlingStrategy);
