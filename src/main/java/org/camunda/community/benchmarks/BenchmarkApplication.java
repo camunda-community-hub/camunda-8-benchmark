@@ -23,8 +23,8 @@ class BenchmarkApplication  {
         ConfigurableApplicationContext context = SpringApplication.run(BenchmarkApplication.class, args);
 
         // Trigger here to make sure it happens AFTER the ApplicationContext is ready
-//        context.getBean(ProcessDeployer.class).autoDeploy();
-//        context.getBean(JobWorker.class).startWorkers();
+        context.getBean(ProcessDeployer.class).autoDeploy();
+        context.getBean(JobWorker.class).startWorkers();
     }
 
 
