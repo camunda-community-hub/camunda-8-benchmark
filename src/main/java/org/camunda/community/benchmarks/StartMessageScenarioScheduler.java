@@ -63,7 +63,7 @@ public class StartMessageScenarioScheduler {
   }
 
   //every 100ms
-  //@Scheduled(fixedRate = 100, initialDelay = 2000)
+  @Scheduled(fixedRate = 100, initialDelay = 2000)
   public void startScenarios() {
     if (loadDuration<config.getMessagesLoadDuration()) {
       loadDuration+=100;
