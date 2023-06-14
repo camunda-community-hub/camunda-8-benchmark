@@ -6,8 +6,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
@@ -59,12 +57,18 @@ public class AsyncConfiguration {
     }
 
     @Bean
+
+    //TODO: check if the same Taskscheduler above can be reused instead of creating a new task scheduler below
+    /**
+     * Upgrade to Spring zeebe 8.2.0 requires an implementation of ScheduledExecutorService to be specified
+     */
     public ScheduledExecutorService scheduledExecutorService() {
-        LOGGER.debug("Creating Async Task Scheduler");
+        LOGGER.debug("Creating TaskScheduler to get ScheduledExecutorService --");
         ThreadPoolTaskScheduler scheduler  = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(corePoolSize);
-        scheduler.setThreadNamePrefix("ThreadPoolTaskScheduler-");
+        scheduler.setThreadNamePrefix("ScheduledExecutor-ThreadPool-");
         scheduler.initialize();
         return scheduler.getScheduledExecutor();
     }
+
 }
