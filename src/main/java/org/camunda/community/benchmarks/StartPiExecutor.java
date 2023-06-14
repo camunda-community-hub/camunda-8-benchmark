@@ -19,34 +19,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
-public class StartPiExecutor {
+public class StartPiExecutor  extends StartInstanceExecutor{
 
     public static final String BENCHMARK_START_DATE_MILLIS = "benchmark_start_date_millis";
     private static final Object BENCHMARK_STARTER_ID = "benchmark_starter_id";
 
     @Autowired
-    private BenchmarkConfiguration config;
-
-    @Autowired
-    private ZeebeClient client;
-
-    @Autowired
     private BenchmarkStartPiExceptionHandlingStrategy exceptionHandlingStrategy;
 
-    @Autowired
-    private ZeebeClientConfiguration zeebeClientConfiguration;
-
-    private Map<String, Object> benchmarkPayload;
-
-    @PostConstruct
-    public void init() throws IOException {
-        String variablesJsonString = tryReadVariables(config.getPayloadPath().getInputStream());
-        benchmarkPayload = zeebeClientConfiguration.getJsonMapper().fromJsonAsMap(variablesJsonString);
-    }
-
-    public void startProcessInstance() {
+    @Override
+    public void startInstance() {
         HashMap<Object, Object> variables = new HashMap<>();
-        variables.putAll(this.benchmarkPayload);
+        variables.putAll(benchmarkPayload);
         variables.put(BENCHMARK_START_DATE_MILLIS, Instant.now().toEpochMilli());
         variables.put(BENCHMARK_STARTER_ID, config.getStarterId());
 
@@ -63,16 +47,4 @@ public class StartPiExecutor {
         command.executeAsync();
     }
 
-    private String tryReadVariables(final InputStream inputStream) throws IOException {
-        final StringBuilder stringBuilder = new StringBuilder();
-        try (final InputStreamReader reader = new InputStreamReader(inputStream)) {
-            try (final BufferedReader br = new BufferedReader(reader)) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    stringBuilder.append(line).append("\n");
-                }
-            }
-        }
-        return stringBuilder.toString();
-    }
 }

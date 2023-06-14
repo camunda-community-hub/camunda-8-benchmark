@@ -11,12 +11,15 @@ public class BenchmarkConfiguration {
     private String starterId = "benchmarkStarter1";
 
     private boolean startProcesses = true;
+    private boolean startDecisions = true;
     private long startPiPerSecond = 500;
+    private long startDiPerSecond = 500;
     private String jobType = "benchmark-task";
     private int multipleJobTypes = 0;
     private boolean startWorkers = true;
     private long taskCompletionDelay = 200;
     private String bpmnProcessId = "benchmark";
+    private String dmnDecisionId = "benchmark-decision";
     private Resource payloadPath; // = new UrlResource("classpath:bpmn/typical_payload.json");
     private Resource[] bpmnResource;
     private boolean autoDeployProcess = true;
@@ -220,5 +223,29 @@ public class BenchmarkConfiguration {
 
     public void setMessagesLoadDuration(long messagesLoadDuration) {
       this.messagesLoadDuration = messagesLoadDuration;
+    }
+
+    public String getDmnDecisionId() {
+        return dmnDecisionId;
+    }
+
+    public void setDmnDecisionId(String dmnDecisionId) {
+        this.dmnDecisionId = dmnDecisionId;
+    }
+
+    public boolean isStartDecisions() {
+        return startDecisions;
+    }
+
+    public void setStartDecisions(boolean startDecisions) {
+        this.startDecisions = startDecisions;
+    }
+
+    public long getStartDiPerSecond() {
+        return startDiPerSecond;
+    }
+
+    public void setStartDiPerSecond(long startDiPerSecond) {
+        this.startDiPerSecond = startDiPerSecond;
     }
 }
