@@ -28,5 +28,6 @@ public class StartMessageScenarioSchedulerTest {
         assertEquals("Order-42", msg.getCorrelationKey());
         assertEquals("Product-1-42", ((List) msg.getVariables().get("items")).get(0));
         assertEquals("Package-P42", ((Map) ((List) msg.getVariables().get("packages")).get(0)).get("id"));
+        assertEquals("Package-P42", ((Map) msg.getVariables().get("references")).get("packageId"));
     }
 }

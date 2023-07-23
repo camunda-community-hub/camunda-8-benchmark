@@ -13,7 +13,11 @@
                       "id": "Package-P${COUNT}",
                       "status": "new"
                     }
-                  ],
+                ],
+                "references": {
+                    "orderId": "Order-${COUNT}",
+                    "packageId": "Package-P${COUNT}"
+                },
                 "orderStatus": "received"
             }
         },

@@ -111,6 +111,8 @@ public class StartMessageScenarioScheduler {
             replacePlacholders(map, count);
           }
         }
+      } else if (value instanceof Map) {
+        replacePlacholders((Map<String, Object>) value, count);
       }
     }
   }
