@@ -8,6 +8,12 @@
                 "items": [
                     "Product-1-${COUNT}"
                 ],
+                "packages": [
+                    {
+                      "id": "Package-P${COUNT}",
+                      "status": "new"
+                    }
+                  ],
                 "orderStatus": "received"
             }
         },
