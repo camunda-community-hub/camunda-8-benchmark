@@ -13,7 +13,7 @@ public class BenchmarkConfiguration {
     private boolean startProcesses = true;
     private long startPiPerSecond = 500;
     private String jobType = "benchmark-task";
-    private int multipleJobTypes = 0;
+    private int numberOfWorkersPerType = 0;
     private boolean startWorkers = true;
     private long taskCompletionDelay = 200;
     private String bpmnProcessId = "benchmark";
@@ -87,12 +87,12 @@ public class BenchmarkConfiguration {
         this.jobType = jobType;
     }
 
-    public int getMultipleJobTypes() {
-        return multipleJobTypes;
+    public int getNumberOfWorkersPerType() {
+        return numberOfWorkersPerType;
     }
 
-    public void setMultipleJobTypes(int multipleJobTypes) {
-        this.multipleJobTypes = multipleJobTypes;
+    public void setNumberOfWorkersPerType(int numberOfWorkersPerType) {
+        this.numberOfWorkersPerType = numberOfWorkersPerType;
     }
 
     public boolean isStartWorkers() {

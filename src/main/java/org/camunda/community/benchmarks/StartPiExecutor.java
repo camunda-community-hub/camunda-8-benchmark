@@ -42,9 +42,9 @@ public class StartPiExecutor {
         String variablesJsonString = tryReadVariables(config.getPayloadPath().getInputStream());
         benchmarkPayload = zeebeClientConfiguration.getJsonMapper().fromJsonAsMap(variablesJsonString);
         benchmarkPayload.forEach((key, value)->{
-            if(value instanceof String && !((String) value).isEmpty() && ((String) value).contains("${RANDOM_NUMBER}")) {
+            if(value instanceof String && !((String) value).isEmpty() && ((String) value).contains("${RANDOM_UUID}")) {
                 benchmarkPayload.replace(key,
-                    ((String) value).replace("${RANDOM_NUMBER}", UUID.randomUUID().toString()));
+                    ((String) value).replace("${RANDOM_UUID}", UUID.randomUUID().toString()));
             }
         });
     }

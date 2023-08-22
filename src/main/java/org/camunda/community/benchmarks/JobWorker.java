@@ -16,7 +16,6 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.Arrays;
 
 @Component
 public class JobWorker {
@@ -60,13 +59,13 @@ public class JobWorker {
 
         String[] jobs = taskType.split(",");
         boolean startWorkers = config.isStartWorkers();
-        int numberOfJobTypes = config.getMultipleJobTypes();
+        int numberOfJobTypes = config.getNumberOfWorkersPerType();
 
         if(startWorkers) {
             if (numberOfJobTypes <= 0) {
                 if(jobs!=null && jobs.length>1) {
                     for (int i = 0; jobs.length > i; i++) {
-                        registerWorkersForTaskType(taskType);
+                        registerWorkersForTaskType(jobs[i]);
                     }
                 }else{
                     registerWorkersForTaskType(taskType);
