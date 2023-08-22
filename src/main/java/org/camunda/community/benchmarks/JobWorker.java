@@ -60,10 +60,9 @@ public class JobWorker {
         String[] jobs = taskType.split(",");
         boolean startWorkers = config.isStartWorkers();
         int numberOfJobTypes = config.getMultipleJobTypes();
-        int numberOfJobWokers = config.getNumberOfWorkersPerType();
 
         if(startWorkers) {
-            //if the job types are not listed ot then generate the jobtypes automatically based on the multipleJobTypes
+            //if the job types are not listed out then generate the jobtypes automatically based on the multipleJobTypes
             //other wise loop through the list of jobTypes and create
             if(jobs==null || jobs.length == 0) {
                 if (numberOfJobTypes <= 0) {
@@ -75,9 +74,7 @@ public class JobWorker {
                 }
             } else {
                 for (int n = 0; jobs.length > n; n++) {
-                    for (int i = 0; i < numberOfJobWokers; i++) {
-                        registerWorkersForTaskType(jobs[n] + "-" + (i + 1));
-                    }
+                    registerWorkersForTaskType(jobs[n]);
                 }
             }
         }
