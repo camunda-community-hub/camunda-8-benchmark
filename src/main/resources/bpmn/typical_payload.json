@@ -3,7 +3,7 @@
   "var2": true,
   "var3": 15,
   "var4": {
-    "var4-1": "value4-1",
+    "var4-1": "value4-1-${COUNT}",
     "var4-2": false,
     "var4-3": 111
   },

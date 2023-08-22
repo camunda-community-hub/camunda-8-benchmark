@@ -15,8 +15,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.io.*;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Component
 public class StartPiExecutor {
@@ -42,6 +41,12 @@ public class StartPiExecutor {
     public void init() throws IOException {
         String variablesJsonString = tryReadVariables(config.getPayloadPath().getInputStream());
         benchmarkPayload = zeebeClientConfiguration.getJsonMapper().fromJsonAsMap(variablesJsonString);
+        benchmarkPayload.forEach((key, value)->{
+            if(value instanceof String && !((String) value).isEmpty() && ((String) value).contains("${RANDOM_NUMBER}")) {
+                benchmarkPayload.replace(key,
+                    ((String) value).replace("${RANDOM_NUMBER}", UUID.randomUUID().toString()));
+            }
+        });
     }
 
     public void startProcessInstance() {
