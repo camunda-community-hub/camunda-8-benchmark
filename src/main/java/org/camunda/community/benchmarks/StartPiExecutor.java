@@ -15,8 +15,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.io.*;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Component
 public class StartPiExecutor {
@@ -41,6 +40,7 @@ public class StartPiExecutor {
     @PostConstruct
     public void init() throws IOException {
         String variablesJsonString = tryReadVariables(config.getPayloadPath().getInputStream());
+        variablesJsonString = variablesJsonString.replace("${RANDOM_UUID}", UUID.randomUUID().toString());
         benchmarkPayload = zeebeClientConfiguration.getJsonMapper().fromJsonAsMap(variablesJsonString);
     }
 

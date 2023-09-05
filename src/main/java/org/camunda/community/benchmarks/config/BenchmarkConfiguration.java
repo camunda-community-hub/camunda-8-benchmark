@@ -78,6 +78,9 @@ public class BenchmarkConfiguration {
         this.taskCompletionDelay = taskCompletionDelay;
     }
 
+    public int getMultipleJobTypes() { return multipleJobTypes; }
+
+    public void setMultipleJobTypes(int multipleJobTypes) { this.multipleJobTypes = multipleJobTypes; }
 
     public String getJobType() {
         return jobType;
@@ -85,14 +88,6 @@ public class BenchmarkConfiguration {
 
     public void setJobType(String jobType) {
         this.jobType = jobType;
-    }
-
-    public int getMultipleJobTypes() {
-        return multipleJobTypes;
-    }
-
-    public void setMultipleJobTypes(int multipleJobTypes) {
-        this.multipleJobTypes = multipleJobTypes;
     }
 
     public boolean isStartWorkers() {
