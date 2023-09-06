@@ -11,6 +11,8 @@ import io.camunda.zeebe.client.api.worker.JobWorkerBuilderStep1;
 import io.camunda.zeebe.client.impl.ZeebeClientBuilderImpl;
 import io.camunda.zeebe.spring.client.exception.ZeebeBpmnError;
 import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
+import io.camunda.zeebe.spring.client.properties.ZeebeClientConfigurationProperties;
+
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +44,7 @@ public class JobWorker {
 
         long fixedBackOffDelay = config.getFixedBackOffDelay();
 
-        ((ZeebeClientBuilderImpl) client.getConfiguration()).defaultJobWorkerName("c8b");
+        ((ZeebeClientConfigurationProperties) client.getConfiguration()).getWorker().setDefaultName("c8b");
 
         JobWorkerBuilderStep1.JobWorkerBuilderStep3 worker = client.newWorker()
                 .jobType(jobType)
