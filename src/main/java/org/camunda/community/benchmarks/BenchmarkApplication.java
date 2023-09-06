@@ -10,7 +10,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-@EnableZeebeClient
 @EnableScheduling
 @EnableAsync
 //@ZeebeDeployment(resources = "classpath:bpmn/typical_process.bpmn")

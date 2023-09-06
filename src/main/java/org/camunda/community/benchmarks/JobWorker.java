@@ -44,6 +44,7 @@ public class JobWorker {
 
         long fixedBackOffDelay = config.getFixedBackOffDelay();
 
+        // TODO remove once camunda/zeebe#14176 is fixed
         ((ZeebeClientConfigurationProperties) client.getConfiguration()).getWorker().setDefaultName("c8b");
 
         JobWorkerBuilderStep1.JobWorkerBuilderStep3 worker = client.newWorker()
