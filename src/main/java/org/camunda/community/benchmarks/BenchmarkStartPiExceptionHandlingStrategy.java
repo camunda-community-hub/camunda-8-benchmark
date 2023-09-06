@@ -1,15 +1,14 @@
 package org.camunda.community.benchmarks;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import io.camunda.zeebe.client.api.worker.BackoffSupplier;
 import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
 import io.camunda.zeebe.spring.client.jobhandling.DefaultCommandExceptionHandlingStrategy;
+import io.camunda.zeebe.spring.client.jobhandling.ZeebeClientExecutorService;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
-import org.springframework.stereotype.Component;
-
-import java.util.concurrent.ScheduledExecutorService;
 
 @Component
 public class BenchmarkStartPiExceptionHandlingStrategy extends DefaultCommandExceptionHandlingStrategy  {
@@ -17,8 +16,8 @@ public class BenchmarkStartPiExceptionHandlingStrategy extends DefaultCommandExc
     @Autowired
     private StatisticsCollector stats;
 
-    public BenchmarkStartPiExceptionHandlingStrategy(@Autowired BackoffSupplier backoffSupplier, @Autowired ScheduledExecutorService scheduledExecutorService) {
-        super(backoffSupplier, scheduledExecutorService);
+    public BenchmarkStartPiExceptionHandlingStrategy(@Autowired BackoffSupplier backoffSupplier, @Autowired ZeebeClientExecutorService scheduledExecutorService) {
+        super(backoffSupplier, scheduledExecutorService.get());
     }
 
     public void handleCommandError(CommandWrapper command, Throwable throwable) {
