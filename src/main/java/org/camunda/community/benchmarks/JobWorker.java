@@ -40,18 +40,17 @@ public class JobWorker {
 
         long fixedBackOffDelay = config.getFixedBackOffDelay();
 
-        JobWorkerBuilderStep1.JobWorkerBuilderStep3 step3 = client.newWorker()
+        JobWorkerBuilderStep1.JobWorkerBuilderStep3 worker = client.newWorker()
                 .jobType(jobType)
                 .handler(new SimpleDelayCompletionHandler(false))
-                .name("c8b-" + jobType)
                 .enableStreaming() // TODO from 8.3.0-alpha5 change to: .streamEnabled(true)
-                .name(jobType);
+                .name("c8b-" + jobType);
 
         if(fixedBackOffDelay > 0) {
-            step3.backoffSupplier(new FixedBackoffSupplier(fixedBackOffDelay));
+            worker.backoffSupplier(new FixedBackoffSupplier(fixedBackOffDelay));
         }
 
-        step3.open();
+        worker.open();
     }
 
     // Don't do @PostConstruct as this is too early in the Spring lifecycle
