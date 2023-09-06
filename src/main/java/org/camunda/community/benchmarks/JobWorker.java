@@ -43,6 +43,7 @@ public class JobWorker {
         JobWorkerBuilderStep1.JobWorkerBuilderStep3 step3 = client.newWorker()
                 .jobType(jobType)
                 .handler(new SimpleDelayCompletionHandler(false))
+                .name("c8b-" + jobType)
                 .enableStreaming() // TODO from 8.3.0-alpha5 change to: .streamEnabled(true)
                 .name(jobType);
 
