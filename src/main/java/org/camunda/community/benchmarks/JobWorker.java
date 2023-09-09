@@ -94,13 +94,13 @@ public class JobWorker {
         registerWorker(taskType);
 
         // worker for normal "task-type-{starterId}"
-        registerWorker(taskType + "-" + config.getStarterId());
+        // TODO: make configurable: registerWorker(taskType + "-" + config.getStarterId());
 
         // worker marking completion of process instance via "task-type-complete"
-        registerWorker(taskType + "-completed");
+        // TODO: make configurable: registerWorker(taskType + "-completed");
 
         // worker marking completion of process instance via "task-type-complete"
-        registerWorker(taskType + "-" + config.getStarterId() + "-completed");
+        // TODO: make configurable: registerWorker(taskType + "-" + config.getStarterId() + "-completed");
     }
 
     public class SimpleDelayCompletionHandler implements JobHandler {
