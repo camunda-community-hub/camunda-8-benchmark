@@ -59,7 +59,7 @@ public class StartMessageScenarioScheduler {
     messageTtl = Duration.ofMinutes(config.getMessagesTtl());
     scenario = JsonUtils.fromJsonInputStream(config.getMessageScenario().getInputStream(), MessagesScenario.class);
     nbMessages = scenario.getMessageSequence().size();
-    LOG.warn("Using scenario "+config.getMessageScenario()+" with "+nbMessages+" steps");
+    LOG.info("Using scenario "+config.getMessageScenario()+" with "+nbMessages+" steps");
   }
 
   //every 100ms

@@ -14,6 +14,8 @@ import io.camunda.zeebe.spring.client.properties.ZeebeClientConfigurationPropert
 
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
@@ -22,7 +24,9 @@ import java.time.Instant;
 
 @Component
 public class JobWorker {
-
+    
+    private static final Logger LOG = LoggerFactory.getLogger(JobWorker.class);
+    
     @Autowired
     private BenchmarkConfiguration config;
 
@@ -57,6 +61,8 @@ public class JobWorker {
         }
 
         worker.open();
+
+        LOG.info("Worker "+jobType+" started");
     }
 
     // Don't do @PostConstruct as this is too early in the Spring lifecycle
