@@ -1,5 +1,16 @@
 package org.camunda.community.benchmarks;
 
+import java.time.Instant;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
+import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.stereotype.Component;
+
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
@@ -9,16 +20,10 @@ import io.camunda.zeebe.client.api.worker.JobHandler;
 import io.camunda.zeebe.client.api.worker.JobWorkerBuilderStep1;
 import io.camunda.zeebe.spring.client.exception.ZeebeBpmnError;
 import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
-import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
-import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.TaskScheduler;
-import org.springframework.stereotype.Component;
-
-import java.time.Instant;
 
 @Component
 public class JobWorker {
+    private static final Logger LOG = LogManager.getLogger(JobWorker.class);
 
     @Autowired
     private BenchmarkConfiguration config;
@@ -113,7 +118,13 @@ public class JobWorker {
                     job.getDeadline(),
                     job.toString(),
                     exceptionHandlingStrategy);
-
+            Map<String, Object> variables = job.getVariablesAsMap();
+            Long delay = config.getTaskCompletionDelay();
+            if (variables.containsKey("delay")) {
+                delay = 0L + (Integer) variables.get("delay");
+                LOG.info("Worker " + job.getType() +" will complete in " +delay+ " MS");
+                
+            }
             // schedule the completion asynchronously with the configured delay
             scheduler.schedule(new Runnable() {
                 @Override
@@ -139,7 +150,7 @@ public class JobWorker {
                         command.executeAsync();
                     }
                 }
-            }, Instant.now().plusMillis(config.getTaskCompletionDelay()));
+            }, Instant.now().plusMillis(delay));
         }
     }
 

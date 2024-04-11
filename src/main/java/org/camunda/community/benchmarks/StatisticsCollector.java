@@ -1,17 +1,18 @@
 package org.camunda.community.benchmarks;
 
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Snapshot;
-import com.codahale.metrics.Timer;
+import java.time.Instant;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import java.time.Instant;
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Snapshot;
+import com.codahale.metrics.Timer;
+
+import jakarta.annotation.PostConstruct;
 
 @Component
 public class StatisticsCollector {
