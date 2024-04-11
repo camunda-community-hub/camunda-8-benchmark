@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.camunda.community.benchmarks.model.Message;
 import org.camunda.community.benchmarks.model.MessagesScenario;
 import org.camunda.community.benchmarks.utils.JsonUtils;
@@ -15,9 +17,11 @@ import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.databind.DatabindException;
 
 public class StartMessageScenarioSchedulerTest {
+    private static final Logger LOG = LogManager.getLogger(StartMessageScenarioSchedulerTest.class);
 
     @Test
     void testReplacePlaceHolders() throws StreamReadException, DatabindException, IOException {
+        LOG.info("test");
         MessagesScenario scenario = JsonUtils.fromJsonInputStream(
             this.getClass().getResourceAsStream("/bpmn/sample-msg-scenario.json"),
             MessagesScenario.class);

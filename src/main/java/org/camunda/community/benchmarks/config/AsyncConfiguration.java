@@ -1,17 +1,17 @@
 package org.camunda.community.benchmarks.config;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-
-import java.util.concurrent.Executor;
 
 @Configuration
 public class AsyncConfiguration {
@@ -55,5 +55,11 @@ public class AsyncConfiguration {
         scheduler.setThreadNamePrefix("ThreadPoolTaskScheduler-");
         scheduler.initialize();
         return scheduler;
+    }
+    
+    @Bean
+    public ScheduledExecutorService scheduledExecutorService() {
+        ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
+        return ses;
     }
 }

@@ -8,8 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.commons.lang.SerializationUtils;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.model.Message;
@@ -26,6 +24,7 @@ import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.databind.DatabindException;
 
 import io.camunda.zeebe.client.ZeebeClient;
+import jakarta.annotation.PostConstruct;
 
 @Component
 @ConditionalOnProperty(name = "benchmark.messageScenario", matchIfMissing = false)
