@@ -63,6 +63,13 @@ benchmark.bpmnProcessId=benchmark-dmn
 benchmark.payloadPath=url:https://gist.githubusercontent.com/berndruecker/ec94642075548d2c84404336d77ea6f1/raw/11cd080fd387c2de64e0e718bedf25f4412f0981/data.json
 ```
 
+You can adjust the model on the fly, for example because you want to replace specific service task types with the `benchmark` task type mocked by the benchmark project (instead of calling the sendgrid connecter in the example below). Also you can replace the process id with `benchmark` automatically:
+
+```poperties
+benchmark.jobTypesToReplace=io.camunda:sendgrid:1
+benchmark.bpmnProcessIdToReplace=Process_145kw8o
+```
+
 ## Typical process
 
 If you do not specify a process model, the [typical process](blob/main/src/main/resources/bpmn/typical_process.bpmn) is used as a process model showing a typical model size we see at customers (around 10 to 30 tasks). It is intentional, that there are not much other elements (like gateways or events), as this did not influence benchmark too much in our experiments, so we preferred to keep it simple.

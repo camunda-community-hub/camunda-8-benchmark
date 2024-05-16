@@ -21,6 +21,9 @@ public class BenchmarkConfiguration {
     private Resource[] bpmnResource;
     private boolean autoDeployProcess = true;
 
+    private String jobTypesToReplace;
+    private String bpmnProcessIdToReplace;
+
     private long warmupPhaseDurationMillis = 0;
     private String startRateAdjustmentStrategy="backpressure";
 
@@ -215,5 +218,21 @@ public class BenchmarkConfiguration {
 
     public void setMessagesLoadDuration(long messagesLoadDuration) {
       this.messagesLoadDuration = messagesLoadDuration;
+    }
+
+    public String getJobTypesToReplace() {
+        return jobTypesToReplace;
+    }
+
+    public void setJobTypesToReplace(String jobTypesToReplace) {
+        this.jobTypesToReplace = jobTypesToReplace;
+    }
+
+    public String getBpmnProcessIdToReplace() {
+        return bpmnProcessIdToReplace;
+    }
+
+    public void setBpmnProcessIdToReplace(String bpmnProcessIdToReplace) {
+        this.bpmnProcessIdToReplace = bpmnProcessIdToReplace;
     }
 }
