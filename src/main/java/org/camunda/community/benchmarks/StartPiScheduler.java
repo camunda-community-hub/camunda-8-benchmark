@@ -105,7 +105,7 @@ public class StartPiScheduler {
     }
 
     @Async
-    private void startProcessInstances(long batchSize) {
+    protected void startProcessInstances(long batchSize) {
         for (int i = 0; i < batchSize; i++) {
             executor.startProcessInstance();
             stats.incStartedProcessInstances();
