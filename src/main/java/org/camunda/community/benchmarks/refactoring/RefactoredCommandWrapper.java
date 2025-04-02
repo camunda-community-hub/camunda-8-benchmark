@@ -24,7 +24,7 @@ public class RefactoredCommandWrapper extends CommandWrapper  {
         private int maxRetries = 20;
 
         public RefactoredCommandWrapper(FinalCommandStep<Void> command, long deadline, String entityLogInfo, DefaultCommandExceptionHandlingStrategy commandExceptionHandlingStrategy) {
-            super(command, null, commandExceptionHandlingStrategy);
+            super(command, null, commandExceptionHandlingStrategy, null, 20);
             this.command = command;
             this.deadline = deadline;
             this.entityLogInfo = entityLogInfo;
