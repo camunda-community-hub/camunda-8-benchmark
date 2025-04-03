@@ -1,6 +1,7 @@
 package org.camunda.community.benchmarks;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -18,6 +19,14 @@ import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
 import io.camunda.zeebe.client.api.worker.JobWorkerBuilderStep1;
+import io.camunda.zeebe.model.bpmn.Bpmn;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.ExtensionElements;
+import io.camunda.zeebe.model.bpmn.instance.FlowNode;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
+import io.camunda.zeebe.model.bpmn.util.time.Interval;
 import io.camunda.zeebe.spring.client.exception.ZeebeBpmnError;
 import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
 
@@ -124,6 +133,60 @@ public class JobWorker {
                 delay = 0L + (Integer) variables.get("delay");
                 LOG.info("Worker " + job.getType() +" will complete in " +delay+ " MS");
                 
+            } else if (delay == -1) {
+                // read delay from BPMN process
+                delay = 0L;
+                long duration;
+                // parse BPMN resource
+                BpmnModelInstance bpmn = Bpmn.readModelFromFile(config.getBpmnResource()[0].getFile());
+                bpmn.getModelElementsByType(ZeebeTaskDefinition.class)
+                    .stream()
+                    .filter(taskDefinition -> taskDefinition.getType().equals(job.getType()))
+                    .findFirst()
+                    .ifPresent(taskDefinition -> {
+                        FlowNode flowNode = (FlowNode) taskDefinition.getParentElement();
+                        // get ZeebeProperties from FlowNode
+                        Collection<ZeebeProperty> zeebeProperties = flowNode.getExtensionElements()
+                            .getElementsQuery()
+                            .filterByType(ZeebeProperties.class)
+                            .singleResult()
+                            .getProperties();
+                        flowNode.getUniqueChildElementByType(ExtensionElements.class)
+                            .getUniqueChildElementByType(ZeebeProperties.class)
+                            .getChildElementsByType(ZeebeProperty.class)
+                            .stream()
+                            .filter(property -> property.getName().equals("bpsim:DurationParameter"))
+                            .findFirst()
+                            .ifPresent(property -> {
+                                duration = Interval.parse(property.getValue()).getDuration().toMillis();
+                            });
+
+                        // TODO Use BPSim standard
+                        // <semantic:relationship type="BPSimData">
+                        // <semantic:extensionElements>
+                        //     <bpsim:BPSimData>
+                        //         <bpsim:Scenario author="Falko Menge" id="default" name="Scenario 1">
+                        //             <bpsim:ElementParameters elementRef="_10-458">
+                        //                 <bpsim:TimeParameters>
+                        //                     <bpsim:ProcessingTime>
+                        //                         <bpsim:DurationParameter value="PT30S"/>
+                        //                     </bpsim:ProcessingTime>
+                        //                 </bpsim:TimeParameters>
+                        //             </bpsim:ElementParameters>                        
+                        // bpmn.getModelElementsByType(Relationship.class)
+                        //     .stream()
+                        //     .filter(relationship -> relationship.getType().equals("BPSimData"))
+                        //     .findFirst()
+                        //     .ifPresent(relationship -> {
+                        //         relationship.getExtensionElements().getDomElement().getChildElements().forEach(element -> {
+                        //             if (element.getLocalName().equals("Parameter")) {
+                        //                 if (element.getAttributeValue("name").equals("taskExecutionTime")) {
+                        //                     delay = Long.parseLong(element.getAttributeValue("value"));
+                        //                 }
+                        //             }
+                        //         });
+                        //     });
+                    });
             }
             // schedule the completion asynchronously with the configured delay
             scheduler.schedule(new Runnable() {
