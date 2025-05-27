@@ -4,8 +4,11 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import io.camunda.zeebe.spring.client.actuator.MicrometerMetricsRecorder;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +33,8 @@ public class AsyncConfiguration {
     @Value("${scheduler.poolSize}")
     private int schedulerPoolSize;
 
+    @Autowired
+    private MeterRegistry meterRegistry;
     /**
      * Executor to run everything that is @Async
      */
@@ -61,5 +66,10 @@ public class AsyncConfiguration {
     public ScheduledExecutorService scheduledExecutorService() {
         ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
         return ses;
+    }
+
+    @Bean
+    public MicrometerMetricsRecorder micrometerMetricsRecorder() {
+        return new MicrometerMetricsRecorder(meterRegistry);
     }
 }

@@ -3,6 +3,7 @@ package org.camunda.community.benchmarks;
 import java.time.Instant;
 import java.util.Map;
 
+import io.camunda.zeebe.spring.client.actuator.MicrometerMetricsRecorder;
 import io.camunda.zeebe.spring.common.exception.ZeebeBpmnError;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,13 +42,16 @@ public class JobWorker {
     @Autowired
     private StatisticsCollector stats;
 
-    private void registerWorker(String jobType) {
+    @Autowired
+    private MicrometerMetricsRecorder micrometerMetricsRecorder;
+
+    private void registerWorker(String jobType, Boolean markPiCompleted) {
 
         long fixedBackOffDelay = config.getFixedBackOffDelay();
 
         JobWorkerBuilderStep1.JobWorkerBuilderStep3 step3 = client.newWorker()
                 .jobType(jobType)
-                .handler(new SimpleDelayCompletionHandler(false))
+                .handler(new SimpleDelayCompletionHandler(markPiCompleted))
                 .name(jobType);
 
         if(fixedBackOffDelay > 0) {
@@ -89,16 +93,16 @@ public class JobWorker {
 
     private void registerWorkersForTaskType(String taskType) {
         // worker for normal task type
-        registerWorker(taskType);
+        registerWorker(taskType, false);
 
         // worker for normal "task-type-{starterId}"
-        registerWorker(taskType + "-" + config.getStarterId());
+        registerWorker(taskType + "-" + config.getStarterId(), false);
 
         // worker marking completion of process instance via "task-type-complete"
-        registerWorker(taskType + "-completed");
+        registerWorker(taskType + "-completed", true);
 
         // worker marking completion of process instance via "task-type-complete"
-        registerWorker(taskType + "-" + config.getStarterId() + "-completed");
+        registerWorker(taskType + "-" + config.getStarterId() + "-completed", true);
     }
 
     public class SimpleDelayCompletionHandler implements JobHandler {
@@ -117,7 +121,8 @@ public class JobWorker {
                     (FinalCommandStep) completeCommand,
                     job.getDeadline(),
                     job.toString(),
-                    exceptionHandlingStrategy);
+                    exceptionHandlingStrategy,
+                    micrometerMetricsRecorder);
             Map<String, Object> variables = job.getVariablesAsMap();
             Long delay = config.getTaskCompletionDelay();
             if (variables.containsKey("delay")) {
@@ -130,7 +135,7 @@ public class JobWorker {
                 @Override
                 public void run() {
                     try {
-                        command.executeAsync();
+                        command.executeAsyncWithMetrics("job_completion",job.getType(),"complete");
                         stats.incCompletedJobs();
                         if (markProcessInstanceCompleted) {
                             Object startEpochMillis = job.getVariablesAsMap().get(StartPiExecutor.BENCHMARK_START_DATE_MILLIS);
@@ -146,8 +151,9 @@ public class JobWorker {
                                 createThrowErrorCommand(jobClient, job, bpmnError),
                                 job.getDeadline(),
                                 job.toString(),
-                                exceptionHandlingStrategy);
-                        command.executeAsync();
+                                exceptionHandlingStrategy,
+                                micrometerMetricsRecorder);
+                        command.executeAsyncWithMetrics("job_error",job.getType(),bpmnError.getErrorCode()+"-"+bpmnError.getErrorMessage());
                     }
                 }
             }, Instant.now().plusMillis(delay));

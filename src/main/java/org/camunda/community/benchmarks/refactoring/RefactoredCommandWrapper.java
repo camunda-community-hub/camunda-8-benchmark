@@ -5,6 +5,8 @@ import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.BackoffSupplier;
 import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
 import io.camunda.zeebe.spring.client.jobhandling.DefaultCommandExceptionHandlingStrategy;
+import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.util.concurrent.ScheduledExecutorService;
@@ -22,9 +24,10 @@ public class RefactoredCommandWrapper extends CommandWrapper  {
         private long currentRetryDelay = 50L;
         private int invocationCounter = 0;
         private int maxRetries = 20;
+        private MetricsRecorder metricsRecorder;
 
-        public RefactoredCommandWrapper(FinalCommandStep<Void> command, long deadline, String entityLogInfo, DefaultCommandExceptionHandlingStrategy commandExceptionHandlingStrategy) {
-            super(command, null, commandExceptionHandlingStrategy, null, 20);
+        public RefactoredCommandWrapper(FinalCommandStep<Void> command, long deadline, String entityLogInfo, DefaultCommandExceptionHandlingStrategy commandExceptionHandlingStrategy, MetricsRecorder metricsRecorder) {
+            super(command, null, commandExceptionHandlingStrategy, metricsRecorder, 20);
             this.command = command;
             this.deadline = deadline;
             this.entityLogInfo = entityLogInfo;

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_event_classification" name="DRD Event Classification" namespace="http://camunda.org/schema/1.0/dmn" exporter="Camunda Modeler" exporterVersion="5.29.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.7.0">
+  <decision id="decision-classify-event" name="Event Classification">
+    <decisionTable id="DecisionTable_0kfhl59">
+      <input id="Input_1" label="Metric Value">
+        <inputExpression id="InputExpression_1" typeRef="string">
+          <text>metric_value</text>
+        </inputExpression>
+      </input>
+      <input id="InputClause_0w48qwj" label="Severity">
+        <inputExpression id="LiteralExpression_1yw0zto" typeRef="number">
+          <text>number(severity_ordinal)</text>
+        </inputExpression>
+      </input>
+      <output id="Output_1" label="Event Type Classification" name="eventType" typeRef="string">
+        <outputValues id="UnaryTests_0jrl471">
+          <text>"High priority","Low priority","Further Verification","Ignore"</text>
+        </outputValues>
+      </output>
+      <rule id="DecisionRule_1304bl5">
+        <inputEntry id="UnaryTests_0ae5lmz">
+          <text>"High priority"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0u4i8fo">
+          <text>&gt; 90</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1a8exyi">
+          <text>"High priority"</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_0m9thg1">
+        <inputEntry id="UnaryTests_1qzy04m">
+          <text>"High priority"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1gazzxa">
+          <text>&lt;=90</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_011m47v">
+          <text>"Low priority"</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_0twex84">
+        <inputEntry id="UnaryTests_1a1eybe">
+          <text>"Low priority"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0ngpqs2">
+          <text>&gt;25</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_06cuj5v">
+          <text>"High priority"</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_1noomxr">
+        <inputEntry id="UnaryTests_1yqshck">
+          <text>"Low priority"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1vv424g">
+          <text>&lt;=25</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1tje339">
+          <text>"Low priority"</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_16cpqrp">
+        <inputEntry id="UnaryTests_0nhx72d">
+          <text>"Ignore"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0ctdilw">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1v82gdx">
+          <text>"Ignore"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram>
+      <dmndi:DMNShape dmnElementRef="decision-classify-event">
+        <dc:Bounds height="80" width="180" x="160" y="100" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>
