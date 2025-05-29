@@ -108,7 +108,7 @@
     </bpmn:manualTask>
     <bpmn:scriptTask id="Activity_0w0p4ab" name="Randomize event type">
       <bpmn:extensionElements>
-        <zeebe:script expression="={prioList:[&#34;High priority&#34;, &#34;Low priority&#34;, &#34;Further verification&#34;, &#34;Ignore&#34;],&#10;randomInt: (1 + floor(random number() * 6)),&#10;output: prioList[randomInt]}.output" resultVariable="evaluatedPriority" />
+        <zeebe:script expression="={prioList:[&#34;High priority&#34;, &#34;Low priority&#34;, &#34;Further verification&#34;, &#34;Ignore&#34;],&#10;randomInt: modulo((1 + floor(random number() * 6)),4)+1,&#10;output: prioList[randomInt]}.output" resultVariable="evaluatedPriority" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_18zel7u</bpmn:incoming>
       <bpmn:outgoing>Flow_1uangk3</bpmn:outgoing>

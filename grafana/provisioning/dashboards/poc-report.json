@@ -24,6 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": 5,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -164,9 +165,373 @@
           "hide": false,
           "refId": "Ignored Events",
           "type": "math"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "rate(pi_started_total[1m]) - (rate(job_completion_total{action=\"benchmark-task-1\"}[1m]) + rate(job_completion_total{action=\"benchmark-task-2\"}[1m]) + rate(job_completion_total{action=\"benchmark-task-3\"}[1m]))",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "E"
         }
       ],
       "title": "Total Events handled",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "Further verification ",
+                  "Low Priority events",
+                  "High Priority events",
+                  "Ignored events"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 29,
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "values": []
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "builder",
+          "expr": "job_completion_total{action=\"benchmark-task-1\"}",
+          "legendFormat": "High Priority events",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "builder",
+          "expr": "job_completion_total{action=\"benchmark-task-2\"}",
+          "hide": false,
+          "legendFormat": "Low Priority events",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "builder",
+          "expr": "job_completion_total{action=\"benchmark-task-3\"}",
+          "hide": false,
+          "legendFormat": "Further verification ",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "PI_action_total{action=\"start\"}",
+          "hide": false,
+          "legendFormat": "All events",
+          "range": true,
+          "refId": "D"
+        }
+      ],
+      "title": "Event type distribution",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "interim1",
+            "binary": {
+              "left": "High Priority events",
+              "reducer": "sum",
+              "right": "Low Priority events"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "interim2",
+            "binary": {
+              "left": "interim1",
+              "reducer": "sum",
+              "right": "Further verification "
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Ignored events",
+            "binary": {
+              "left": "All events",
+              "operator": "-",
+              "reducer": "sum",
+              "right": "interim2"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Further verification ": false,
+              "Time": true,
+              "pi_total": false,
+              "temp_sum1": false,
+              "temp_sum2": false
+            },
+            "indexByName": {
+              "All events": 4,
+              "Further verification ": 2,
+              "High Priority events": 0,
+              "Ignored events": 3,
+              "Low Priority events": 1,
+              "Time": 7,
+              "interim1": 5,
+              "interim2": 6
+            },
+            "renameByName": {
+              "Ignored events": "",
+              "pi_total": "",
+              "temp_sum1": "",
+              "temp_sum2": ""
+            }
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "Low priority event - max time taken"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 31,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "builder",
+          "expr": "job_timer_benchmark_task_1_seconds_max",
+          "hide": false,
+          "legendFormat": "High priority event - max time taken",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "job_timer_benchmark_task_2_seconds_max",
+          "hide": false,
+          "legendFormat": "Low priority event - max time taken",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "job_timer_benchmark_task_3_seconds_max",
+          "hide": false,
+          "legendFormat": "Further verification- max time taken",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Max time (in Secs) for each Task type",
       "type": "timeseries"
     },
     {
@@ -230,7 +595,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 0
+        "y": 8
       },
       "id": 27,
       "options": {
@@ -245,7 +610,20 @@
           "sort": "none"
         }
       },
+      "pluginVersion": "9.4.7",
       "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "builder",
+          "expr": "rate(pi_started_total[1m])",
+          "hide": false,
+          "legendFormat": "Total Events Received /sec",
+          "range": true,
+          "refId": "D"
+        },
         {
           "datasource": {
             "type": "prometheus",
@@ -289,16 +667,48 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "rate(pi_started_total[1m]) - (rate(job_completion_total{action=\"benchmark-task-1\"}[1m]) + rate(job_completion_total{action=\"benchmark-task-2\"}[1m]) + rate(job_completion_total{action=\"benchmark-task-3\"}[1m]))",
-          "hide": false,
-          "legendFormat": "Ignored / sec",
+          "editorMode": "code",
+          "expr": "sum(rate(job_completion_total{action=~\"benchmark-task-1|benchmark-task-2|benchmark-task-3\"}[1m]))",
+          "hide": true,
+          "legendFormat": "Processed Events /sec",
           "range": true,
-          "refId": "D"
+          "refId": "E"
         }
       ],
-      "title": "Rate of Events handled",
+      "title": "Rate of Events handled / second",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Processed Events",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "High priority Events / sec",
+                "Low priority Events / sec",
+                "Further Verification / sec"
+              ],
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Ignored Events /sec",
+            "binary": {
+              "left": "Total Events Received /sec",
+              "operator": "-",
+              "reducer": "sum",
+              "right": "Processed Events"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        }
+      ],
       "type": "timeseries"
     },
     {
@@ -318,23 +728,20 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          }
+          },
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 7,
         "x": 0,
-        "y": 8
+        "y": 16
       },
-      "id": 20,
+      "id": 18,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -356,16 +763,16 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "builder",
+          "editorMode": "code",
           "exemplar": true,
-          "expr": "avg(rate(pi_completetion_total[1m]))",
+          "expr": "job_timer_benchmark_task_1_seconds_sum / job_timer_benchmark_task_1_seconds_count",
           "interval": "",
           "legendFormat": "",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Average PI/s",
+      "title": "AI Classification - Average time (s)",
       "type": "stat"
     },
     {
@@ -457,7 +864,7 @@
         "h": 8,
         "w": 17,
         "x": 7,
-        "y": 8
+        "y": 16
       },
       "id": 2,
       "options": {
@@ -535,162 +942,6 @@
         }
       ],
       "title": "Rates [m]",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 7,
-        "x": 0,
-        "y": 16
-      },
-      "id": 18,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "9.4.7",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "exemplar": true,
-          "expr": "pi_cycletime_seconds_sum / pi_cycletime_seconds_count",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "title": "Average cycle time in s",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 17,
-        "x": 7,
-        "y": 16
-      },
-      "id": 12,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "exemplar": true,
-          "expr": "rate(pi_cycletime_seconds_sum[1m]) / rate(pi_cycletime_seconds_count[1m]) * 1000",
-          "format": "time_series",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "Average",
-          "refId": "A"
-        }
-      ],
-      "title": "Cycle time in ms [1m]",
       "type": "timeseries"
     },
     {
@@ -820,7 +1071,7 @@
         "h": 8,
         "w": 8,
         "x": 7,
-        "y": 23
+        "y": 24
       },
       "id": 8,
       "options": {
@@ -912,7 +1163,7 @@
         "h": 8,
         "w": 9,
         "x": 15,
-        "y": 23
+        "y": 24
       },
       "id": 10,
       "options": {
@@ -933,10 +1184,12 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
+          "editorMode": "builder",
           "exemplar": true,
-          "expr": "jobs_exception_total",
+          "expr": "jobs_exception",
           "interval": "",
           "legendFormat": "{{exception}}",
+          "range": true,
           "refId": "A"
         }
       ],
@@ -1101,7 +1354,7 @@
         "h": 8,
         "w": 9,
         "x": 7,
-        "y": 31
+        "y": 32
       },
       "id": 16,
       "options": {
@@ -1196,7 +1449,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 31
+        "y": 32
       },
       "id": 22,
       "options": {
@@ -1237,13 +1490,13 @@
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Event_REPORT_OLD",
-  "uid": "VEPGQX11Pnk",
-  "version": 1,
+  "title": "Event-classification-poc-report",
+  "uid": "JOTHI12345",
+  "version": 2,
   "weekStart": ""
 }

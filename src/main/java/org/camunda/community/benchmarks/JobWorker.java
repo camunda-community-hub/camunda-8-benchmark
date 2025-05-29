@@ -59,6 +59,7 @@ public class JobWorker {
         }
 
         step3.open();
+        stats.registerJobTypeTimer(jobType);
     }
 
     // Don't do @PostConstruct as this is too early in the Spring lifecycle
@@ -115,6 +116,7 @@ public class JobWorker {
 
         @Override
         public void handle(JobClient jobClient, ActivatedJob job) throws Exception {
+            var jobStartTime = Instant.now().toEpochMilli();
             // Auto-complete logic from https://github.com/camunda-community-hub/spring-zeebe/blob/ec41c5af1f64e512c8e7a8deea2aeacb35e61a16/client/spring-zeebe/src/main/java/io/camunda/zeebe/spring/client/jobhandling/JobHandlerInvokingSpringBeans.java#L24
             CompleteJobCommandStep1 completeCommand = jobClient.newCompleteCommand(job.getKey());
             CommandWrapper command = new RefactoredCommandWrapper(
@@ -135,12 +137,17 @@ public class JobWorker {
                 @Override
                 public void run() {
                     try {
-                        command.executeAsyncWithMetrics("job_completion",job.getType(),"complete");
+                        var jobType =job.getType();
+                        command.executeAsyncWithMetrics("job_completion",jobType,"complete");
+
+                        var completionTime = Instant.now().toEpochMilli();
                         stats.incCompletedJobs();
+                        stats.recordJobTypeCompletion(jobType,  completionTime-jobStartTime);
+
                         if (markProcessInstanceCompleted) {
                             Object startEpochMillis = job.getVariablesAsMap().get(StartPiExecutor.BENCHMARK_START_DATE_MILLIS);
                             if (startEpochMillis!=null && startEpochMillis instanceof Long) {
-                                stats.incCompletedProcessInstances((Long)startEpochMillis, Instant.now().toEpochMilli());
+                                stats.incCompletedProcessInstances((Long)startEpochMillis, completionTime);
                             } else {
                                 stats.incCompletedProcessInstances();
                             }

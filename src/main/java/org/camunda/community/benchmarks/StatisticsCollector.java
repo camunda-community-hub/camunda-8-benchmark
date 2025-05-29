@@ -137,6 +137,14 @@ public class StatisticsCollector {
     public void incCompletedJobsException(String exceptionMessage) {
         micrometerMetricRegistry.counter("jobs_exception", "exception", exceptionMessage).increment();
     }
-
-
+    public void registerJobTypeTimer(String jobType) {
+        io.micrometer.core.instrument.Timer.builder("job_timer_"+jobType)
+                .publishPercentiles(0.75, 0.95, 0.99)
+                .publishPercentileHistogram()
+                .register(micrometerMetricRegistry);
+    }
+    public void recordJobTypeCompletion(String jobType, long executionDurationMillis){
+        io.micrometer.core.instrument.Timer timer = micrometerMetricRegistry.timer("job_timer_"+jobType);
+        timer.record(executionDurationMillis, TimeUnit.MILLISECONDS );
+    }
 }
