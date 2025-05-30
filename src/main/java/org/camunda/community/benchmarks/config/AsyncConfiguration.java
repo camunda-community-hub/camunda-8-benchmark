@@ -33,8 +33,6 @@ public class AsyncConfiguration {
     @Value("${scheduler.poolSize}")
     private int schedulerPoolSize;
 
-    @Autowired
-    private MeterRegistry meterRegistry;
     /**
      * Executor to run everything that is @Async
      */
@@ -66,10 +64,5 @@ public class AsyncConfiguration {
     public ScheduledExecutorService scheduledExecutorService() {
         ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
         return ses;
-    }
-
-    @Bean
-    public MicrometerMetricsRecorder micrometerMetricsRecorder() {
-        return new MicrometerMetricsRecorder(meterRegistry);
     }
 }
