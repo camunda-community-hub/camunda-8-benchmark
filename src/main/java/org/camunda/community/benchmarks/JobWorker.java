@@ -3,6 +3,7 @@ package org.camunda.community.benchmarks;
 import java.time.Instant;
 import java.util.Map;
 
+import io.camunda.zeebe.spring.client.actuator.MicrometerMetricsRecorder;
 import io.camunda.zeebe.spring.common.exception.ZeebeBpmnError;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,13 +42,16 @@ public class JobWorker {
     @Autowired
     private StatisticsCollector stats;
 
-    private void registerWorker(String jobType) {
+    @Autowired
+    private MicrometerMetricsRecorder micrometerMetricsRecorder;
+
+    private void registerWorker(String jobType, Boolean markPiCompleted) {
 
         long fixedBackOffDelay = config.getFixedBackOffDelay();
 
         JobWorkerBuilderStep1.JobWorkerBuilderStep3 step3 = client.newWorker()
                 .jobType(jobType)
-                .handler(new SimpleDelayCompletionHandler(false))
+                .handler(new SimpleDelayCompletionHandler(markPiCompleted))
                 .name(jobType);
 
         if(fixedBackOffDelay > 0) {
@@ -55,6 +59,7 @@ public class JobWorker {
         }
 
         step3.open();
+        stats.registerJobTypeTimer(jobType);
     }
 
     // Don't do @PostConstruct as this is too early in the Spring lifecycle
@@ -89,16 +94,16 @@ public class JobWorker {
 
     private void registerWorkersForTaskType(String taskType) {
         // worker for normal task type
-        registerWorker(taskType);
+        registerWorker(taskType, false);
 
         // worker for normal "task-type-{starterId}"
-        registerWorker(taskType + "-" + config.getStarterId());
+        registerWorker(taskType + "-" + config.getStarterId(), false);
 
         // worker marking completion of process instance via "task-type-complete"
-        registerWorker(taskType + "-completed");
+        registerWorker(taskType + "-completed", true);
 
         // worker marking completion of process instance via "task-type-complete"
-        registerWorker(taskType + "-" + config.getStarterId() + "-completed");
+        registerWorker(taskType + "-" + config.getStarterId() + "-completed", true);
     }
 
     public class SimpleDelayCompletionHandler implements JobHandler {
@@ -111,13 +116,15 @@ public class JobWorker {
 
         @Override
         public void handle(JobClient jobClient, ActivatedJob job) throws Exception {
+            var jobStartTime = Instant.now().toEpochMilli();
             // Auto-complete logic from https://github.com/camunda-community-hub/spring-zeebe/blob/ec41c5af1f64e512c8e7a8deea2aeacb35e61a16/client/spring-zeebe/src/main/java/io/camunda/zeebe/spring/client/jobhandling/JobHandlerInvokingSpringBeans.java#L24
             CompleteJobCommandStep1 completeCommand = jobClient.newCompleteCommand(job.getKey());
             CommandWrapper command = new RefactoredCommandWrapper(
                     (FinalCommandStep) completeCommand,
                     job.getDeadline(),
                     job.toString(),
-                    exceptionHandlingStrategy);
+                    exceptionHandlingStrategy,
+                    micrometerMetricsRecorder);
             Map<String, Object> variables = job.getVariablesAsMap();
             Long delay = config.getTaskCompletionDelay();
             if (variables.containsKey("delay")) {
@@ -130,12 +137,17 @@ public class JobWorker {
                 @Override
                 public void run() {
                     try {
-                        command.executeAsync();
+                        var jobType =job.getType();
+                        command.executeAsyncWithMetrics("job_completion",jobType,"complete");
+
+                        var completionTime = Instant.now().toEpochMilli();
                         stats.incCompletedJobs();
+                        stats.recordJobTypeCompletion(jobType,  completionTime-jobStartTime);
+
                         if (markProcessInstanceCompleted) {
                             Object startEpochMillis = job.getVariablesAsMap().get(StartPiExecutor.BENCHMARK_START_DATE_MILLIS);
                             if (startEpochMillis!=null && startEpochMillis instanceof Long) {
-                                stats.incCompletedProcessInstances((Long)startEpochMillis, Instant.now().toEpochMilli());
+                                stats.incCompletedProcessInstances((Long)startEpochMillis, completionTime);
                             } else {
                                 stats.incCompletedProcessInstances();
                             }
@@ -146,8 +158,9 @@ public class JobWorker {
                                 createThrowErrorCommand(jobClient, job, bpmnError),
                                 job.getDeadline(),
                                 job.toString(),
-                                exceptionHandlingStrategy);
-                        command.executeAsync();
+                                exceptionHandlingStrategy,
+                                micrometerMetricsRecorder);
+                        command.executeAsyncWithMetrics("job_error",job.getType(),bpmnError.getErrorCode()+"-"+bpmnError.getErrorMessage());
                     }
                 }
             }, Instant.now().plusMillis(delay));

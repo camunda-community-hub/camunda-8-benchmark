@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import io.camunda.zeebe.spring.client.actuator.MicrometerMetricsRecorder;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,9 @@ public class StartPiExecutor {
     @Autowired
     private ZeebeClientConfiguration zeebeClientConfiguration;
 
+    @Autowired
+    private MicrometerMetricsRecorder micrometerMetricsRecorder;
+
     private Map<String, Object> benchmarkPayload;
 
     @PostConstruct
@@ -62,8 +66,8 @@ public class StartPiExecutor {
                 createCommand,
                 System.currentTimeMillis() + 5 * 60 * 1000, // 5 minutes
                 "CreatePi" + config.getBpmnProcessId(),
-                exceptionHandlingStrategy);
-        command.executeAsync();
+                exceptionHandlingStrategy, micrometerMetricsRecorder);
+        command.executeAsyncWithMetrics("PI_action","start",config.getBpmnProcessId());
     }
 
     private String tryReadVariables(final InputStream inputStream) throws IOException {
