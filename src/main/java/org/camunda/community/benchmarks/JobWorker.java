@@ -74,6 +74,7 @@ public class JobWorker {
         }
 
         Set<String> jobTypesToRegister;
+        boolean usingBpmnDiscoveredTypes = false;
         
         // Try to extract job types from BPMN files first
         try {
@@ -84,6 +85,7 @@ public class JobWorker {
                 if (!bpmnJobTypes.isEmpty()) {
                     LOG.info("Using job types extracted from BPMN files: {}", bpmnJobTypes);
                     jobTypesToRegister = bpmnJobTypes;
+                    usingBpmnDiscoveredTypes = true;
                 } else {
                     LOG.warn("No job types found in BPMN files, falling back to configuration");
                     jobTypesToRegister = getJobTypesFromConfiguration();
@@ -98,9 +100,17 @@ public class JobWorker {
             jobTypesToRegister = getJobTypesFromConfiguration();
         }
 
-        // Register workers for all discovered job types
-        for (String jobType : jobTypesToRegister) {
-            registerWorkersForTaskType(jobType);
+        // Register workers for all job types
+        if (usingBpmnDiscoveredTypes) {
+            // For BPMN-discovered job types, register one worker per type
+            for (String jobType : jobTypesToRegister) {
+                registerWorker(jobType, false);
+            }
+        } else {
+            // For configuration-based job types, use existing behavior with variants
+            for (String jobType : jobTypesToRegister) {
+                registerWorkersForTaskType(jobType);
+            }
         }
         
         LOG.info("Registered job workers for {} job types", jobTypesToRegister.size());

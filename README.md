@@ -91,13 +91,7 @@ The application uses the Zeebe BPMN Model API to parse your BPMN files and autom
 - **Ignores dynamic expressions**: Dynamic expressions like `"benchmark-task-" + benchmark_starter_id` are ignored since they are already covered by automatic worker registrations
 - **Backward compatible**: Falls back to configuration-based job types if BPMN parsing fails
 
-For each discovered static job type, the system automatically creates workers for all these variants:
-- `jobType` (e.g., "benchmark-task-1")
-- `jobType + "-" + starterId` (e.g., "benchmark-task-1-starter1") 
-- `jobType + "-completed"` (e.g., "benchmark-task-1-completed")
-- `jobType + "-" + starterId + "-completed"` (e.g., "benchmark-task-1-starter1-completed")
-
-This automatic registration means that dynamic expressions in your BPMN like `"benchmark-task-" + benchmark_starter_id` will work without any additional configuration.
+For each discovered static job type, the system automatically registers a worker for that exact job type.
 
 ### Legacy Manual Configuration
 
