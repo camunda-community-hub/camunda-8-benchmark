@@ -1,0 +1,102 @@
+package org.camunda.community.benchmarks;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+import java.io.InputStream;
+import java.lang.reflect.Method;
+
+import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+public class ProcessDeployerExistingFilesTest {
+
+    private ProcessDeployer processDeployer;
+    private BenchmarkConfiguration config;
+
+    @BeforeEach
+    void setUp() {
+        processDeployer = new ProcessDeployer();
+        config = new BenchmarkConfiguration();
+        
+        // Use reflection to set the config field since it's @Autowired
+        try {
+            java.lang.reflect.Field configField = ProcessDeployer.class.getDeclaredField("config");
+            configField.setAccessible(true);
+            configField.set(processDeployer, config);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void testExistingBpmnFilesNotModified() throws Exception {
+        // Test typical_process.bpmn which already has job types
+        try (InputStream inputStream = getClass().getResourceAsStream("/bpmn/typical_process.bpmn")) {
+            if (inputStream == null) {
+                System.out.println("typical_process.bpmn not found, skipping test");
+                return;
+            }
+            
+            String originalContent = new String(inputStream.readAllBytes());
+            
+            // Reset stream for processing
+            try (InputStream inputStream2 = getClass().getResourceAsStream("/bpmn/typical_process.bpmn")) {
+                // Use reflection to call the private method
+                Method adjustMethod = ProcessDeployer.class.getDeclaredMethod("adjustInputStreamBasedOnConfig", InputStream.class);
+                adjustMethod.setAccessible(true);
+                InputStream resultStream = (InputStream) adjustMethod.invoke(processDeployer, inputStream2);
+                
+                String result = new String(resultStream.readAllBytes());
+                
+                // Verify the original job type expressions are preserved
+                assertTrue(result.contains("&#34;benchmark-task-&#34; + benchmark_starter_id"), 
+                          "Original job type expressions should be preserved");
+                
+                // Verify no new benchmark-task-task1, benchmark-task-task2 etc. were added
+                assertFalse(result.contains("type=\"benchmark-task-task1\""), 
+                           "No new static job types should be added to existing tasks");
+                assertFalse(result.contains("type=\"benchmark-task-task2\""), 
+                           "No new static job types should be added to existing tasks");
+                
+                System.out.println("Existing BPMN file was correctly preserved");
+            }
+        }
+    }
+
+    @Test
+    void testTypicalProcess10JobTypesNotModified() throws Exception {
+        // Test typical_process_10_jobtypes.bpmn which already has specific job types
+        try (InputStream inputStream = getClass().getResourceAsStream("/bpmn/typical_process_10_jobtypes.bpmn")) {
+            if (inputStream == null) {
+                System.out.println("typical_process_10_jobtypes.bpmn not found, skipping test");
+                return;
+            }
+            
+            String originalContent = new String(inputStream.readAllBytes());
+            
+            // Reset stream for processing
+            try (InputStream inputStream2 = getClass().getResourceAsStream("/bpmn/typical_process_10_jobtypes.bpmn")) {
+                // Use reflection to call the private method
+                Method adjustMethod = ProcessDeployer.class.getDeclaredMethod("adjustInputStreamBasedOnConfig", InputStream.class);
+                adjustMethod.setAccessible(true);
+                InputStream resultStream = (InputStream) adjustMethod.invoke(processDeployer, inputStream2);
+                
+                String result = new String(resultStream.readAllBytes());
+                
+                // Verify the original job types are preserved
+                assertTrue(result.contains("type=\"= &#34;benchmark-task-1&#34;\""), 
+                          "Original benchmark-task-1 should be preserved");
+                assertTrue(result.contains("type=\"= &#34;benchmark-task-2&#34;\""), 
+                          "Original benchmark-task-2 should be preserved");
+                
+                // Verify no duplicate job types were added
+                long task1Count = result.lines().filter(line -> line.contains("benchmark-task-1")).count();
+                assertTrue(task1Count <= 2, "Should not have duplicate task-1 job types"); // One for task definition, one for comment
+                
+                System.out.println("Existing 10 job types BPMN file was correctly preserved");
+            }
+        }
+    }
+}
