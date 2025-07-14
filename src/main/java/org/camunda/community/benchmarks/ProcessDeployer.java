@@ -9,24 +9,19 @@ import org.springframework.util.StringUtils;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.command.DeployResourceCommandStep1;
+import io.camunda.zeebe.model.bpmn.Bpmn;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.Definitions;
+import io.camunda.zeebe.model.bpmn.instance.ExtensionElements;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
+import java.util.Collection;
 import java.util.UUID;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 @Component
 public class ProcessDeployer {
@@ -89,99 +84,74 @@ public class ProcessDeployer {
 
     /**
      * Inject unique job types for service tasks that don't have zeebe:taskDefinition
+     * Uses Zeebe's BPMN model API for robust and type-safe BPMN manipulation
      */
     private String injectUniqueJobTypes(String bpmnContent) throws Exception {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setNamespaceAware(true);
-        DocumentBuilder builder = factory.newDocumentBuilder();
+        // First, check if zeebe namespace needs to be added
+        String modifiedContent = bpmnContent;
+        if (!bpmnContent.contains("xmlns:zeebe=")) {
+            // Add zeebe namespace declaration using string replacement for safety
+            modifiedContent = bpmnContent.replace(
+                "<bpmn:definitions",
+                "<bpmn:definitions xmlns:zeebe=\"http://camunda.org/schema/zeebe/1.0\""
+            );
+        }
         
-        Document doc = builder.parse(new ByteArrayInputStream(bpmnContent.getBytes()));
+        // Parse BPMN using Zeebe's BPMN model API
+        BpmnModelInstance modelInstance = Bpmn.readModelFromStream(new ByteArrayInputStream(modifiedContent.getBytes()));
         
         boolean modified = false;
         
-        // Get the root element (bpmn:definitions)
-        Element root = doc.getDocumentElement();
+        // Find all service tasks and inject job types where needed
+        Collection<ServiceTask> serviceTasks = modelInstance.getModelElementsByType(ServiceTask.class);
         
-        // Check if zeebe namespace is already declared
-        String zeebeNamespace = root.getAttribute("xmlns:zeebe");
-        if (zeebeNamespace == null || zeebeNamespace.isEmpty()) {
-            root.setAttribute("xmlns:zeebe", "http://camunda.org/schema/zeebe/1.0");
-            modified = true;
-        }
-        
-        // Find all service tasks
-        NodeList serviceTasks = doc.getElementsByTagNameNS("http://www.omg.org/spec/BPMN/20100524/MODEL", "serviceTask");
-        
-        for (int i = 0; i < serviceTasks.getLength(); i++) {
-            Element serviceTask = (Element) serviceTasks.item(i);
-            
+        for (ServiceTask serviceTask : serviceTasks) {
             // Check if this service task already has a zeebe:taskDefinition
             if (!hasZeebeTaskDefinition(serviceTask)) {
                 // Generate a unique job type based on the task ID
-                String taskId = serviceTask.getAttribute("id");
+                String taskId = serviceTask.getId();
                 String uniqueJobType = "benchmark-task-" + (taskId != null && !taskId.isEmpty() ? taskId : UUID.randomUUID().toString());
                 
-                // Create extensionElements if it doesn't exist
-                Element extensionElements = getOrCreateExtensionElements(serviceTask);
+                // Get or create extensionElements
+                ExtensionElements extensionElements = serviceTask.getExtensionElements();
+                if (extensionElements == null) {
+                    extensionElements = modelInstance.newInstance(ExtensionElements.class);
+                    serviceTask.setExtensionElements(extensionElements);
+                }
                 
                 // Create zeebe:taskDefinition
-                Element taskDefinition = doc.createElementNS("http://camunda.org/schema/zeebe/1.0", "zeebe:taskDefinition");
-                taskDefinition.setAttribute("type", uniqueJobType);
+                ZeebeTaskDefinition taskDefinition = modelInstance.newInstance(ZeebeTaskDefinition.class);
+                taskDefinition.setType(uniqueJobType);
+                extensionElements.addChildElement(taskDefinition);
                 
-                extensionElements.appendChild(taskDefinition);
                 modified = true;
-                
                 LOG.info("Added job type '{}' to service task '{}'", uniqueJobType, taskId);
             }
         }
         
-        if (modified) {
-            // Convert document back to string
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            Transformer transformer = transformerFactory.newTransformer();
-            StringWriter writer = new StringWriter();
-            transformer.transform(new DOMSource(doc), new StreamResult(writer));
-            return writer.toString();
+        if (modified || !bpmnContent.equals(modifiedContent)) {
+            // Convert model back to string
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            Bpmn.writeModelToStream(outputStream, modelInstance);
+            return outputStream.toString();
         }
         
         return bpmnContent;
     }
     
     /**
-     * Check if a service task already has a zeebe:taskDefinition
+     * Check if a service task already has a zeebe:taskDefinition using BPMN model API
      */
-    private boolean hasZeebeTaskDefinition(Element serviceTask) {
-        NodeList extensionElements = serviceTask.getElementsByTagNameNS("http://www.omg.org/spec/BPMN/20100524/MODEL", "extensionElements");
-        if (extensionElements.getLength() == 0) {
+    private boolean hasZeebeTaskDefinition(ServiceTask serviceTask) {
+        ExtensionElements extensionElements = serviceTask.getExtensionElements();
+        if (extensionElements == null) {
             return false;
         }
         
-        Element extensionElement = (Element) extensionElements.item(0);
-        NodeList taskDefinitions = extensionElement.getElementsByTagNameNS("http://camunda.org/schema/zeebe/1.0", "taskDefinition");
-        return taskDefinitions.getLength() > 0;
-    }
-    
-    /**
-     * Get or create bpmn:extensionElements for a service task
-     */
-    private Element getOrCreateExtensionElements(Element serviceTask) {
-        NodeList extensionElements = serviceTask.getElementsByTagNameNS("http://www.omg.org/spec/BPMN/20100524/MODEL", "extensionElements");
+        Collection<ZeebeTaskDefinition> taskDefinitions = extensionElements.getElementsQuery()
+            .filterByType(ZeebeTaskDefinition.class)
+            .list();
         
-        if (extensionElements.getLength() > 0) {
-            return (Element) extensionElements.item(0);
-        }
-        
-        // Create new extensionElements
-        Element extensionElement = serviceTask.getOwnerDocument().createElementNS("http://www.omg.org/spec/BPMN/20100524/MODEL", "bpmn:extensionElements");
-        
-        // Insert as first child to maintain proper BPMN structure
-        Node firstChild = serviceTask.getFirstChild();
-        if (firstChild != null) {
-            serviceTask.insertBefore(extensionElement, firstChild);
-        } else {
-            serviceTask.appendChild(extensionElement);
-        }
-        
-        return extensionElement;
+        return !taskDefinitions.isEmpty();
     }
 }

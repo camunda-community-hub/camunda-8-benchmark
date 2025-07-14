@@ -60,7 +60,7 @@ public class ProcessDeployerTest {
         assertTrue(result.contains("xmlns:zeebe=\"http://camunda.org/schema/zeebe/1.0\""));
         
         // Verify extensionElements were added to both service tasks
-        assertTrue(result.contains("<bpmn:extensionElements>"));
+        assertTrue(result.contains("<extensionElements"));
         
         // Verify zeebe:taskDefinition was added
         assertTrue(result.contains("<zeebe:taskDefinition"));
