@@ -1,7 +1,9 @@
 package org.camunda.community.benchmarks;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import io.camunda.zeebe.spring.client.actuator.MicrometerMetricsRecorder;
 import io.camunda.zeebe.spring.common.exception.ZeebeBpmnError;
@@ -9,6 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
+import org.camunda.community.benchmarks.utils.BpmnJobTypeParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
@@ -65,31 +68,75 @@ public class JobWorker {
     // Don't do @PostConstruct as this is too early in the Spring lifecycle
     //@PostConstruct
     public void startWorkers() {
+        if (!config.isStartWorkers()) {
+            LOG.info("Job workers are disabled, skipping worker registration");
+            return;
+        }
+
+        Set<String> jobTypesToRegister;
+        
+        // Try to extract job types from BPMN files first
+        try {
+            if (config.getBpmnResource() != null && config.getBpmnResource().length > 0) {
+                Set<String> bpmnJobTypes = BpmnJobTypeParser.extractJobTypes(
+                    config.getBpmnResource(), config.getStarterId());
+                
+                if (!bpmnJobTypes.isEmpty()) {
+                    LOG.info("Using job types extracted from BPMN files: {}", bpmnJobTypes);
+                    jobTypesToRegister = bpmnJobTypes;
+                } else {
+                    LOG.warn("No job types found in BPMN files, falling back to configuration");
+                    jobTypesToRegister = getJobTypesFromConfiguration();
+                }
+            } else {
+                LOG.info("No BPMN resources configured, using job types from configuration");
+                jobTypesToRegister = getJobTypesFromConfiguration();
+            }
+        } catch (Exception e) {
+            LOG.error("Failed to extract job types from BPMN files, falling back to configuration: {}", 
+                e.getMessage(), e);
+            jobTypesToRegister = getJobTypesFromConfiguration();
+        }
+
+        // Register workers for all discovered job types
+        for (String jobType : jobTypesToRegister) {
+            registerWorkersForTaskType(jobType);
+        }
+        
+        LOG.info("Registered job workers for {} job types", jobTypesToRegister.size());
+    }
+
+    /**
+     * Gets job types from configuration properties (fallback method).
+     */
+    private Set<String> getJobTypesFromConfiguration() {
+        Set<String> jobTypes = new HashSet<>();
         String taskType = config.getJobType();
 
         String[] jobs = null;
-        if (taskType.contains(","))
+        if (taskType.contains(",")) {
             jobs = taskType.split(",");
-        boolean startWorkers = config.isStartWorkers();
+        }
+        
         int numberOfJobTypes = config.getMultipleJobTypes();
 
-        if(startWorkers) {
-            //if the job types are not listed out then generate the jobtypes automatically based on the multipleJobTypes
-            //other wise loop through the list of jobTypes and create
-            if(jobs==null) {
-                if (numberOfJobTypes <= 0) {
-                    registerWorkersForTaskType(taskType);
-                } else {
-                    for (int i = 0; i < numberOfJobTypes; i++) {
-                        registerWorkersForTaskType(taskType + "-" + (i + 1));
-                    }
-                }
+        // If the job types are not listed out then generate the jobtypes automatically based on the multipleJobTypes
+        // Otherwise loop through the list of jobTypes and create
+        if (jobs == null) {
+            if (numberOfJobTypes <= 0) {
+                jobTypes.add(taskType);
             } else {
-                for (int n = 0; jobs.length > n; n++) {
-                    registerWorkersForTaskType(jobs[n]);
+                for (int i = 0; i < numberOfJobTypes; i++) {
+                    jobTypes.add(taskType + "-" + (i + 1));
                 }
             }
+        } else {
+            for (String job : jobs) {
+                jobTypes.add(job);
+            }
         }
+
+        return jobTypes;
     }
 
     private void registerWorkersForTaskType(String taskType) {
