@@ -61,14 +61,12 @@ class JobWorkerIntegrationTest {
     }
 
     @Test
-    void shouldHandleComplexBpmnExpressions() throws Exception {
-        // Test with dynamic expressions
+    void shouldIgnoreComplexBpmnExpressions() throws Exception {
+        // Test with dynamic expressions - should be ignored
         Resource[] resources = {new ClassPathResource("bpmn/typical_process.bpmn")};
         Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources, "dynamicStarter");
         
-        assertEquals(2, jobTypes.size());
-        assertTrue(jobTypes.contains("benchmark-task-dynamicStarter"));
-        assertTrue(jobTypes.contains("benchmark-task-dynamicStarter-completed"));
+        assertEquals(0, jobTypes.size()); // Dynamic expressions should be ignored
     }
 
     // Utility methods for reflection

@@ -88,7 +88,7 @@ public class BpmnJobTypeParser {
 
     /**
      * Resolves job type expressions to concrete job type strings.
-     * Handles both static types and dynamic expressions.
+     * Only handles static types and ignores dynamic expressions.
      */
     private static String resolveJobType(String jobTypeExpression, String starterId) {
         if (jobTypeExpression == null || jobTypeExpression.trim().isEmpty()) {
@@ -98,54 +98,41 @@ public class BpmnJobTypeParser {
         // Remove leading/trailing whitespace
         jobTypeExpression = jobTypeExpression.trim();
         
+        // Handle expressions like = "benchmark-task-1"
+        if (jobTypeExpression.startsWith("=")) {
+            String expression = jobTypeExpression.substring(1).trim();
+            return resolveStaticExpression(expression);
+        }
+        
         // If it's a simple string literal (quoted), extract the content
         if (jobTypeExpression.startsWith("\"") && jobTypeExpression.endsWith("\"") && 
             !jobTypeExpression.contains("+")) {
             return jobTypeExpression.substring(1, jobTypeExpression.length() - 1);
         }
         
-        // Handle expressions like = "benchmark-task-" + benchmark_starter_id
-        if (jobTypeExpression.startsWith("=")) {
-            return resolveExpression(jobTypeExpression.substring(1).trim(), starterId);
-        }
-        
-        // If it's not an expression, treat as literal
+        // If it's not a quoted expression, treat as literal
         return jobTypeExpression;
     }
 
     /**
-     * Resolves FEEL expressions to concrete job type strings.
+     * Resolves static FEEL expressions to concrete job type strings.
+     * Ignores dynamic expressions that contain variables.
      */
-    private static String resolveExpression(String expression, String starterId) {
-        // Handle expressions like "benchmark-task-" + benchmark_starter_id + "-completed"
-        Pattern complexPattern = Pattern.compile("\"([^\"]+)\"\\s*\\+\\s*benchmark_starter_id\\s*\\+\\s*\"([^\"]+)\"");
-        Matcher complexMatcher = complexPattern.matcher(expression);
-        
-        if (complexMatcher.find()) {
-            String prefix = complexMatcher.group(1);
-            String suffix = complexMatcher.group(2);
-            return prefix + starterId + suffix;
-        }
-        
-        // Handle expressions like "benchmark-task-" + benchmark_starter_id
-        Pattern pattern = Pattern.compile("\"([^\"]+)\"\\s*\\+\\s*benchmark_starter_id");
+    private static String resolveStaticExpression(String expression) {
+        // Handle simple quoted strings like "benchmark-task-1"
+        Pattern pattern = Pattern.compile("\"([^\"]+)\"");
         Matcher matcher = pattern.matcher(expression);
         
         if (matcher.find()) {
-            String prefix = matcher.group(1);
-            return prefix + starterId;
+            String jobType = matcher.group(1);
+            // Only return static job types, ignore expressions with variables
+            if (!expression.contains("+") && !expression.contains("benchmark_starter_id")) {
+                return jobType;
+            }
         }
         
-        // Handle simple quoted strings
-        pattern = Pattern.compile("\"([^\"]+)\"");
-        matcher = pattern.matcher(expression);
-        
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        
-        // If we can't parse the expression, log a warning and return null
-        LOG.warn("Could not resolve job type expression: {}", expression);
+        // Ignore all dynamic expressions
+        LOG.debug("Ignoring dynamic job type expression: {}", expression);
         return null;
     }
 }

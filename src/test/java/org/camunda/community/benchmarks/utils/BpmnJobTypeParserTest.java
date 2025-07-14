@@ -32,16 +32,14 @@ class BpmnJobTypeParserTest {
     }
 
     @Test
-    void shouldExtractJobTypesFromDynamicTypeBpmn() throws Exception {
+    void shouldIgnoreDynamicExpressionsInBpmn() throws Exception {
         Resource[] resources = {new ClassPathResource("bpmn/typical_process.bpmn")};
         String starterId = "testStarter";
         
         Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources, starterId);
         
         assertNotNull(jobTypes);
-        assertEquals(2, jobTypes.size()); // Should find "benchmark-task-testStarter" and "benchmark-task-testStarter-completed"
-        assertTrue(jobTypes.contains("benchmark-task-testStarter"));
-        assertTrue(jobTypes.contains("benchmark-task-testStarter-completed"));
+        assertEquals(0, jobTypes.size()); // Should ignore all dynamic expressions
     }
 
     @Test
