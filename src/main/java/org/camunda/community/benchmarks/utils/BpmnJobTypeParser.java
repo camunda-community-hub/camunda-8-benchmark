@@ -71,56 +71,13 @@ public class BpmnJobTypeParser {
                 
                 for (ZeebeTaskDefinition taskDef : taskDefinitions) {
                     String type = taskDef.getType();
-                    if (type != null && !type.trim().isEmpty()) {
-                        String extractedType = extractStaticJobType(type.trim());
-                        if (extractedType != null) {
-                            jobTypes.add(extractedType);
-                        }
+                    if (type != null && !type.trim().isEmpty() && !type.startsWith("=")) {
+                        jobTypes.add(type.trim());
                     }
                 }
             }
         }
         
         return jobTypes;
-    }
-
-    /**
-     * Extracts static job types from job type expressions.
-     * Returns the job type if it's static, null if it's dynamic or contains variables.
-     */
-    private static String extractStaticJobType(String jobTypeExpression) {
-        if (jobTypeExpression == null || jobTypeExpression.trim().isEmpty()) {
-            return null;
-        }
-
-        // Handle expressions that start with = (FEEL expressions)
-        if (jobTypeExpression.startsWith("=")) {
-            String expression = jobTypeExpression.substring(1).trim();
-            
-            // Check if it contains variables (dynamic expression)
-            if (expression.contains("benchmark_starter_id") || expression.contains("+")) {
-                LOG.debug("Ignoring dynamic job type expression: {}", jobTypeExpression);
-                return null;
-            }
-            
-            // Extract static string literal from expressions like = "benchmark-task-1"
-            if (expression.startsWith("\"") && expression.endsWith("\"")) {
-                return expression.substring(1, expression.length() - 1);
-            }
-        }
-        
-        // Handle simple string literals (not expressions)
-        if (jobTypeExpression.startsWith("\"") && jobTypeExpression.endsWith("\"")) {
-            return jobTypeExpression.substring(1, jobTypeExpression.length() - 1);
-        }
-        
-        // If it's not quoted and doesn't start with =, treat as literal
-        if (!jobTypeExpression.startsWith("=")) {
-            return jobTypeExpression;
-        }
-        
-        // Default: ignore complex expressions
-        LOG.debug("Ignoring job type expression: {}", jobTypeExpression);
-        return null;
     }
 }
