@@ -9,10 +9,15 @@ import org.springframework.util.StringUtils;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.command.DeployResourceCommandStep1;
+import io.camunda.zeebe.model.bpmn.Bpmn;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.builder.ServiceTaskBuilder;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 
 @Component
 public class ProcessDeployer {
@@ -47,25 +52,51 @@ public class ProcessDeployer {
             return is;
         }
 
-        // Replace job types or BPMN id on-the-fly
-
+        // Read the input stream
         byte[] stringBytes = is.readAllBytes();
-        String fileContent = new String(stringBytes);
 
         if (config.getJobTypesToReplace()!=null) {
-            // Split by "," if there are multiple task types to be replaced
-            String[] tasksToReplace = {config.getJobTypesToReplace()};
-            if (config.getJobTypesToReplace().contains(",")) {
-                tasksToReplace = config.getJobTypesToReplace().split(",");
+            // Use BPMN Model API to properly modify ServiceTask job types
+            try {
+                BpmnModelInstance modelInstance = Bpmn.readModelFromStream(new ByteArrayInputStream(stringBytes));
+                
+                // Find all ServiceTask elements
+                Collection<ServiceTask> serviceTasks = modelInstance.getModelElementsByType(ServiceTask.class);
+                
+                for (ServiceTask serviceTask : serviceTasks) {
+                    // Create ServiceTaskBuilder with existing task and model instance
+                    ServiceTaskBuilder builder = new ServiceTaskBuilder(modelInstance, serviceTask);
+                    
+                    // Set the new job type using the fluent API
+                    builder.zeebeJobType(config.getJobType());
+                }
+                
+                // Convert the modified model back to string
+                String modifiedBpmn = Bpmn.convertToString(modelInstance);
+                stringBytes = modifiedBpmn.getBytes();
+                
+            } catch (Exception e) {
+                LOG.warn("Failed to parse BPMN with model API, falling back to string replacement: " + e.getMessage());
+                // Fallback to original string replacement if BPMN parsing fails
+                String fileContent = new String(stringBytes);
+                String[] tasksToReplace = {config.getJobTypesToReplace()};
+                if (config.getJobTypesToReplace().contains(",")) {
+                    tasksToReplace = config.getJobTypesToReplace().split(",");
+                }
+                for (String taskToReplace: tasksToReplace) {
+                    fileContent = fileContent.replaceAll(taskToReplace, config.getJobType());
+                }
+                stringBytes = fileContent.getBytes();
             }
-            for (String taskToReplace: tasksToReplace) {
-                fileContent = fileContent.replaceAll(taskToReplace, config.getJobType());
-            }
-        }
-        if (config.getBpmnProcessIdToReplace()!=null) {
-            fileContent = fileContent.replaceAll(config.getBpmnProcessIdToReplace(), config.getBpmnProcessId());
         }
 
-        return new ByteArrayInputStream(fileContent.getBytes());
+        if (config.getBpmnProcessIdToReplace()!=null) {
+            // Keep string replacement for process ID as it's simpler and reliable
+            String fileContent = new String(stringBytes);
+            fileContent = fileContent.replaceAll(config.getBpmnProcessIdToReplace(), config.getBpmnProcessId());
+            stringBytes = fileContent.getBytes();
+        }
+
+        return new ByteArrayInputStream(stringBytes);
     }
 }
