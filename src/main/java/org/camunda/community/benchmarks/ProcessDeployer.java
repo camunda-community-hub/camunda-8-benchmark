@@ -11,7 +11,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.command.DeployResourceCommandStep1;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.model.bpmn.instance.Definitions;
+import io.camunda.zeebe.model.bpmn.builder.ServiceTaskBuilder;
 import io.camunda.zeebe.model.bpmn.instance.ExtensionElements;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
@@ -112,8 +112,9 @@ public class ProcessDeployer {
                 String taskId = serviceTask.getId();
                 String uniqueJobType = "benchmark-task-" + (taskId != null && !taskId.isEmpty() ? taskId : UUID.randomUUID().toString());
                 
-                // Create and add zeebe:taskDefinition using fluent approach
-                addZeebeTaskDefinition(serviceTask, modelInstance, uniqueJobType);
+                // Use ServiceTaskBuilder fluent API to add job type
+                ServiceTaskBuilder builder = new ServiceTaskBuilder(modelInstance, serviceTask);
+                builder.zeebeJobType(uniqueJobType);
                 
                 modified = true;
                 LOG.info("Added job type '{}' to service task '{}'", uniqueJobType, taskId);
@@ -144,34 +145,5 @@ public class ProcessDeployer {
             .list();
         
         return !taskDefinitions.isEmpty();
-    }
-    
-    /**
-     * Fluent helper method to add a Zeebe task definition to a service task
-     */
-    private void addZeebeTaskDefinition(ServiceTask serviceTask, BpmnModelInstance modelInstance, String jobType) {
-        getOrCreateExtensionElements(serviceTask, modelInstance)
-            .addChildElement(createZeebeTaskDefinition(modelInstance, jobType));
-    }
-    
-    /**
-     * Fluent helper method to get or create extension elements for a service task
-     */
-    private ExtensionElements getOrCreateExtensionElements(ServiceTask serviceTask, BpmnModelInstance modelInstance) {
-        ExtensionElements extensionElements = serviceTask.getExtensionElements();
-        if (extensionElements == null) {
-            extensionElements = modelInstance.newInstance(ExtensionElements.class);
-            serviceTask.setExtensionElements(extensionElements);
-        }
-        return extensionElements;
-    }
-    
-    /**
-     * Fluent helper method to create a Zeebe task definition with the specified job type
-     */
-    private ZeebeTaskDefinition createZeebeTaskDefinition(BpmnModelInstance modelInstance, String jobType) {
-        ZeebeTaskDefinition taskDefinition = modelInstance.newInstance(ZeebeTaskDefinition.class);
-        taskDefinition.setType(jobType);
-        return taskDefinition;
     }
 }
