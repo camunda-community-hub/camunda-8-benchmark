@@ -28,11 +28,13 @@ public class ProcessDeployer {
 
     private static final Logger LOG = LogManager.getLogger(ProcessDeployer.class);
 
-    @Autowired
-    private ZeebeClient zeebeClient;
+    private final ZeebeClient zeebeClient;
+    private final BenchmarkConfiguration config;
 
-    @Autowired
-    private BenchmarkConfiguration config;
+    public ProcessDeployer(ZeebeClient zeebeClient, BenchmarkConfiguration config) {
+        this.zeebeClient = zeebeClient;
+        this.config = config;
+    }
 
     // Can't do @PostContruct, as this is called before the client is ready
     public void autoDeploy() {
@@ -51,7 +53,7 @@ public class ProcessDeployer {
         }
     }
 
-    private InputStream adjustInputStreamBasedOnConfig(InputStream is) throws IOException {
+    InputStream adjustInputStreamBasedOnConfig(InputStream is) throws IOException {
         byte[] stringBytes = is.readAllBytes();
         String fileContent = new String(stringBytes);
         
@@ -86,10 +88,12 @@ public class ProcessDeployer {
      * Inject unique job types for service tasks that don't have zeebe:taskDefinition
      * Uses Zeebe's BPMN model API for robust and type-safe BPMN manipulation
      */
-    private String injectUniqueJobTypes(String bpmnContent) throws Exception {
+    String injectUniqueJobTypes(String bpmnContent) throws Exception {
         // First, check if zeebe namespace needs to be added
+        boolean hasZeebeNamespace = bpmnContent.contains("http://camunda.org/schema/zeebe/1.0");
         String modifiedContent = bpmnContent;
-        if (!bpmnContent.contains("xmlns:zeebe=")) {
+        
+        if (!hasZeebeNamespace) {
             // Add zeebe namespace declaration using string replacement for safety
             modifiedContent = bpmnContent.replace(
                 "<bpmn:definitions",

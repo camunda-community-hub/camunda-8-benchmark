@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,17 +17,8 @@ public class ProcessDeployerTest {
 
     @BeforeEach
     void setUp() {
-        processDeployer = new ProcessDeployer();
         config = new BenchmarkConfiguration();
-        
-        // Use reflection to set the config field since it's @Autowired
-        try {
-            java.lang.reflect.Field configField = ProcessDeployer.class.getDeclaredField("config");
-            configField.setAccessible(true);
-            configField.set(processDeployer, config);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        processDeployer = new ProcessDeployer(null, config); // zeebeClient not needed for testing job type injection
     }
 
     @Test
@@ -51,10 +41,8 @@ public class ProcessDeployerTest {
             </bpmn:definitions>
             """;
 
-        // Use reflection to call the private method
-        Method injectMethod = ProcessDeployer.class.getDeclaredMethod("injectUniqueJobTypes", String.class);
-        injectMethod.setAccessible(true);
-        String result = (String) injectMethod.invoke(processDeployer, bpmnWithoutJobTypes);
+        // Call the package-private method directly
+        String result = processDeployer.injectUniqueJobTypes(bpmnWithoutJobTypes);
 
         // Verify zeebe namespace was added
         assertTrue(result.contains("xmlns:zeebe=\"http://camunda.org/schema/zeebe/1.0\""));
@@ -87,10 +75,8 @@ public class ProcessDeployerTest {
             </bpmn:definitions>
             """;
 
-        // Use reflection to call the private method
-        Method injectMethod = ProcessDeployer.class.getDeclaredMethod("injectUniqueJobTypes", String.class);
-        injectMethod.setAccessible(true);
-        String result = (String) injectMethod.invoke(processDeployer, bpmnWithJobTypes);
+        // Call the package-private method directly
+        String result = processDeployer.injectUniqueJobTypes(bpmnWithJobTypes);
 
         // Verify the existing job type is preserved
         assertTrue(result.contains("type=\"existing-job-type\""));
@@ -122,10 +108,8 @@ public class ProcessDeployerTest {
             </bpmn:definitions>
             """;
 
-        // Use reflection to call the private method
-        Method injectMethod = ProcessDeployer.class.getDeclaredMethod("injectUniqueJobTypes", String.class);
-        injectMethod.setAccessible(true);
-        String result = (String) injectMethod.invoke(processDeployer, bpmnMixed);
+        // Call the package-private method directly
+        String result = processDeployer.injectUniqueJobTypes(bpmnMixed);
 
         // Verify the existing job type is preserved
         assertTrue(result.contains("type=\"existing-job-type\""));
@@ -152,10 +136,8 @@ public class ProcessDeployerTest {
 
         InputStream inputStream = new ByteArrayInputStream(bpmnWithoutJobTypes.getBytes());
         
-        // Use reflection to call the private method
-        Method adjustMethod = ProcessDeployer.class.getDeclaredMethod("adjustInputStreamBasedOnConfig", InputStream.class);
-        adjustMethod.setAccessible(true);
-        InputStream resultStream = (InputStream) adjustMethod.invoke(processDeployer, inputStream);
+        // Call the package-private method directly
+        InputStream resultStream = processDeployer.adjustInputStreamBasedOnConfig(inputStream);
         
         String result = new String(resultStream.readAllBytes());
 

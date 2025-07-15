@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -19,17 +18,8 @@ public class ProcessDeployerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        processDeployer = new ProcessDeployer();
         config = new BenchmarkConfiguration();
-        
-        // Use reflection to set the config field since it's @Autowired
-        try {
-            java.lang.reflect.Field configField = ProcessDeployer.class.getDeclaredField("config");
-            configField.setAccessible(true);
-            configField.set(processDeployer, config);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        processDeployer = new ProcessDeployer(null, config); // zeebeClient not needed for testing
     }
 
     @Test
@@ -44,10 +34,8 @@ public class ProcessDeployerIntegrationTest {
         
         // Read the original BPMN file
         try (InputStream inputStream = new FileInputStream(testFilePath)) {
-            // Use reflection to call the private method
-            Method adjustMethod = ProcessDeployer.class.getDeclaredMethod("adjustInputStreamBasedOnConfig", InputStream.class);
-            adjustMethod.setAccessible(true);
-            InputStream resultStream = (InputStream) adjustMethod.invoke(processDeployer, inputStream);
+            // Call the package-private method directly
+            InputStream resultStream = processDeployer.adjustInputStreamBasedOnConfig(inputStream);
             
             String result = new String(resultStream.readAllBytes());
             

@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.InputStream;
-import java.lang.reflect.Method;
 
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,17 +16,8 @@ public class ProcessDeployerExistingFilesTest {
 
     @BeforeEach
     void setUp() {
-        processDeployer = new ProcessDeployer();
         config = new BenchmarkConfiguration();
-        
-        // Use reflection to set the config field since it's @Autowired
-        try {
-            java.lang.reflect.Field configField = ProcessDeployer.class.getDeclaredField("config");
-            configField.setAccessible(true);
-            configField.set(processDeployer, config);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        processDeployer = new ProcessDeployer(null, config); // zeebeClient not needed for testing
     }
 
     @Test
@@ -43,10 +33,8 @@ public class ProcessDeployerExistingFilesTest {
             
             // Reset stream for processing
             try (InputStream inputStream2 = getClass().getResourceAsStream("/bpmn/typical_process.bpmn")) {
-                // Use reflection to call the private method
-                Method adjustMethod = ProcessDeployer.class.getDeclaredMethod("adjustInputStreamBasedOnConfig", InputStream.class);
-                adjustMethod.setAccessible(true);
-                InputStream resultStream = (InputStream) adjustMethod.invoke(processDeployer, inputStream2);
+                // Call the package-private method directly
+                InputStream resultStream = processDeployer.adjustInputStreamBasedOnConfig(inputStream2);
                 
                 String result = new String(resultStream.readAllBytes());
                 
@@ -78,10 +66,8 @@ public class ProcessDeployerExistingFilesTest {
             
             // Reset stream for processing
             try (InputStream inputStream2 = getClass().getResourceAsStream("/bpmn/typical_process_10_jobtypes.bpmn")) {
-                // Use reflection to call the private method
-                Method adjustMethod = ProcessDeployer.class.getDeclaredMethod("adjustInputStreamBasedOnConfig", InputStream.class);
-                adjustMethod.setAccessible(true);
-                InputStream resultStream = (InputStream) adjustMethod.invoke(processDeployer, inputStream2);
+                // Call the package-private method directly
+                InputStream resultStream = processDeployer.adjustInputStreamBasedOnConfig(inputStream2);
                 
                 String result = new String(resultStream.readAllBytes());
                 
