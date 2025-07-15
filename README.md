@@ -80,7 +80,7 @@ If you do not specify a process model, the [typical process](blob/main/src/main/
 
 ## Defining your own process
 
-You can also define your own process model completely. As of version 0.0.1+, the benchmark application **automatically discovers and registers job workers for static job types defined in your BPMN files**, making configuration much simpler.
+You can also define your own process model completely. The benchmark application **automatically discovers and registers job workers for static job types defined in your BPMN files**, making configuration much simpler.
 
 ### Automatic Job Type Discovery
 
@@ -93,7 +93,7 @@ The application uses the Zeebe BPMN Model API to parse your BPMN files and autom
 
 For each discovered static job type, the system automatically registers a worker for that exact job type.
 
-### Legacy Manual Configuration
+### Manual Configuration of Job Types
 
 If you prefer manual configuration or need to override the automatic discovery, you can still configure job types manually:
 
