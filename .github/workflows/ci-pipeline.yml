@@ -40,18 +40,20 @@ jobs:
         if: failure()
         with:
           files: target/surefire-reports/*.xml
-      - name: Deploy SNAPSHOT / Release
-        uses: camunda-community-hub/community-action-maven-release@v1
-        with:
-          release-version: ${{ github.event.release.tag_name }}
-          release-profile: community-action-maven-release
-          nexus-usr: ${{ secrets.NEXUS_USR }}
-          nexus-psw: ${{ secrets.NEXUS_PSW }}
-          maven-usr: ${{ secrets.MAVEN_CENTRAL_DEPLOYMENT_USR }}
-          maven-psw: ${{ secrets.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
-          maven-gpg-passphrase: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-        id: release
+# Skip deployment to Maven Central until this issue is fixed:
+# https://github.com/camunda-community-hub/camunda-8-benchmark/issues/149
+#      - name: Deploy SNAPSHOT / Release
+#        uses: camunda-community-hub/community-action-maven-release@v1
+#        with:
+#          release-version: ${{ github.event.release.tag_name }}
+#          release-profile: community-action-maven-release
+#          nexus-usr: ${{ secrets.NEXUS_USR }}
+#          nexus-psw: ${{ secrets.NEXUS_PSW }}
+#          maven-usr: ${{ secrets.MAVEN_CENTRAL_DEPLOYMENT_USR }}
+#          maven-psw: ${{ secrets.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
+#          maven-gpg-passphrase: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+#          github-token: ${{ secrets.GITHUB_TOKEN }}
+#        id: release
       - if: github.event.release
         name: Attach artifacts to GitHub Release (Release only)
         uses: actions/upload-release-asset@v1
