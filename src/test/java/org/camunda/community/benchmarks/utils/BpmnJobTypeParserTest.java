@@ -15,9 +15,8 @@ class BpmnJobTypeParserTest {
         // Create a simple test to show functionality with non-FEEL expressions
         // For actual testing, we'd need a BPMN file with job types that don't start with =
         Resource[] resources = {new ClassPathResource("bpmn/typical_process_10_jobtypes.bpmn")};
-        String starterId = "testStarter";
         
-        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources, starterId);
+        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources);
         
         // With current BPMN files all using FEEL expressions, this returns 0
         assertNotNull(jobTypes);
@@ -27,9 +26,8 @@ class BpmnJobTypeParserTest {
     @Test
     void shouldIgnoreFEELExpressions() throws Exception {
         Resource[] resources = {new ClassPathResource("bpmn/typical_process_10_jobtypes.bpmn")};
-        String starterId = "testStarter";
         
-        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources, starterId);
+        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources);
         
         assertNotNull(jobTypes);
         assertEquals(0, jobTypes.size()); // Should ignore all FEEL expressions that start with =
@@ -38,9 +36,8 @@ class BpmnJobTypeParserTest {
     @Test
     void shouldIgnoreDynamicExpressionsInBpmn() throws Exception {
         Resource[] resources = {new ClassPathResource("bpmn/typical_process.bpmn")};
-        String starterId = "testStarter";
         
-        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources, starterId);
+        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources);
         
         assertNotNull(jobTypes);
         assertEquals(0, jobTypes.size()); // Should ignore all FEEL expressions that start with =
@@ -49,9 +46,8 @@ class BpmnJobTypeParserTest {
     @Test
     void shouldHandleEmptyResources() throws Exception {
         Resource[] resources = {};
-        String starterId = "testStarter";
         
-        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources, starterId);
+        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources);
         
         assertNotNull(jobTypes);
         assertTrue(jobTypes.isEmpty());
@@ -60,11 +56,28 @@ class BpmnJobTypeParserTest {
     @Test
     void shouldHandleNullResources() throws Exception {
         Resource[] resources = null;
-        String starterId = "testStarter";
         
-        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources, starterId);
+        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources);
         
         assertNotNull(jobTypes);
         assertTrue(jobTypes.isEmpty());
+    }
+
+    @Test
+    void shouldPredictJobTypesForServiceTasksWithoutJobTypes() throws Exception {
+        // Create a test using the BPMN file with service tasks without job types
+        Resource[] resources = {new org.springframework.core.io.FileSystemResource("/tmp/test-bpmn/service-tasks-without-job-types.bpmn")};
+        
+        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources);
+        
+        assertNotNull(jobTypes);
+        assertEquals(3, jobTypes.size());
+        
+        // Should predict job types for tasks without zeebe:taskDefinition
+        assertTrue(jobTypes.contains("benchmark-task-task1"));
+        assertTrue(jobTypes.contains("benchmark-task-task2"));
+        
+        // Should extract explicit job type
+        assertTrue(jobTypes.contains("explicit-job-type"));
     }
 }
