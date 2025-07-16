@@ -1,0 +1,42 @@
+name: Build with Maven and run tests
+
+on:
+  push:
+    branches:
+      - '!main'
+      - '*'
+      - '**/*'
+  pull_request: { }
+  workflow_dispatch:
+    inputs:
+      fail:
+        type: boolean
+        description: Flag to fail the test
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Set up Java environment
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: temurin
+          cache: maven
+      - name: Build with Maven
+        run: mvn clean verify -DfailTest=${{ github.event.inputs.fail }} -B --no-transfer-progress -T4
+      - name: Archive Test Results on Failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: target/surefire-reports/
+          retention-days: 7
+      - name: Publish Unit Test Results
+        id: publish
+        uses: EnricoMi/publish-unit-test-result-action@v2.3.0
+        if: failure()
+        with:
+          junit_files: target/surefire-reports/*.xml
