@@ -7,7 +7,7 @@ on:
     types: [published]
 jobs:
   publish:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Cache
@@ -41,7 +41,7 @@ jobs:
         with:
           files: target/surefire-reports/*.xml
       - name: Deploy SNAPSHOT / Release
-        uses: camunda-community-hub/community-action-maven-release@v1
+        uses: camunda-community-hub/community-action-maven-release@v2
         with:
           release-version: ${{ github.event.release.tag_name }}
           release-profile: community-action-maven-release
