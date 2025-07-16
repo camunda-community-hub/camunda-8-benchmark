@@ -6,7 +6,7 @@ COPY src/ src/
 RUN mvn package -Dspring-boot.repackage.layers.enabled=true -Dmaven.test.skip=true -DskipTests -DskipChecks
 RUN java -Djarmode=layertools -jar target/*.jar extract
 
-FROM azul/zulu-openjdk-alpine:21.0.6-jre-headless
+FROM azul/zulu-openjdk-alpine:21.0.8-jre-headless
 CMD java $JAVA_OPTIONS org.springframework.boot.loader.launch.JarLauncher
 COPY --from=builder /usr/src/app/dependencies/ ./
 COPY --from=builder /usr/src/app/snapshot-dependencies/ ./
