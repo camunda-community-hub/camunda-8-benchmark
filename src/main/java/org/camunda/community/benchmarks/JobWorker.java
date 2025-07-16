@@ -80,7 +80,7 @@ public class JobWorker {
         try {
             if (config.getBpmnResource() != null && config.getBpmnResource().length > 0) {
                 Set<String> bpmnJobTypes = BpmnJobTypeParser.extractJobTypes(
-                    config.getBpmnResource(), config.getStarterId());
+                    config.getBpmnResource());
                 
                 if (!bpmnJobTypes.isEmpty()) {
                     LOG.info("Using job types extracted from BPMN files: {}", bpmnJobTypes);
