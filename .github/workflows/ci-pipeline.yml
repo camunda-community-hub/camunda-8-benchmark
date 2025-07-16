@@ -7,24 +7,19 @@ on:
     types: [published]
 jobs:
   publish:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+      - name: Check out code
+        uses: actions/checkout@v4
       - name: Set up Java environment
         uses: actions/setup-java@v4
         with:
           java-version: 17
           distribution: temurin
+          cache: maven
           gpg-private-key: ${{ secrets.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
           gpg-passphrase: MAVEN_CENTRAL_GPG_PASSPHRASE
-      - name: Build
+      - name: Build with Maven
         id: build
         run: mvn -B -U -Dsurefire.rerunFailingTestsCount=5 clean install
       - name: Archive Test Results on Failure
@@ -36,10 +31,10 @@ jobs:
           retention-days: 7
       - name: Publish Unit Test Results
         id: publish
-        uses: EnricoMi/publish-unit-test-result-action@v1
+        uses: EnricoMi/publish-unit-test-result-action@v2.3.0
         if: failure()
         with:
-          files: target/surefire-reports/*.xml
+          junit_files: target/surefire-reports/*.xml
 # Skip deployment to Maven Central until this issue is fixed:
 # https://github.com/camunda-community-hub/camunda-8-benchmark/issues/149
 #      - name: Deploy SNAPSHOT / Release
@@ -65,6 +60,7 @@ jobs:
           asset_name: ${{ steps.release.outputs.artifacts_archive_path }}
           asset_content_type: application/zip
   push_to_registry:
+    needs: publish
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     steps:
