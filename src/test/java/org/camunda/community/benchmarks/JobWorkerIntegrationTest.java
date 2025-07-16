@@ -21,7 +21,7 @@ class JobWorkerIntegrationTest {
     void shouldExtractJobTypesFromBpmnAndFallbackToConfig() throws Exception {
         // Test 1: Direct BPMN parsing - with current BPMN files using FEEL expressions
         Resource[] resources = {new ClassPathResource("bpmn/typical_process_10_jobtypes.bpmn")};
-        Set<String> bpmnJobTypes = BpmnJobTypeParser.extractJobTypes(resources, "testStarter");
+        Set<String> bpmnJobTypes = BpmnJobTypeParser.extractJobTypes(resources);
         
         // BPMN files use FEEL expressions starting with =, so they're ignored
         assertEquals(0, bpmnJobTypes.size());
@@ -63,7 +63,7 @@ class JobWorkerIntegrationTest {
     void shouldIgnoreComplexBpmnExpressions() throws Exception {
         // Test with dynamic expressions - should be ignored (all FEEL expressions starting with =)
         Resource[] resources = {new ClassPathResource("bpmn/typical_process.bpmn")};
-        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources, "dynamicStarter");
+        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources);
         
         assertEquals(0, jobTypes.size()); // All FEEL expressions should be ignored
     }
