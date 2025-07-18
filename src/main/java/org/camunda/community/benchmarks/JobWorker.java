@@ -73,47 +73,43 @@ public class JobWorker {
             return;
         }
 
-        Set<String> jobTypesToRegister;
-        boolean usingBpmnDiscoveredTypes = false;
+        Set<String> bpmnJobTypes = new HashSet<>();
+        Set<String> configJobTypes = new HashSet<>();
         
-        // Try to extract job types from BPMN files first
+        // Extract job types from BPMN files if available
         try {
             if (config.getBpmnResource() != null && config.getBpmnResource().length > 0) {
-                Set<String> bpmnJobTypes = BpmnJobTypeParser.extractJobTypes(
-                    config.getBpmnResource());
-                
+                bpmnJobTypes = BpmnJobTypeParser.extractJobTypes(config.getBpmnResource());
                 if (!bpmnJobTypes.isEmpty()) {
-                    LOG.info("Using job types extracted from BPMN files: {}", bpmnJobTypes);
-                    jobTypesToRegister = bpmnJobTypes;
-                    usingBpmnDiscoveredTypes = true;
+                    LOG.info("Found {} job types from BPMN files: {}", bpmnJobTypes.size(), bpmnJobTypes);
                 } else {
-                    LOG.warn("No job types found in BPMN files, falling back to configuration");
-                    jobTypesToRegister = getJobTypesFromConfiguration();
+                    LOG.info("No job types found in BPMN files");
                 }
-            } else {
-                LOG.info("No BPMN resources configured, using job types from configuration");
-                jobTypesToRegister = getJobTypesFromConfiguration();
             }
         } catch (Exception e) {
-            LOG.error("Failed to extract job types from BPMN files, falling back to configuration: {}", 
-                e.getMessage(), e);
-            jobTypesToRegister = getJobTypesFromConfiguration();
+            LOG.error("Failed to extract job types from BPMN files: {}", e.getMessage(), e);
         }
 
-        // Register workers for all job types
-        if (usingBpmnDiscoveredTypes) {
-            // For BPMN-discovered job types, register one worker per type
-            for (String jobType : jobTypesToRegister) {
-                registerWorker(jobType, false);
-            }
-        } else {
-            // For configuration-based job types, use existing behavior with variants
-            for (String jobType : jobTypesToRegister) {
-                registerWorkersForTaskType(jobType);
-            }
+        // Always extract job types from configuration
+        configJobTypes = getJobTypesFromConfiguration();
+        LOG.info("Found {} job types from configuration: {}", configJobTypes.size(), configJobTypes);
+
+        // Register workers for configuration-based job types (with variants)
+        for (String jobType : configJobTypes) {
+            registerWorkersForTaskType(jobType);
         }
         
-        LOG.info("Registered job workers for {} job types", jobTypesToRegister.size());
+        // Register simple workers for BPMN-discovered job types that are NOT in configuration
+        Set<String> bpmnOnlyJobTypes = new HashSet<>(bpmnJobTypes);
+        bpmnOnlyJobTypes.removeAll(configJobTypes);
+        
+        for (String jobType : bpmnOnlyJobTypes) {
+            registerWorker(jobType, false);
+        }
+        
+        int totalWorkers = configJobTypes.size() + bpmnOnlyJobTypes.size();
+        LOG.info("Registered job workers for {} job types ({} from config with variants, {} from BPMN only)", 
+            totalWorkers, configJobTypes.size(), bpmnOnlyJobTypes.size());
     }
 
     /**
