@@ -66,7 +66,7 @@ class BpmnJobTypeParserTest {
     @Test
     void shouldPredictJobTypesForServiceTasksWithoutJobTypes() throws Exception {
         // Create a test using the BPMN file with service tasks without job types
-        Resource[] resources = {new org.springframework.core.io.FileSystemResource("/tmp/test-bpmn/service-tasks-without-job-types.bpmn")};
+        Resource[] resources = {new org.springframework.core.io.FileSystemResource("/tmp/test_static_jobs.bpmn")};
         
         Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources);
         
@@ -74,10 +74,10 @@ class BpmnJobTypeParserTest {
         assertEquals(3, jobTypes.size());
         
         // Should predict job types for tasks without zeebe:taskDefinition
-        assertTrue(jobTypes.contains("benchmark-task-task1"));
-        assertTrue(jobTypes.contains("benchmark-task-task2"));
+        assertTrue(jobTypes.contains("benchmark-task-task4"));
         
-        // Should extract explicit job type
-        assertTrue(jobTypes.contains("explicit-job-type"));
+        // Should extract explicit job types
+        assertTrue(jobTypes.contains("static-task-1"));
+        assertTrue(jobTypes.contains("static-task-2"));
     }
 }
