@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.UUID;
 
 @Component
 public class ProcessDeployer {
@@ -113,8 +112,9 @@ public class ProcessDeployer {
             // Check if this service task already has a zeebe:taskDefinition
             if (!hasZeebeTaskDefinition(serviceTask)) {
                 // Generate a unique job type based on the task ID
+                // Note: taskId is guaranteed to be non-null and non-empty by BPMN specification
                 String taskId = serviceTask.getId();
-                String uniqueJobType = "benchmark-task-" + (taskId != null && !taskId.isEmpty() ? taskId : UUID.randomUUID().toString());
+                String uniqueJobType = "benchmark-task-" + taskId;
                 
                 // Use ServiceTaskBuilder fluent API to add job type
                 ServiceTaskBuilder builder = new ServiceTaskBuilder(modelInstance, serviceTask);
