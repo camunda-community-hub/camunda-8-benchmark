@@ -80,7 +80,22 @@ If you do not specify a process model, the [typical process](blob/main/src/main/
 
 ## Defining your own process
 
-You can also define your own process model completely, but it has to comply with the following requirements:
+You can also define your own process model completely. The benchmark application **automatically discovers and registers job workers for static job types defined in your BPMN files**, making configuration much simpler.
+
+### Automatic Job Type Discovery
+
+The application uses the Zeebe BPMN Model API to parse your BPMN files and automatically extract static service task job types. This means:
+
+- **No manual configuration needed**: Job workers are automatically registered for all static job types found in your BPMN
+- **Supports static job types only**: e.g., `"benchmark-task-1"`, `"benchmark-task-2"`
+- **Ignores dynamic expressions**: Dynamic expressions like `"benchmark-task-" + benchmark_starter_id` are ignored since they are already covered by automatic worker registrations
+- **Backward compatible**: Falls back to configuration-based job types if BPMN parsing fails
+
+For each discovered static job type, the system automatically registers a worker for that exact job type.
+
+### Manual Configuration of Job Types
+
+If you prefer manual configuration or need to override the automatic discovery, you can still configure job types manually:
 
 - All service tasks must have the same ``service task type``, if this is not `benchmark-task` you have to configure the task type via `benchmark.jobType`
 - You must add ``-completed`` to the task type of the last service task:
