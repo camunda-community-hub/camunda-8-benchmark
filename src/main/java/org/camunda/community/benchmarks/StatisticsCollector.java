@@ -12,7 +12,8 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.Timer;
 
-import jakarta.annotation.PostConstruct;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 
 @Component
 public class StatisticsCollector {
@@ -32,7 +33,7 @@ public class StatisticsCollector {
 
     private long piPerSecondGoal;
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     public void init() {
         io.micrometer.core.instrument.Timer.builder("pi_cycletime")
                 .publishPercentiles(0.75, 0.95, 0.99)
