@@ -1,7 +1,10 @@
 package org.camunda.community.benchmarks;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.camunda.zeebe.spring.client.actuator.MicrometerMetricsRecorder;
 import io.camunda.zeebe.spring.common.exception.ZeebeBpmnError;
@@ -21,6 +24,7 @@ import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
 import io.camunda.zeebe.client.api.worker.JobWorkerBuilderStep1;
 import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
+import jakarta.annotation.PreDestroy;
 
 @Component
 public class JobWorker {
@@ -45,6 +49,12 @@ public class JobWorker {
     @Autowired
     private MicrometerMetricsRecorder micrometerMetricsRecorder;
 
+    // Track created workers for proper shutdown
+    private final List<io.camunda.zeebe.client.api.worker.JobWorker> registeredWorkers = new CopyOnWriteArrayList<>();
+    
+    // Flag to indicate shutdown state
+    private final AtomicBoolean isShuttingDown = new AtomicBoolean(false);
+
     private void registerWorker(String jobType, Boolean markPiCompleted) {
 
         long fixedBackOffDelay = config.getFixedBackOffDelay();
@@ -58,7 +68,8 @@ public class JobWorker {
             step3.backoffSupplier(new FixedBackoffSupplier(fixedBackOffDelay));
         }
 
-        step3.open();
+        io.camunda.zeebe.client.api.worker.JobWorker worker = step3.open();
+        registeredWorkers.add(worker);
         stats.registerJobTypeTimer(jobType);
     }
 
@@ -106,6 +117,27 @@ public class JobWorker {
         registerWorker(taskType + "-" + config.getStarterId() + "-completed", true);
     }
 
+    @PreDestroy
+    public void shutdown() {
+        LOG.info("Starting graceful shutdown of JobWorker...");
+        isShuttingDown.set(true);
+        
+        int workerCount = registeredWorkers.size();
+        
+        // Close all registered workers
+        for (io.camunda.zeebe.client.api.worker.JobWorker worker : registeredWorkers) {
+            try {
+                worker.close();
+                LOG.debug("Closed worker: {}", worker);
+            } catch (Exception e) {
+                LOG.warn("Error closing worker: {}", e.getMessage());
+            }
+        }
+        
+        registeredWorkers.clear();
+        LOG.info("JobWorker shutdown completed. {} workers closed.", workerCount);
+    }
+
     public class SimpleDelayCompletionHandler implements JobHandler {
 
         private boolean markProcessInstanceCompleted;
@@ -116,6 +148,16 @@ public class JobWorker {
 
         @Override
         public void handle(JobClient jobClient, ActivatedJob job) throws Exception {
+            // Check if we're shutting down - if so, fail the job immediately to avoid scheduler issues
+            if (isShuttingDown.get()) {
+                LOG.warn("Rejecting job {} because JobWorker is shutting down", job.getKey());
+                jobClient.newFailCommand(job.getKey())
+                    .retries(job.getRetries() - 1)
+                    .errorMessage("JobWorker is shutting down")
+                    .send();
+                return;
+            }
+            
             var jobStartTime = Instant.now().toEpochMilli();
             // Auto-complete logic from https://github.com/camunda-community-hub/spring-zeebe/blob/ec41c5af1f64e512c8e7a8deea2aeacb35e61a16/client/spring-zeebe/src/main/java/io/camunda/zeebe/spring/client/jobhandling/JobHandlerInvokingSpringBeans.java#L24
             CompleteJobCommandStep1 completeCommand = jobClient.newCompleteCommand(job.getKey());
@@ -133,37 +175,51 @@ public class JobWorker {
                 
             }
             // schedule the completion asynchronously with the configured delay
-            scheduler.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        var jobType =job.getType();
-                        command.executeAsyncWithMetrics("job_completion",jobType,"complete");
+            try {
+                scheduler.schedule(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            var jobType =job.getType();
+                            command.executeAsyncWithMetrics("job_completion",jobType,"complete");
 
-                        var completionTime = Instant.now().toEpochMilli();
-                        stats.incCompletedJobs();
-                        stats.recordJobTypeCompletion(jobType,  completionTime-jobStartTime);
+                            var completionTime = Instant.now().toEpochMilli();
+                            stats.incCompletedJobs();
+                            stats.recordJobTypeCompletion(jobType,  completionTime-jobStartTime);
 
-                        if (markProcessInstanceCompleted) {
-                            Object startEpochMillis = job.getVariablesAsMap().get(StartPiExecutor.BENCHMARK_START_DATE_MILLIS);
-                            if (startEpochMillis!=null && startEpochMillis instanceof Long) {
-                                stats.incCompletedProcessInstances((Long)startEpochMillis, completionTime);
-                            } else {
-                                stats.incCompletedProcessInstances();
+                            if (markProcessInstanceCompleted) {
+                                Object startEpochMillis = job.getVariablesAsMap().get(StartPiExecutor.BENCHMARK_START_DATE_MILLIS);
+                                if (startEpochMillis!=null && startEpochMillis instanceof Long) {
+                                    stats.incCompletedProcessInstances((Long)startEpochMillis, completionTime);
+                                } else {
+                                    stats.incCompletedProcessInstances();
+                                }
                             }
                         }
+                        catch (ZeebeBpmnError bpmnError) {
+                            CommandWrapper command = new RefactoredCommandWrapper(
+                                    createThrowErrorCommand(jobClient, job, bpmnError),
+                                    job.getDeadline(),
+                                    job.toString(),
+                                    exceptionHandlingStrategy,
+                                    micrometerMetricsRecorder);
+                            command.executeAsyncWithMetrics("job_error",job.getType(),bpmnError.getErrorCode()+"-"+bpmnError.getErrorMessage());
+                        }
                     }
-                    catch (ZeebeBpmnError bpmnError) {
-                        CommandWrapper command = new RefactoredCommandWrapper(
-                                createThrowErrorCommand(jobClient, job, bpmnError),
-                                job.getDeadline(),
-                                job.toString(),
-                                exceptionHandlingStrategy,
-                                micrometerMetricsRecorder);
-                        command.executeAsyncWithMetrics("job_error",job.getType(),bpmnError.getErrorCode()+"-"+bpmnError.getErrorMessage());
-                    }
+                }, Instant.now().plusMillis(delay));
+            } catch (Exception e) {
+                // Handle case where scheduler is already shut down
+                if (isShuttingDown.get()) {
+                    LOG.warn("Cannot schedule job completion for {} because scheduler is shutting down, failing job", job.getKey());
+                    jobClient.newFailCommand(job.getKey())
+                        .retries(job.getRetries() - 1)
+                        .errorMessage("Scheduler is shutting down")
+                        .send();
+                } else {
+                    LOG.error("Failed to schedule job completion for {}: {}", job.getKey(), e.getMessage());
+                    throw e;
                 }
-            }, Instant.now().plusMillis(delay));
+            }
         }
     }
 
