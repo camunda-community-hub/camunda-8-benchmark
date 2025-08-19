@@ -1,9 +1,14 @@
 package org.camunda.community.benchmarks;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collection;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -15,12 +20,6 @@ import io.camunda.zeebe.model.bpmn.builder.ServiceTaskBuilder;
 import io.camunda.zeebe.model.bpmn.instance.ExtensionElements;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collection;
 
 @Component
 public class ProcessDeployer {
@@ -111,10 +110,9 @@ public class ProcessDeployer {
         for (ServiceTask serviceTask : serviceTasks) {
             // Check if this service task already has a zeebe:taskDefinition
             if (!hasZeebeTaskDefinition(serviceTask)) {
-                // Generate a unique job type based on the task ID
-                // Note: taskId is guaranteed to be non-null and non-empty by BPMN specification
+                // Generate a unique job type based on the task ID and partition pinning config
                 String taskId = serviceTask.getId();
-                String uniqueJobType = "benchmark-task-" + taskId;
+                String uniqueJobType = generateJobTypeForTask(taskId);
                 
                 // Use ServiceTaskBuilder fluent API to add job type
                 ServiceTaskBuilder builder = new ServiceTaskBuilder(modelInstance, serviceTask);
@@ -133,6 +131,29 @@ public class ProcessDeployer {
         }
         
         return bpmnContent;
+    }
+    
+    private String generateJobTypeForTask(String taskId) {
+        // Note: taskId is guaranteed to be non-null and non-empty by BPMN specification
+        // TODO: use config.getJobType() as prefix
+        String baseJobType = "benchmark-task-" + taskId;
+        
+        // If partition pinning is enabled, append pod-id to make job type unique per client
+        if (config.isEnablePartitionPinning() && config.getPodId() != null && !config.getPodId().isEmpty()) {
+            String podIdSuffix = config.getPodId();
+            // Extract numeric part if it's a pod name format
+            try {
+                int numericPodId = Integer.parseInt(config.getPodId());
+                podIdSuffix = String.valueOf(numericPodId);
+            } catch (NumberFormatException e) {
+                // If not numeric, extract from pod name or use as is
+                int extracted = org.camunda.community.benchmarks.partition.PartitionHashUtil.extractPodIdFromName(config.getPodId());
+                podIdSuffix = String.valueOf(extracted);
+            }
+            return baseJobType + "-" + podIdSuffix;
+        }
+        
+        return baseJobType;
     }
     
     /**

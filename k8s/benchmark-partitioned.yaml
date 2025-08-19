@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: camunda-8-benchmark-partitioned
+  labels:
+    app: camunda-8-benchmark-partitioned
+spec:
+  serviceName: camunda-8-benchmark-partitioned
+  selector:
+    matchLabels:
+      app: camunda-8-benchmark-partitioned
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: camunda-8-benchmark-partitioned
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8088"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      containers:
+        - name: camunda-8-benchmark
+          image: camundacommunityhub/camunda-8-benchmark:main
+          imagePullPolicy: Always
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: JAVA_OPTIONS
+              value: >-
+                -Dzeebe.client.cloud.cluster-id=a75eec75-1548-473f-a517-df2808d7f39b
+                -Dzeebe.client.cloud.client-id=VR6BjC8GFvl2feHFiWaCnwMlm4kHIx-S
+                -Dzeebe.client.cloud.client-secret=u1i.Pr1dYbQ3Drf_mciHVLRXHs4Or-MawK8XF0lVRDuTKQz0MJmU_egXZI.VzRzl
+                -Dzeebe.client.cloud.region=bru-3
+                -Dzeebe.client.cloud.baseUrl=zeebe.ultrawombat.com
+                -Dzeebe.client.worker.max-jobs-active=1000
+                -Dzeebe.client.cloud.port=443
+                -Dzeebe.client.cloud.authUrl=https://login.cloud.ultrawombat.com/oauth/token
+                -Dbenchmark.startPiPerSecond=200
+                -Dbenchmark.taskCompletionDelay=10
+                -Dbenchmark.bpmnProcessId=benchmark
+                -Dbenchmark.jobType=benchmark-task
+                -Dbenchmark.payloadPath=classpath:bpmn/typical_payload.json
+                -Dbenchmark.autoDeployProcess=true                
+                -Dbenchmark.maxBackpressurePercentage=10.0
+                -Dbenchmark.startPiReduceFactor=1
+                -Dbenchmark.startPiIncreaseFactor=1
+                -Dbenchmark.client.enable-partition-pinning=true
+                -Dbenchmark.client.pod-id=$(POD_NAME)
+                -Dbenchmark.client.partitionCount=8
+                -Dbenchmark.client.replicas=3
+          resources:
+            limits:
+              cpu: 15
+              memory: 29Gi
+            requests:
+              cpu: 1
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: camunda-8-benchmark-partitioned
+spec:
+  clusterIP: None  # Headless service for StatefulSet
+  selector:
+    app: camunda-8-benchmark-partitioned
+  ports:
+    - port: 8088
+      targetPort: 8088

@@ -41,6 +41,12 @@ public class BenchmarkConfiguration {
     private long delayBetweenMessages;
     private long messagesLoadDuration;
 
+    // Partition pinning configuration
+    private boolean enablePartitionPinning = false;
+    private String podId;
+    private int partitionCount = 1;
+    private int replicas = 1;
+
     public String getStartRateAdjustmentStrategy() {
         return startRateAdjustmentStrategy;
     }
@@ -234,5 +240,37 @@ public class BenchmarkConfiguration {
 
     public void setBpmnProcessIdToReplace(String bpmnProcessIdToReplace) {
         this.bpmnProcessIdToReplace = bpmnProcessIdToReplace;
+    }
+
+    public boolean isEnablePartitionPinning() {
+        return enablePartitionPinning;
+    }
+
+    public void setEnablePartitionPinning(boolean enablePartitionPinning) {
+        this.enablePartitionPinning = enablePartitionPinning;
+    }
+
+    public String getPodId() {
+        return podId;
+    }
+
+    public void setPodId(String podId) {
+        this.podId = podId;
+    }
+
+    public int getPartitionCount() {
+        return partitionCount;
+    }
+
+    public void setPartitionCount(int partitionCount) {
+        this.partitionCount = partitionCount;
+    }
+
+    public int getReplicas() {
+        return replicas;
+    }
+
+    public void setReplicas(int replicas) {
+        this.replicas = replicas;
     }
 }

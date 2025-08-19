@@ -146,17 +146,37 @@ public class JobWorker {
     }
 
     private void registerWorkersForTaskType(String taskType) {
+        String effectiveTaskType = taskType;
+        
+        // If partition pinning is enabled, modify task type to include pod-id
+        if (config.isEnablePartitionPinning() && config.getPodId() != null && !config.getPodId().isEmpty()) {
+            String podIdSuffix = extractPodIdSuffix();
+            effectiveTaskType = taskType + "-" + podIdSuffix;
+            LOG.info("Partition pinning enabled: registering workers for task type with pod-id suffix: {}", effectiveTaskType);
+        }
+        
         // worker for normal task type
-        registerWorker(taskType, false);
+        registerWorker(effectiveTaskType, false);
 
         // worker for normal "task-type-{starterId}"
-        registerWorker(taskType + "-" + config.getStarterId(), false);
+        registerWorker(effectiveTaskType + "-" + config.getStarterId(), false);
 
         // worker marking completion of process instance via "task-type-complete"
-        registerWorker(taskType + "-completed", true);
+        registerWorker(effectiveTaskType + "-completed", true);
 
         // worker marking completion of process instance via "task-type-complete"
-        registerWorker(taskType + "-" + config.getStarterId() + "-completed", true);
+        registerWorker(effectiveTaskType + "-" + config.getStarterId() + "-completed", true);
+    }
+    
+    private String extractPodIdSuffix() {
+        try {
+            int numericPodId = Integer.parseInt(config.getPodId());
+            return String.valueOf(numericPodId);
+        } catch (NumberFormatException e) {
+            // If not numeric, extract from pod name or use as is
+            int extracted = org.camunda.community.benchmarks.partition.PartitionHashUtil.extractPodIdFromName(config.getPodId());
+            return String.valueOf(extracted);
+        }
     }
 
     public class SimpleDelayCompletionHandler implements JobHandler {
