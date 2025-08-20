@@ -21,7 +21,7 @@ public class ProcessDeployerPartitionPinningTest {
     void testInjectUniqueJobTypes_WithPartitionPinning() throws Exception {
         // Configure partition pinning
         config.setEnablePartitionPinning(true);
-        config.setClientName("benchmark-2");
+        config.setStarterId("benchmark-2");
         
         String bpmnWithoutJobTypes = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -46,7 +46,7 @@ public class ProcessDeployerPartitionPinningTest {
         // Verify zeebe namespace was added
         assertTrue(result.contains("xmlns:zeebe=\"http://camunda.org/schema/zeebe/1.0\""));
         
-        // Verify job types with client name suffix were added
+        // Verify job types with client ID suffix were added
         assertTrue(result.contains("benchmark-task-Task_1-2"));
         assertTrue(result.contains("benchmark-task-Task_2-2"));
         
@@ -56,10 +56,10 @@ public class ProcessDeployerPartitionPinningTest {
     }
 
     @Test
-    void testInjectUniqueJobTypes_WithNumericClientName() throws Exception {
-        // Configure partition pinning with numeric client name
+    void testInjectUniqueJobTypes_WithNumericStarterId() throws Exception {
+        // Configure partition pinning with numeric starter ID
         config.setEnablePartitionPinning(true);
-        config.setClientName("5");
+        config.setStarterId("5");
         
         String bpmnWithoutJobTypes = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -76,7 +76,7 @@ public class ProcessDeployerPartitionPinningTest {
 
         String result = processDeployer.injectUniqueJobTypes(bpmnWithoutJobTypes);
 
-        // Verify job type with numeric client name suffix was added
+        // Verify job type with numeric starter ID suffix was added
         assertTrue(result.contains("benchmark-task-MyTask-5"));
     }
 
@@ -106,10 +106,10 @@ public class ProcessDeployerPartitionPinningTest {
     }
 
     @Test
-    void testInjectUniqueJobTypes_PartitionPinningEnabledButNoClientName() throws Exception {
-        // Partition pinning enabled but no client name set
+    void testInjectUniqueJobTypes_PartitionPinningEnabledButNoStarterId() throws Exception {
+        // Partition pinning enabled but using default starter ID
         config.setEnablePartitionPinning(true);
-        config.setClientName(null);
+        // Don't set starterId - should use default "benchmarkStarter1"
         
         String bpmnWithoutJobTypes = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -126,16 +126,15 @@ public class ProcessDeployerPartitionPinningTest {
 
         String result = processDeployer.injectUniqueJobTypes(bpmnWithoutJobTypes);
 
-        // Should fall back to normal job type without client name suffix
-        assertTrue(result.contains("benchmark-task-Task_1"));
-        assertFalse(result.contains("benchmark-task-Task_1-"));
+        // Should use default starterId and extract client ID from it
+        assertTrue(result.contains("benchmark-task-Task_1-1")); // "benchmarkStarter1" -> "1"
     }
 
     @Test
     void testInjectUniqueJobTypes_WithExistingJobTypesAndPartitionPinning() throws Exception {
         // Configure partition pinning
         config.setEnablePartitionPinning(true);
-        config.setClientName("1");
+        config.setStarterId("1");
         
         String bpmnWithJobTypes = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -163,7 +162,7 @@ public class ProcessDeployerPartitionPinningTest {
         // Verify the existing job type is preserved
         assertTrue(result.contains("type=\"existing-job-type\""));
         
-        // Verify new job type with client name was added only to Task_2
+        // Verify new job type with client ID was added only to Task_2
         assertTrue(result.contains("benchmark-task-Task_2-1"));
         // Should not have modified Task_1
         assertFalse(result.contains("benchmark-task-Task_1"));

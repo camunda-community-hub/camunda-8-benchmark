@@ -54,8 +54,8 @@ public class StartPiExecutor {
     private Map<String, Object> benchmarkPayload;
     
     // Partition pinning state
-    private int targetPartition = -1;
-    private int numericPodId = 0;
+    private int[] targetPartitions = new int[0];
+    private int numericClientId = 0;
 
     @PostConstruct
     public void init() throws IOException {
@@ -70,20 +70,22 @@ public class StartPiExecutor {
     }
     
     private void initializePartitionPinning() {
-        if (config.getClientName() != null && !config.getClientName().isEmpty()) {
+        String starterId = config.getStarterId();
+        if (starterId != null && !starterId.isEmpty()) {
             try {
-                numericPodId = Integer.parseInt(config.getClientName());
+                numericClientId = Integer.parseInt(starterId);
             } catch (NumberFormatException e) {
-                // Try extracting from pod name format
-                numericPodId = PartitionHashUtil.extractPodIdFromName(config.getClientName());
+                // Try extracting from starter name format
+                numericClientId = PartitionHashUtil.extractClientIdFromName(starterId);
             }
         }
         
-        targetPartition = PartitionHashUtil.getTargetPartitionForClient(
-            numericPodId, config.getPartitionCount(), config.getReplicas());
+        targetPartitions = PartitionHashUtil.getTargetPartitionsForClient(
+            numericClientId, config.getPartitionCount(), config.getNumberOfStarters());
             
-        LOG.info("Partition pinning enabled: client-name={}, target-partition={}, partition-count={}, replicas={}", 
-                 numericPodId, targetPartition, config.getPartitionCount(), config.getReplicas());
+        LOG.info("Partition pinning enabled: starterId={}, numericClientId={}, target-partitions={}, partition-count={}, numberOfStarters={}", 
+                 starterId, numericClientId, java.util.Arrays.toString(targetPartitions), 
+                 config.getPartitionCount(), config.getNumberOfStarters());
     }
 
     public void startProcessInstance() {
@@ -100,7 +102,7 @@ public class StartPiExecutor {
     }
     
     private void startProcessInstanceDirectly(HashMap<Object, Object> variables) {
-        // Original logic for direct process instance creation
+        // Auto-complete logic from https://github.com/camunda-community-hub/spring-zeebe/blob/ec41c5af1f64e512c8e7a8deea2aeacb35e61a16/client/spring-zeebe/src/main/java/io/camunda/zeebe/spring/client/jobhandling/JobHandlerInvokingSpringBeans.java#L24
         FinalCommandStep createCommand = client.newCreateInstanceCommand()
                 .bpmnProcessId(config.getBpmnProcessId())
                 .latestVersion()
@@ -114,13 +116,16 @@ public class StartPiExecutor {
     }
     
     private void startProcessInstanceViaMessage(HashMap<Object, Object> variables) {
-        // Generate correlation key that hashes to our target partition
+        // Select a random partition from our target partitions for load balancing
+        int selectedPartition = PartitionHashUtil.selectRandomPartition(targetPartitions);
+        
+        // Generate correlation key that hashes to our selected partition
         String correlationKey;
         try {
             correlationKey = PartitionHashUtil.generateCorrelationKeyForPartition(
-                targetPartition, config.getPartitionCount(), 1000);
+                selectedPartition, config.getPartitionCount(), 1000);
         } catch (IllegalStateException e) {
-            LOG.warn("Failed to generate correlation key for partition {}, using fallback", targetPartition, e);
+            LOG.warn("Failed to generate correlation key for partition {}, using fallback", selectedPartition, e);
             correlationKey = "benchmark-fallback-" + UUID.randomUUID().toString();
         }
         
@@ -138,7 +143,7 @@ public class StartPiExecutor {
         command.executeAsyncWithMetrics("PI_action","start_message",config.getBpmnProcessId());
         
         LOG.debug("Published message with correlation key {} targeting partition {}", 
-                  correlationKey, targetPartition);
+                  correlationKey, selectedPartition);
     }
 
     private String tryReadVariables(final InputStream inputStream) throws IOException {

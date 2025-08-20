@@ -57,8 +57,49 @@ public class PartitionHashUtilTest {
     }
 
     @Test
-    void testGetTargetPartitionForClient() {
-        // Test case: more partitions than replicas
+    void testGetTargetPartitionsForClient() {
+        // Test case: 9 partitions, 3 starters - even distribution
+        int[] partitions0 = PartitionHashUtil.getTargetPartitionsForClient(0, 9, 3);
+        int[] partitions1 = PartitionHashUtil.getTargetPartitionsForClient(1, 9, 3);
+        int[] partitions2 = PartitionHashUtil.getTargetPartitionsForClient(2, 9, 3);
+        
+        assertArrayEquals(new int[]{0, 1, 2}, partitions0);
+        assertArrayEquals(new int[]{3, 4, 5}, partitions1);
+        assertArrayEquals(new int[]{6, 7, 8}, partitions2);
+        
+        // Test case: 6 partitions, 2 starters
+        int[] client0_6p2s = PartitionHashUtil.getTargetPartitionsForClient(0, 6, 2);
+        int[] client1_6p2s = PartitionHashUtil.getTargetPartitionsForClient(1, 6, 2);
+        
+        assertArrayEquals(new int[]{0, 1, 2}, client0_6p2s);
+        assertArrayEquals(new int[]{3, 4, 5}, client1_6p2s);
+        
+        // Test case: more starters than partitions
+        int[] client0_3p5s = PartitionHashUtil.getTargetPartitionsForClient(0, 3, 5);
+        int[] client1_3p5s = PartitionHashUtil.getTargetPartitionsForClient(1, 3, 5);
+        int[] client2_3p5s = PartitionHashUtil.getTargetPartitionsForClient(2, 3, 5);
+        int[] client3_3p5s = PartitionHashUtil.getTargetPartitionsForClient(3, 3, 5);
+        int[] client4_3p5s = PartitionHashUtil.getTargetPartitionsForClient(4, 3, 5);
+        
+        assertArrayEquals(new int[]{0}, client0_3p5s);
+        assertArrayEquals(new int[]{1}, client1_3p5s);
+        assertArrayEquals(new int[]{2}, client2_3p5s);
+        assertArrayEquals(new int[0], client3_3p5s); // No partitions for client 3
+        assertArrayEquals(new int[0], client4_3p5s); // No partitions for client 4
+        
+        // Test case: uneven distribution (10 partitions, 3 starters)
+        int[] client0_10p3s = PartitionHashUtil.getTargetPartitionsForClient(0, 10, 3);
+        int[] client1_10p3s = PartitionHashUtil.getTargetPartitionsForClient(1, 10, 3);
+        int[] client2_10p3s = PartitionHashUtil.getTargetPartitionsForClient(2, 10, 3);
+        
+        assertArrayEquals(new int[]{0, 1, 2, 3}, client0_10p3s); // Gets one extra
+        assertArrayEquals(new int[]{4, 5, 6}, client1_10p3s);
+        assertArrayEquals(new int[]{7, 8, 9}, client2_10p3s);
+    }
+
+    @Test
+    void testGetTargetPartitionForClient_BackwardCompatibility() {
+        // Test backward compatibility with deprecated method
         assertEquals(0, PartitionHashUtil.getTargetPartitionForClient(0, 4, 2));
         assertEquals(2, PartitionHashUtil.getTargetPartitionForClient(1, 4, 2));
         
@@ -75,16 +116,35 @@ public class PartitionHashUtilTest {
     }
 
     @Test
-    void testExtractPodIdFromName() {
-        assertEquals(0, PartitionHashUtil.extractPodIdFromName("benchmark-0"));
-        assertEquals(1, PartitionHashUtil.extractPodIdFromName("benchmark-1"));
-        assertEquals(42, PartitionHashUtil.extractPodIdFromName("my-app-42"));
+    void testExtractClientIdFromName() {
+        assertEquals(0, PartitionHashUtil.extractClientIdFromName("benchmark-0"));
+        assertEquals(1, PartitionHashUtil.extractClientIdFromName("benchmark-1"));
+        assertEquals(42, PartitionHashUtil.extractClientIdFromName("my-app-42"));
         
         // Edge cases
-        assertEquals(0, PartitionHashUtil.extractPodIdFromName(""));
-        assertEquals(0, PartitionHashUtil.extractPodIdFromName(null));
-        assertEquals(0, PartitionHashUtil.extractPodIdFromName("no-number"));
-        assertEquals(0, PartitionHashUtil.extractPodIdFromName("ends-with-dash-"));
+        assertEquals(0, PartitionHashUtil.extractClientIdFromName(""));
+        assertEquals(0, PartitionHashUtil.extractClientIdFromName(null));
+        assertEquals(0, PartitionHashUtil.extractClientIdFromName("no-number"));
+        assertEquals(0, PartitionHashUtil.extractClientIdFromName("ends-with-dash-"));
+    }
+
+    @Test
+    void testSelectRandomPartition() {
+        // Test with single partition
+        int[] singlePartition = {5};
+        assertEquals(5, PartitionHashUtil.selectRandomPartition(singlePartition));
+        
+        // Test with multiple partitions - should return one of them
+        int[] multiplePartitions = {1, 3, 7};
+        for (int i = 0; i < 10; i++) {
+            int selected = PartitionHashUtil.selectRandomPartition(multiplePartitions);
+            assertTrue(selected == 1 || selected == 3 || selected == 7, 
+                      "Selected partition should be one of the target partitions");
+        }
+        
+        // Test with empty array
+        int[] emptyPartitions = {};
+        assertEquals(0, PartitionHashUtil.selectRandomPartition(emptyPartitions));
     }
 
     @Test

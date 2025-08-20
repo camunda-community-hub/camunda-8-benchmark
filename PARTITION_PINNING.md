@@ -20,14 +20,11 @@ By default, the benchmark client connects to all partitions across all brokers i
 # Enable partition pinning
 benchmark.client.enable-partition-pinning=true
 
-# Client name (set automatically from Kubernetes pod metadata)
-benchmark.client.client-name=${POD_NAME}
-
 # Total number of partitions in your Zeebe cluster
 benchmark.client.partitionCount=9
 
-# Total number of client replicas (StatefulSet replicas)
-benchmark.client.replicas=3
+# Total number of benchmark starters
+benchmark.client.numberOfStarters=3
 ```
 
 ### BPMN Process Requirements
@@ -58,34 +55,31 @@ spec:
       containers:
         - name: camunda-8-benchmark
           env:
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
             - name: JAVA_OPTIONS
               value: >-
                 -Dbenchmark.client.enable-partition-pinning=true
                 -Dbenchmark.client.partitionCount=9
-                -Dbenchmark.client.replicas=3
+                -Dbenchmark.client.numberOfStarters=3
                 -Dbenchmark.bpmnProcessId=benchmark_partition_pinning
                 -Dbenchmark.bpmnResource=classpath:bpmn/benchmark_partition_pinning.bpmn
-            - name: BENCHMARK_CLIENT_CLIENT_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
 ```
 
 ## Partition Assignment Strategy
 
 The partition assignment follows this logic:
 
-- **More partitions than replicas**: Each client gets assigned to different partitions evenly distributed
-- **More replicas than partitions**: Multiple clients may share the same partition
-- **Equal partitions and replicas**: One-to-one mapping
+- **More partitions than starters**: Each client gets assigned to different partitions evenly distributed
+- **More starters than partitions**: Multiple clients may share the same partition
+- **Equal partitions and starters**: One-to-one mapping
 
 Examples:
-- 9 partitions, 3 replicas: Client 0 → Partition 0, Client 1 → Partition 3, Client 2 → Partition 6
-- 2 partitions, 4 replicas: Client 0 → Partition 0, Client 1 → Partition 1, Client 2 → Partition 0, Client 3 → Partition 1
+- 9 partitions, 3 starters: 
+  - Client 0 → Partitions 0, 1, 2
+  - Client 1 → Partitions 3, 4, 5  
+  - Client 2 → Partitions 6, 7, 8
+- 6 partitions, 2 starters:
+  - Client 0 → Partitions 0, 1, 2
+  - Client 1 → Partitions 3, 4, 5
 
 ## Job Type Naming
 
@@ -124,9 +118,9 @@ Monitor the following to verify partition pinning is working:
 ### Logs to Check
 
 ```
-INFO  - Partition pinning enabled: client-name=1, target-partition=3, partition-count=9, replicas=3
+INFO  - Partition pinning enabled: starterId=1, numericClientId=1, target-partitions=[3, 4, 5], partition-count=9, numberOfStarters=3
 INFO  - Added job type 'benchmark-task-Task_1-1' to service task 'Task_1'
-INFO  - Partition pinning enabled: registering workers for task type with client name suffix: benchmark-task-1
+INFO  - Partition pinning enabled: registering workers for task type with client ID suffix: benchmark-task-1
 ```
 
 ## Migration from Regular Deployment

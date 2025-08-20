@@ -138,19 +138,22 @@ public class ProcessDeployer {
         // TODO: use config.getJobType() as prefix
         String baseJobType = "benchmark-task-" + taskId;
         
-        // If partition pinning is enabled, append client name to make job type unique per client
-        if (config.isEnablePartitionPinning() && config.getClientName() != null && !config.getClientName().isEmpty()) {
-            String clientNameSuffix = config.getClientName();
-            // Extract numeric part if it's a client name format
-            try {
-                int numericClientId = Integer.parseInt(config.getClientName());
-                clientNameSuffix = String.valueOf(numericClientId);
-            } catch (NumberFormatException e) {
-                // If not numeric, extract from client name or use as is
-                int extracted = org.camunda.community.benchmarks.partition.PartitionHashUtil.extractPodIdFromName(config.getClientName());
-                clientNameSuffix = String.valueOf(extracted);
+        // If partition pinning is enabled, append client ID to make job type unique per client
+        if (config.isEnablePartitionPinning()) {
+            String starterId = config.getStarterId();
+            if (starterId != null && !starterId.isEmpty()) {
+                String clientIdSuffix = starterId;
+                // Extract numeric part if it's a starter name format
+                try {
+                    int numericClientId = Integer.parseInt(starterId);
+                    clientIdSuffix = String.valueOf(numericClientId);
+                } catch (NumberFormatException e) {
+                    // If not numeric, extract from starter name or use as is
+                    int extracted = org.camunda.community.benchmarks.partition.PartitionHashUtil.extractClientIdFromName(starterId);
+                    clientIdSuffix = String.valueOf(extracted);
+                }
+                return baseJobType + "-" + clientIdSuffix;
             }
-            return baseJobType + "-" + clientNameSuffix;
         }
         
         return baseJobType;

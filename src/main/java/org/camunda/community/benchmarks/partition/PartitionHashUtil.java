@@ -63,44 +63,95 @@ public class PartitionHashUtil {
     }
 
     /**
-     * Determines which partition this client should be responsible for
-     * based on its pod ID and the total number of replicas.
+     * Determines which partitions this client should be responsible for
+     * based on its client ID and the total number of starters using round-robin.
      * 
-     * @param podId The pod ID (numeric part from StatefulSet ordinal)
+     * @param clientId The client ID (numeric part from starter name)
      * @param partitionCount Total number of partitions
-     * @param replicas Total number of client replicas
-     * @return The partition ID this client should handle
+     * @param numberOfStarters Total number of client starters
+     * @return Array of partition IDs this client should handle
      */
-    public static int getTargetPartitionForClient(int podId, int partitionCount, int replicas) {
-        if (replicas > partitionCount) {
-            // More replicas than partitions - some clients will share partitions
-            return podId % partitionCount;
+    public static int[] getTargetPartitionsForClient(int clientId, int partitionCount, int numberOfStarters) {
+        if (numberOfStarters >= partitionCount) {
+            // More starters than partitions - each client gets at most one partition
+            if (clientId < partitionCount) {
+                return new int[]{clientId};
+            } else {
+                return new int[0]; // No partitions for this client
+            }
         } else {
-            // Distribute partitions across replicas
-            return (podId * partitionCount) / replicas;
+            // Fewer starters than partitions - distribute round-robin
+            int partitionsPerStarter = partitionCount / numberOfStarters;
+            int remainingPartitions = partitionCount % numberOfStarters;
+            
+            // Calculate how many partitions this client gets
+            int numPartitions = partitionsPerStarter;
+            if (clientId < remainingPartitions) {
+                numPartitions++; // This client gets one extra partition
+            }
+            
+            // Calculate starting partition for this client
+            int startPartition = clientId * partitionsPerStarter + Math.min(clientId, remainingPartitions);
+            
+            int[] partitions = new int[numPartitions];
+            for (int i = 0; i < numPartitions; i++) {
+                partitions[i] = startPartition + i;
+            }
+            
+            return partitions;
         }
+    }
+    
+    /**
+     * Legacy method for backward compatibility - returns the first partition only.
+     * 
+     * @deprecated Use getTargetPartitionsForClient instead for multiple partition support
+     */
+    @Deprecated
+    public static int getTargetPartitionForClient(int podId, int partitionCount, int replicas) {
+        int[] partitions = getTargetPartitionsForClient(podId, partitionCount, replicas);
+        return partitions.length > 0 ? partitions[0] : 0;
     }
 
     /**
-     * Extracts numeric pod ID from a Kubernetes StatefulSet pod name.
+     * Extracts numeric client ID from a client name.
      * 
-     * @param podName Pod name like "benchmark-0", "benchmark-1", etc.
+     * @param clientName Client name like "benchmark-0", "benchmark-1", etc.
      * @return The numeric ordinal, or 0 if parsing fails
      */
-    public static int extractPodIdFromName(String podName) {
-        if (podName == null || podName.isEmpty()) {
+    public static int extractClientIdFromName(String clientName) {
+        if (clientName == null || clientName.isEmpty()) {
             return 0;
         }
         
-        int lastDash = podName.lastIndexOf('-');
-        if (lastDash == -1 || lastDash == podName.length() - 1) {
+        int lastDash = clientName.lastIndexOf('-');
+        if (lastDash == -1 || lastDash == clientName.length() - 1) {
             return 0;
         }
         
         try {
-            return Integer.parseInt(podName.substring(lastDash + 1));
+            return Integer.parseInt(clientName.substring(lastDash + 1));
         } catch (NumberFormatException e) {
             return 0;
         }
+    }
+    
+    /**
+     * Randomly selects one of the target partitions for message publishing.
+     * This allows load balancing across all partitions assigned to a client.
+     * 
+     * @param targetPartitions Array of partition IDs this client should handle
+     * @return A randomly selected partition from the target partitions
+     */
+    public static int selectRandomPartition(int[] targetPartitions) {
+        if (targetPartitions.length == 0) {
+            return 0;
+        }
+        if (targetPartitions.length == 1) {
+            return targetPartitions[0];
+        }
+        
+        int randomIndex = (int) (Math.random() * targetPartitions.length);
+        return targetPartitions[randomIndex];
     }
 }

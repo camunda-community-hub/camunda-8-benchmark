@@ -149,10 +149,10 @@ public class JobWorker {
         String effectiveTaskType = taskType;
         
         // If partition pinning is enabled, modify task type to include client name suffix
-        if (config.isEnablePartitionPinning() && config.getClientName() != null && !config.getClientName().isEmpty()) {
-            String clientNameSuffix = extractClientNameSuffix();
-            effectiveTaskType = taskType + "-" + clientNameSuffix;
-            LOG.info("Partition pinning enabled: registering workers for task type with client name suffix: {}", effectiveTaskType);
+        if (config.isEnablePartitionPinning()) {
+            String clientIdSuffix = extractClientIdSuffix();
+            effectiveTaskType = taskType + "-" + clientIdSuffix;
+            LOG.info("Partition pinning enabled: registering workers for task type with client ID suffix: {}", effectiveTaskType);
         }
         
         // worker for normal task type
@@ -168,13 +168,18 @@ public class JobWorker {
         registerWorker(effectiveTaskType + "-" + config.getStarterId() + "-completed", true);
     }
     
-    private String extractClientNameSuffix() {
+    private String extractClientIdSuffix() {
+        String starterId = config.getStarterId();
+        if (starterId == null || starterId.isEmpty()) {
+            return "0";
+        }
+        
         try {
-            int numericClientId = Integer.parseInt(config.getClientName());
+            int numericClientId = Integer.parseInt(starterId);
             return String.valueOf(numericClientId);
         } catch (NumberFormatException e) {
-            // If not numeric, extract from client name or use as is
-            int extracted = org.camunda.community.benchmarks.partition.PartitionHashUtil.extractPodIdFromName(config.getClientName());
+            // If not numeric, extract from starter name or use as is
+            int extracted = org.camunda.community.benchmarks.partition.PartitionHashUtil.extractClientIdFromName(starterId);
             return String.valueOf(extracted);
         }
     }

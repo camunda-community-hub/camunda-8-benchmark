@@ -43,9 +43,8 @@ public class BenchmarkConfiguration {
 
     // Partition pinning configuration
     private boolean enablePartitionPinning = false;
-    private String clientName;
     private int partitionCount = 1;
-    private int replicas = 1;
+    private int numberOfStarters = 1;
 
     public String getStartRateAdjustmentStrategy() {
         return startRateAdjustmentStrategy;
@@ -250,14 +249,6 @@ public class BenchmarkConfiguration {
         this.enablePartitionPinning = enablePartitionPinning;
     }
 
-    public String getClientName() {
-        return clientName;
-    }
-
-    public void setClientName(String clientName) {
-        this.clientName = clientName;
-    }
-
     public int getPartitionCount() {
         return partitionCount;
     }
@@ -266,11 +257,11 @@ public class BenchmarkConfiguration {
         this.partitionCount = partitionCount;
     }
 
-    public int getReplicas() {
-        return replicas;
+    public int getNumberOfStarters() {
+        return numberOfStarters;
     }
 
-    public void setReplicas(int replicas) {
-        this.replicas = replicas;
+    public void setNumberOfStarters(int numberOfStarters) {
+        this.numberOfStarters = numberOfStarters;
     }
 }
