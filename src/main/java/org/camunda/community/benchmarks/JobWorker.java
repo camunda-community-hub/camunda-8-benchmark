@@ -148,11 +148,11 @@ public class JobWorker {
     private void registerWorkersForTaskType(String taskType) {
         String effectiveTaskType = taskType;
         
-        // If partition pinning is enabled, modify task type to include pod-id
-        if (config.isEnablePartitionPinning() && config.getPodId() != null && !config.getPodId().isEmpty()) {
-            String podIdSuffix = extractPodIdSuffix();
-            effectiveTaskType = taskType + "-" + podIdSuffix;
-            LOG.info("Partition pinning enabled: registering workers for task type with pod-id suffix: {}", effectiveTaskType);
+        // If partition pinning is enabled, modify task type to include client name suffix
+        if (config.isEnablePartitionPinning() && config.getClientName() != null && !config.getClientName().isEmpty()) {
+            String clientNameSuffix = extractClientNameSuffix();
+            effectiveTaskType = taskType + "-" + clientNameSuffix;
+            LOG.info("Partition pinning enabled: registering workers for task type with client name suffix: {}", effectiveTaskType);
         }
         
         // worker for normal task type
@@ -168,13 +168,13 @@ public class JobWorker {
         registerWorker(effectiveTaskType + "-" + config.getStarterId() + "-completed", true);
     }
     
-    private String extractPodIdSuffix() {
+    private String extractClientNameSuffix() {
         try {
-            int numericPodId = Integer.parseInt(config.getPodId());
-            return String.valueOf(numericPodId);
+            int numericClientId = Integer.parseInt(config.getClientName());
+            return String.valueOf(numericClientId);
         } catch (NumberFormatException e) {
-            // If not numeric, extract from pod name or use as is
-            int extracted = org.camunda.community.benchmarks.partition.PartitionHashUtil.extractPodIdFromName(config.getPodId());
+            // If not numeric, extract from client name or use as is
+            int extracted = org.camunda.community.benchmarks.partition.PartitionHashUtil.extractPodIdFromName(config.getClientName());
             return String.valueOf(extracted);
         }
     }

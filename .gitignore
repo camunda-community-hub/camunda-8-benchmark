@@ -16,5 +16,4 @@ buildNumber.properties
 /.idea/
 .vscode
 
-# Compiled class files
-*.class
+

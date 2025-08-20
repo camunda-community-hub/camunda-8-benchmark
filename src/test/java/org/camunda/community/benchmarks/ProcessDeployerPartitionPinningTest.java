@@ -21,7 +21,7 @@ public class ProcessDeployerPartitionPinningTest {
     void testInjectUniqueJobTypes_WithPartitionPinning() throws Exception {
         // Configure partition pinning
         config.setEnablePartitionPinning(true);
-        config.setPodId("benchmark-2");
+        config.setClientName("benchmark-2");
         
         String bpmnWithoutJobTypes = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -46,7 +46,7 @@ public class ProcessDeployerPartitionPinningTest {
         // Verify zeebe namespace was added
         assertTrue(result.contains("xmlns:zeebe=\"http://camunda.org/schema/zeebe/1.0\""));
         
-        // Verify job types with pod-id suffix were added
+        // Verify job types with client name suffix were added
         assertTrue(result.contains("benchmark-task-Task_1-2"));
         assertTrue(result.contains("benchmark-task-Task_2-2"));
         
@@ -56,10 +56,10 @@ public class ProcessDeployerPartitionPinningTest {
     }
 
     @Test
-    void testInjectUniqueJobTypes_WithNumericPodId() throws Exception {
-        // Configure partition pinning with numeric pod ID
+    void testInjectUniqueJobTypes_WithNumericClientName() throws Exception {
+        // Configure partition pinning with numeric client name
         config.setEnablePartitionPinning(true);
-        config.setPodId("5");
+        config.setClientName("5");
         
         String bpmnWithoutJobTypes = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -76,7 +76,7 @@ public class ProcessDeployerPartitionPinningTest {
 
         String result = processDeployer.injectUniqueJobTypes(bpmnWithoutJobTypes);
 
-        // Verify job type with numeric pod-id suffix was added
+        // Verify job type with numeric client name suffix was added
         assertTrue(result.contains("benchmark-task-MyTask-5"));
     }
 
@@ -100,16 +100,16 @@ public class ProcessDeployerPartitionPinningTest {
 
         String result = processDeployer.injectUniqueJobTypes(bpmnWithoutJobTypes);
 
-        // Verify normal job type without pod-id suffix
+        // Verify normal job type without client name suffix
         assertTrue(result.contains("benchmark-task-Task_1"));
         assertFalse(result.contains("benchmark-task-Task_1-"));
     }
 
     @Test
-    void testInjectUniqueJobTypes_PartitionPinningEnabledButNoPodId() throws Exception {
-        // Partition pinning enabled but no pod ID set
+    void testInjectUniqueJobTypes_PartitionPinningEnabledButNoClientName() throws Exception {
+        // Partition pinning enabled but no client name set
         config.setEnablePartitionPinning(true);
-        config.setPodId(null);
+        config.setClientName(null);
         
         String bpmnWithoutJobTypes = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -126,7 +126,7 @@ public class ProcessDeployerPartitionPinningTest {
 
         String result = processDeployer.injectUniqueJobTypes(bpmnWithoutJobTypes);
 
-        // Should fall back to normal job type without pod-id suffix
+        // Should fall back to normal job type without client name suffix
         assertTrue(result.contains("benchmark-task-Task_1"));
         assertFalse(result.contains("benchmark-task-Task_1-"));
     }
@@ -135,7 +135,7 @@ public class ProcessDeployerPartitionPinningTest {
     void testInjectUniqueJobTypes_WithExistingJobTypesAndPartitionPinning() throws Exception {
         // Configure partition pinning
         config.setEnablePartitionPinning(true);
-        config.setPodId("1");
+        config.setClientName("1");
         
         String bpmnWithJobTypes = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -163,7 +163,7 @@ public class ProcessDeployerPartitionPinningTest {
         // Verify the existing job type is preserved
         assertTrue(result.contains("type=\"existing-job-type\""));
         
-        // Verify new job type with pod-id was added only to Task_2
+        // Verify new job type with client name was added only to Task_2
         assertTrue(result.contains("benchmark-task-Task_2-1"));
         // Should not have modified Task_1
         assertFalse(result.contains("benchmark-task-Task_1"));

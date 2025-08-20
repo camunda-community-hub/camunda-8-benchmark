@@ -10,8 +10,8 @@ public class PartitionPinningE2ETest {
     public static void main(String[] args) {
         System.out.println("=== Partition Pinning End-to-End Test ===");
         
-        // Simulate a 3-replica deployment with 8 partitions
-        int partitionCount = 8;
+        // Simulate a 3-replica deployment with 9 partitions
+        int partitionCount = 9;
         int replicas = 3;
         
         System.out.println("Scenario: " + replicas + " replicas across " + partitionCount + " partitions");

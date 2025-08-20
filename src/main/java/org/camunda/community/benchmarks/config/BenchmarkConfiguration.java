@@ -43,7 +43,7 @@ public class BenchmarkConfiguration {
 
     // Partition pinning configuration
     private boolean enablePartitionPinning = false;
-    private String podId;
+    private String clientName;
     private int partitionCount = 1;
     private int replicas = 1;
 
@@ -250,12 +250,12 @@ public class BenchmarkConfiguration {
         this.enablePartitionPinning = enablePartitionPinning;
     }
 
-    public String getPodId() {
-        return podId;
+    public String getClientName() {
+        return clientName;
     }
 
-    public void setPodId(String podId) {
-        this.podId = podId;
+    public void setClientName(String clientName) {
+        this.clientName = clientName;
     }
 
     public int getPartitionCount() {

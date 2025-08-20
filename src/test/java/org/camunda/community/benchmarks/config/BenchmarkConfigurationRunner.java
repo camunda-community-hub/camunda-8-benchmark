@@ -45,8 +45,8 @@ public class BenchmarkConfigurationRunner {
         
         // Set partition pinning values
         config.setEnablePartitionPinning(true);
-        config.setPodId("benchmark-2");
-        config.setPartitionCount(8);
+        config.setClientName("benchmark-2");
+        config.setPartitionCount(9);
         config.setReplicas(3);
         
         // Verify values
@@ -54,12 +54,12 @@ public class BenchmarkConfigurationRunner {
             throw new RuntimeException("Partition pinning should be enabled");
         }
         
-        if (!"benchmark-2".equals(config.getPodId())) {
-            throw new RuntimeException("Pod ID should be 'benchmark-2'");
+        if (!"benchmark-2".equals(config.getClientName())) {
+            throw new RuntimeException("Client name should be 'benchmark-2'");
         }
         
-        if (config.getPartitionCount() != 8) {
-            throw new RuntimeException("Partition count should be 8");
+        if (config.getPartitionCount() != 9) {
+            throw new RuntimeException("Partition count should be 9");
         }
         
         if (config.getReplicas() != 3) {

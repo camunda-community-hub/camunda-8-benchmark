@@ -8,9 +8,9 @@ By default, the benchmark client connects to all partitions across all brokers i
 
 ## How It Works
 
-1. **Client Identity**: Each client has a unique numerical identity (pod ID from Kubernetes StatefulSet)
+1. **Client Identity**: Each client has a unique numerical identity (client name from Kubernetes StatefulSet)
 2. **Message-based Process Starting**: Instead of creating process instances directly, the client publishes messages with correlation keys that route to specific partitions
-3. **Partition-specific Job Types**: Job workers only subscribe to job types that include their pod ID, ensuring they only handle jobs from their assigned partitions
+3. **Partition-specific Job Types**: Job workers only subscribe to job types that include their client name, ensuring they only handle jobs from their assigned partitions
 
 ## Configuration
 
@@ -20,11 +20,11 @@ By default, the benchmark client connects to all partitions across all brokers i
 # Enable partition pinning
 benchmark.client.enable-partition-pinning=true
 
-# Pod ID (set automatically from Kubernetes pod metadata)
-benchmark.client.pod-id=${POD_NAME}
+# Client name (set automatically from Kubernetes pod metadata)
+benchmark.client.client-name=${POD_NAME}
 
 # Total number of partitions in your Zeebe cluster
-benchmark.client.partitionCount=8
+benchmark.client.partitionCount=9
 
 # Total number of client replicas (StatefulSet replicas)
 benchmark.client.replicas=3
@@ -65,11 +65,14 @@ spec:
             - name: JAVA_OPTIONS
               value: >-
                 -Dbenchmark.client.enable-partition-pinning=true
-                -Dbenchmark.client.pod-id=$(POD_NAME)
-                -Dbenchmark.client.partitionCount=8
+                -Dbenchmark.client.partitionCount=9
                 -Dbenchmark.client.replicas=3
                 -Dbenchmark.bpmnProcessId=benchmark_partition_pinning
                 -Dbenchmark.bpmnResource=classpath:bpmn/benchmark_partition_pinning.bpmn
+            - name: BENCHMARK_CLIENT_CLIENT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
 ```
 
 ## Partition Assignment Strategy
@@ -81,15 +84,15 @@ The partition assignment follows this logic:
 - **Equal partitions and replicas**: One-to-one mapping
 
 Examples:
-- 8 partitions, 3 replicas: Client 0 → Partition 0, Client 1 → Partition 2, Client 2 → Partition 5
+- 9 partitions, 3 replicas: Client 0 → Partition 0, Client 1 → Partition 3, Client 2 → Partition 6
 - 2 partitions, 4 replicas: Client 0 → Partition 0, Client 1 → Partition 1, Client 2 → Partition 0, Client 3 → Partition 1
 
 ## Job Type Naming
 
-When partition pinning is enabled, job types are automatically suffixed with the pod ID:
+When partition pinning is enabled, job types are automatically suffixed with the client name:
 
 - Normal: `benchmark-task-Task_1`
-- With pinning: `benchmark-task-Task_1-0` (for pod ID 0)
+- With pinning: `benchmark-task-Task_1-0` (for client name 0)
 
 This ensures that each client only processes jobs from its assigned partitions.
 
@@ -105,7 +108,7 @@ This ensures that each client only processes jobs from its assigned partitions.
 Monitor the following to verify partition pinning is working:
 
 1. **Process Instance Distribution**: Check that process instances are evenly distributed across partitions
-2. **Job Worker Activity**: Verify that each client only processes jobs with its pod ID suffix
+2. **Job Worker Activity**: Verify that each client only processes jobs with its client name suffix
 3. **Broker Load**: Ensure load is distributed across brokers based on partition assignment
 
 ## Troubleshooting
@@ -114,16 +117,16 @@ Monitor the following to verify partition pinning is working:
 
 1. **Process instances not starting**: Ensure the BPMN process has a message start event with the correct message name (`StartBenchmarkProcess`)
 
-2. **Jobs not being processed**: Verify job types in the BPMN process match the generated job types with pod ID suffixes
+2. **Jobs not being processed**: Verify job types in the BPMN process match the generated job types with client name suffixes
 
 3. **Uneven distribution**: Check that partition count and replica count are configured correctly
 
 ### Logs to Check
 
 ```
-INFO  - Partition pinning enabled: pod-id=1, target-partition=2, partition-count=8, replicas=3
+INFO  - Partition pinning enabled: client-name=1, target-partition=3, partition-count=9, replicas=3
 INFO  - Added job type 'benchmark-task-Task_1-1' to service task 'Task_1'
-INFO  - Partition pinning enabled: registering workers for task type with pod-id suffix: benchmark-task-1
+INFO  - Partition pinning enabled: registering workers for task type with client name suffix: benchmark-task-1
 ```
 
 ## Migration from Regular Deployment

@@ -138,19 +138,19 @@ public class ProcessDeployer {
         // TODO: use config.getJobType() as prefix
         String baseJobType = "benchmark-task-" + taskId;
         
-        // If partition pinning is enabled, append pod-id to make job type unique per client
-        if (config.isEnablePartitionPinning() && config.getPodId() != null && !config.getPodId().isEmpty()) {
-            String podIdSuffix = config.getPodId();
-            // Extract numeric part if it's a pod name format
+        // If partition pinning is enabled, append client name to make job type unique per client
+        if (config.isEnablePartitionPinning() && config.getClientName() != null && !config.getClientName().isEmpty()) {
+            String clientNameSuffix = config.getClientName();
+            // Extract numeric part if it's a client name format
             try {
-                int numericPodId = Integer.parseInt(config.getPodId());
-                podIdSuffix = String.valueOf(numericPodId);
+                int numericClientId = Integer.parseInt(config.getClientName());
+                clientNameSuffix = String.valueOf(numericClientId);
             } catch (NumberFormatException e) {
-                // If not numeric, extract from pod name or use as is
-                int extracted = org.camunda.community.benchmarks.partition.PartitionHashUtil.extractPodIdFromName(config.getPodId());
-                podIdSuffix = String.valueOf(extracted);
+                // If not numeric, extract from client name or use as is
+                int extracted = org.camunda.community.benchmarks.partition.PartitionHashUtil.extractPodIdFromName(config.getClientName());
+                clientNameSuffix = String.valueOf(extracted);
             }
-            return baseJobType + "-" + podIdSuffix;
+            return baseJobType + "-" + clientNameSuffix;
         }
         
         return baseJobType;

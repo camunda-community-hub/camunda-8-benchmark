@@ -70,19 +70,19 @@ public class StartPiExecutor {
     }
     
     private void initializePartitionPinning() {
-        if (config.getPodId() != null && !config.getPodId().isEmpty()) {
+        if (config.getClientName() != null && !config.getClientName().isEmpty()) {
             try {
-                numericPodId = Integer.parseInt(config.getPodId());
+                numericPodId = Integer.parseInt(config.getClientName());
             } catch (NumberFormatException e) {
                 // Try extracting from pod name format
-                numericPodId = PartitionHashUtil.extractPodIdFromName(config.getPodId());
+                numericPodId = PartitionHashUtil.extractPodIdFromName(config.getClientName());
             }
         }
         
         targetPartition = PartitionHashUtil.getTargetPartitionForClient(
             numericPodId, config.getPartitionCount(), config.getReplicas());
             
-        LOG.info("Partition pinning enabled: pod-id={}, target-partition={}, partition-count={}, replicas={}", 
+        LOG.info("Partition pinning enabled: client-name={}, target-partition={}, partition-count={}, replicas={}", 
                  numericPodId, targetPartition, config.getPartitionCount(), config.getReplicas());
     }
 

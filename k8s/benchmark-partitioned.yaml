@@ -28,6 +28,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: BENCHMARK_CLIENT_CLIENT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: JAVA_OPTIONS
               value: >-
                 -Dzeebe.client.cloud.cluster-id=a75eec75-1548-473f-a517-df2808d7f39b
@@ -48,8 +52,7 @@ spec:
                 -Dbenchmark.startPiReduceFactor=1
                 -Dbenchmark.startPiIncreaseFactor=1
                 -Dbenchmark.client.enable-partition-pinning=true
-                -Dbenchmark.client.pod-id=$(POD_NAME)
-                -Dbenchmark.client.partitionCount=8
+                -Dbenchmark.client.partitionCount=9
                 -Dbenchmark.client.replicas=3
           resources:
             limits:
