@@ -111,18 +111,18 @@ public class PartitionHashUtil {
      */
     public static int extractClientIdFromName(String clientName) {
         if (clientName == null || clientName.isEmpty()) {
-            return 0;
+            throw new IllegalArgumentException("Client name cannot be null or empty");
         }
         
         int lastDash = clientName.lastIndexOf('-');
         if (lastDash == -1 || lastDash == clientName.length() - 1) {
-            return 0;
+            throw new IllegalArgumentException("Client name must end with a numeric ID after a dash");
         }
         
         try {
             return Integer.parseInt(clientName.substring(lastDash + 1));
         } catch (NumberFormatException e) {
-            return 0;
+            throw new IllegalArgumentException("Client name must end with a valid numeric ID", e);
         }
     }
     

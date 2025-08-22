@@ -138,15 +138,17 @@ public class PartitionHashUtilTest {
 
     @Test
     void testExtractClientIdFromName() {
+        // Test various client name formats
         assertEquals(0, PartitionHashUtil.extractClientIdFromName("benchmark-0"));
-        assertEquals(1, PartitionHashUtil.extractClientIdFromName("benchmark-1"));
+        assertEquals(100, PartitionHashUtil.extractClientIdFromName("benchmark-100"));
         assertEquals(42, PartitionHashUtil.extractClientIdFromName("my-app-42"));
+        assertEquals(5, PartitionHashUtil.extractClientIdFromName("my-benchmark-app-5"));
         
         // Edge cases
-        assertEquals(0, PartitionHashUtil.extractClientIdFromName(""));
-        assertEquals(0, PartitionHashUtil.extractClientIdFromName(null));
-        assertEquals(0, PartitionHashUtil.extractClientIdFromName("no-number"));
-        assertEquals(0, PartitionHashUtil.extractClientIdFromName("ends-with-dash-"));
+        assertThrows(IllegalArgumentException.class, () -> PartitionHashUtil.extractClientIdFromName(""));
+        assertThrows(IllegalArgumentException.class, () -> PartitionHashUtil.extractClientIdFromName(null));
+        assertThrows(IllegalArgumentException.class, () -> PartitionHashUtil.extractClientIdFromName("no-number"));
+        assertThrows(IllegalArgumentException.class, () -> PartitionHashUtil.extractClientIdFromName("ends-with-dash-"));
     }
 
     @Test
