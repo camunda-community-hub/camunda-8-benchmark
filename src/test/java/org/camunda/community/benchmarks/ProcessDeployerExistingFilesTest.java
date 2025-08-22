@@ -1,6 +1,7 @@
 package org.camunda.community.benchmarks;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.InputStream;
@@ -48,7 +49,7 @@ public class ProcessDeployerExistingFilesTest {
                 assertFalse(result.contains("type=\"benchmark-task-task2\""), 
                            "No new static job types should be added to existing tasks");
                 
-                System.out.println("Existing BPMN file was correctly preserved");
+                assertEquals(originalContent, result, "Existing BPMN file should be correctly preserved");
             }
         }
     }
@@ -81,7 +82,7 @@ public class ProcessDeployerExistingFilesTest {
                 long task1Count = result.lines().filter(line -> line.contains("benchmark-task-1")).count();
                 assertTrue(task1Count <= 2, "Should not have duplicate task-1 job types"); // One for task definition, one for comment
                 
-                System.out.println("Existing 10 job types BPMN file was correctly preserved");
+                assertEquals(originalContent, result, "Existing 10 job types BPMN file should be correctly preserved");
             }
         }
     }
