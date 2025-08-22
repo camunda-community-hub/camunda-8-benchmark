@@ -74,43 +74,33 @@ public class PartitionHashUtil {
     public static int[] getTargetPartitionsForClient(int clientId, int partitionCount, int numberOfStarters) {
         if (numberOfStarters >= partitionCount) {
             // More starters than partitions - each client gets at most one partition
-            if (clientId < partitionCount) {
-                return new int[]{clientId};
-            } else {
-                return new int[0]; // No partitions for this client
-            }
+            // Use modulo to cycle through partitions: client 0->partition 1, client 1->partition 2, etc.
+            int targetPartition = (clientId % partitionCount) + 1; // +1 because partition IDs start at 1
+            return new int[]{targetPartition};
         } else {
             // Fewer starters than partitions - distribute round-robin
-            int partitionsPerStarter = partitionCount / numberOfStarters;
+            // Client N gets partitions: (N+1), (N+1)+numberOfStarters, (N+1)+2*numberOfStarters, etc.
+            
+            // Calculate how many partitions this client will get
+            int partitionsPerClient = partitionCount / numberOfStarters;
             int remainingPartitions = partitionCount % numberOfStarters;
             
-            // Calculate how many partitions this client gets
-            int numPartitions = partitionsPerStarter;
+            // Clients with ID < remainingPartitions get one extra partition
+            int numPartitions = partitionsPerClient;
             if (clientId < remainingPartitions) {
-                numPartitions++; // This client gets one extra partition
+                numPartitions++;
             }
             
-            // Calculate starting partition for this client
-            int startPartition = clientId * partitionsPerStarter + Math.min(clientId, remainingPartitions);
-            
             int[] partitions = new int[numPartitions];
+            int currentPartition = clientId + 1; // Start at clientId + 1 (since partition IDs start at 1)
+            
             for (int i = 0; i < numPartitions; i++) {
-                partitions[i] = startPartition + i;
+                partitions[i] = currentPartition;
+                currentPartition += numberOfStarters; // Jump by numberOfStarters for round-robin
             }
             
             return partitions;
         }
-    }
-    
-    /**
-     * Legacy method for backward compatibility - returns the first partition only.
-     * 
-     * @deprecated Use getTargetPartitionsForClient instead for multiple partition support
-     */
-    @Deprecated
-    public static int getTargetPartitionForClient(int podId, int partitionCount, int replicas) {
-        int[] partitions = getTargetPartitionsForClient(podId, partitionCount, replicas);
-        return partitions.length > 0 ? partitions[0] : 0;
     }
 
     /**

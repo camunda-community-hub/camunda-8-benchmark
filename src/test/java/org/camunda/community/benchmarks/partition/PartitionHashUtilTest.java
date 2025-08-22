@@ -58,21 +58,21 @@ public class PartitionHashUtilTest {
 
     @Test
     void testGetTargetPartitionsForClient() {
-        // Test case: 9 partitions, 3 starters - even distribution
+        // Test case: 9 partitions, 3 starters - round robin distribution
         int[] partitions0 = PartitionHashUtil.getTargetPartitionsForClient(0, 9, 3);
         int[] partitions1 = PartitionHashUtil.getTargetPartitionsForClient(1, 9, 3);
         int[] partitions2 = PartitionHashUtil.getTargetPartitionsForClient(2, 9, 3);
         
-        assertArrayEquals(new int[]{0, 1, 2}, partitions0);
-        assertArrayEquals(new int[]{3, 4, 5}, partitions1);
-        assertArrayEquals(new int[]{6, 7, 8}, partitions2);
+        assertArrayEquals(new int[]{1, 4, 7}, partitions0);
+        assertArrayEquals(new int[]{2, 5, 8}, partitions1);
+        assertArrayEquals(new int[]{3, 6, 9}, partitions2);
         
         // Test case: 6 partitions, 2 starters
         int[] client0_6p2s = PartitionHashUtil.getTargetPartitionsForClient(0, 6, 2);
         int[] client1_6p2s = PartitionHashUtil.getTargetPartitionsForClient(1, 6, 2);
         
-        assertArrayEquals(new int[]{0, 1, 2}, client0_6p2s);
-        assertArrayEquals(new int[]{3, 4, 5}, client1_6p2s);
+        assertArrayEquals(new int[]{1, 3, 5}, client0_6p2s);
+        assertArrayEquals(new int[]{2, 4, 6}, client1_6p2s);
         
         // Test case: more starters than partitions
         int[] client0_3p5s = PartitionHashUtil.getTargetPartitionsForClient(0, 3, 5);
@@ -81,39 +81,60 @@ public class PartitionHashUtilTest {
         int[] client3_3p5s = PartitionHashUtil.getTargetPartitionsForClient(3, 3, 5);
         int[] client4_3p5s = PartitionHashUtil.getTargetPartitionsForClient(4, 3, 5);
         
-        assertArrayEquals(new int[]{0}, client0_3p5s);
-        assertArrayEquals(new int[]{1}, client1_3p5s);
-        assertArrayEquals(new int[]{2}, client2_3p5s);
-        assertArrayEquals(new int[0], client3_3p5s); // No partitions for client 3
-        assertArrayEquals(new int[0], client4_3p5s); // No partitions for client 4
+        assertArrayEquals(new int[]{1}, client0_3p5s);
+        assertArrayEquals(new int[]{2}, client1_3p5s);
+        assertArrayEquals(new int[]{3}, client2_3p5s);
+        assertArrayEquals(new int[]{1}, client3_3p5s);
+        assertArrayEquals(new int[]{2}, client4_3p5s);
         
         // Test case: uneven distribution (10 partitions, 3 starters)
         int[] client0_10p3s = PartitionHashUtil.getTargetPartitionsForClient(0, 10, 3);
         int[] client1_10p3s = PartitionHashUtil.getTargetPartitionsForClient(1, 10, 3);
         int[] client2_10p3s = PartitionHashUtil.getTargetPartitionsForClient(2, 10, 3);
         
-        assertArrayEquals(new int[]{0, 1, 2, 3}, client0_10p3s); // Gets one extra
-        assertArrayEquals(new int[]{4, 5, 6}, client1_10p3s);
-        assertArrayEquals(new int[]{7, 8, 9}, client2_10p3s);
+        assertArrayEquals(new int[]{1, 4, 7, 10}, client0_10p3s); // Gets one extra
+        assertArrayEquals(new int[]{2, 5, 8}, client1_10p3s);
+        assertArrayEquals(new int[]{3, 6, 9}, client2_10p3s);
+        
+        // Test case: 100 partitions, 4 clients - should distribute evenly (25 each)
+        int[] client0_100p4s = PartitionHashUtil.getTargetPartitionsForClient(0, 100, 4);
+        int[] client1_100p4s = PartitionHashUtil.getTargetPartitionsForClient(1, 100, 4);
+        int[] client2_100p4s = PartitionHashUtil.getTargetPartitionsForClient(2, 100, 4);
+        int[] client3_100p4s = PartitionHashUtil.getTargetPartitionsForClient(3, 100, 4);
+        
+        // Each client should get exactly 25 partitions (100/4 = 25, no remainder)
+        assertEquals(25, client0_100p4s.length, "Client 0 should get 25 partitions");
+        assertEquals(25, client1_100p4s.length, "Client 1 should get 25 partitions");
+        assertEquals(25, client2_100p4s.length, "Client 2 should get 25 partitions");
+        assertEquals(25, client3_100p4s.length, "Client 3 should get 25 partitions");
+        
+        // Verify the round-robin distribution pattern
+        // Client 0 gets: 1, 5, 9, 13, ..., 97
+        // Client 1 gets: 2, 6, 10, 14, ..., 98
+        // Client 2 gets: 3, 7, 11, 15, ..., 99
+        // Client 3 gets: 4, 8, 12, 16, ..., 100
+        for (int i = 0; i < 25; i++) {
+            assertEquals(1 + i * 4, client0_100p4s[i], "Client 0 partition " + i);
+            assertEquals(2 + i * 4, client1_100p4s[i], "Client 1 partition " + i);
+            assertEquals(3 + i * 4, client2_100p4s[i], "Client 2 partition " + i);
+            assertEquals(4 + i * 4, client3_100p4s[i], "Client 3 partition " + i);
+        }
+        
+        // Verify all partitions are covered exactly once
+        boolean[] coveredPartitions = new boolean[101]; // 1-indexed, so size 101
+        for (int partition : client0_100p4s) coveredPartitions[partition] = true;
+        for (int partition : client1_100p4s) coveredPartitions[partition] = true;
+        for (int partition : client2_100p4s) coveredPartitions[partition] = true;
+        for (int partition : client3_100p4s) coveredPartitions[partition] = true;
+        
+        // Check that partitions 1-100 are all covered
+        for (int i = 1; i <= 100; i++) {
+            assertTrue(coveredPartitions[i], "Partition " + i + " should be covered");
+        }
+        // Partition 0 should not be covered (partitions are 1-indexed)
+        assertFalse(coveredPartitions[0], "Partition 0 should not be covered");
     }
 
-    @Test
-    void testGetTargetPartitionForClient_BackwardCompatibility() {
-        // Test backward compatibility with deprecated method
-        assertEquals(0, PartitionHashUtil.getTargetPartitionForClient(0, 4, 2));
-        assertEquals(2, PartitionHashUtil.getTargetPartitionForClient(1, 4, 2));
-        
-        // Test case: more starters than partitions  
-        assertEquals(0, PartitionHashUtil.getTargetPartitionForClient(0, 2, 4));
-        assertEquals(1, PartitionHashUtil.getTargetPartitionForClient(1, 2, 4));
-        assertEquals(0, PartitionHashUtil.getTargetPartitionForClient(2, 2, 4));
-        assertEquals(1, PartitionHashUtil.getTargetPartitionForClient(3, 2, 4));
-        
-        // Test case: equal partitions and starters
-        assertEquals(0, PartitionHashUtil.getTargetPartitionForClient(0, 3, 3));
-        assertEquals(1, PartitionHashUtil.getTargetPartitionForClient(1, 3, 3));
-        assertEquals(2, PartitionHashUtil.getTargetPartitionForClient(2, 3, 3));
-    }
 
     @Test
     void testExtractClientIdFromName() {
@@ -135,10 +156,10 @@ public class PartitionHashUtilTest {
         assertEquals(5, PartitionHashUtil.selectRandomPartition(singlePartition));
         
         // Test with multiple partitions - should return one of them
-        int[] multiplePartitions = {1, 3, 7};
+        int[] multiplePartitions = {1, 4, 7};
         for (int i = 0; i < 10; i++) {
             int selected = PartitionHashUtil.selectRandomPartition(multiplePartitions);
-            assertTrue(selected == 1 || selected == 3 || selected == 7, 
+            assertTrue(selected == 1 || selected == 4 || selected == 7, 
                       "Selected partition should be one of the target partitions");
         }
         

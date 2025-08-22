@@ -47,8 +47,8 @@ public class ProcessDeployerPartitionPinningTest {
         assertTrue(result.contains("xmlns:zeebe=\"http://camunda.org/schema/zeebe/1.0\""));
         
         // Verify job types with client ID suffix were added
-        assertTrue(result.contains("benchmark-task-Task_1-2"));
-        assertTrue(result.contains("benchmark-task-Task_2-2"));
+        assertTrue(result.contains("benchmark-2-benchmark-task-Task_1"));
+        assertTrue(result.contains("benchmark-2-benchmark-task-Task_2"));
         
         // Verify extensionElements were added
         assertTrue(result.contains("<extensionElements"));
@@ -77,7 +77,7 @@ public class ProcessDeployerPartitionPinningTest {
         String result = processDeployer.injectUniqueJobTypes(bpmnWithoutJobTypes);
 
         // Verify job type with numeric starter ID suffix was added
-        assertTrue(result.contains("benchmark-task-MyTask-5"));
+        assertTrue(result.contains("5-benchmark-task-MyTask"));
     }
 
     @Test
@@ -102,7 +102,7 @@ public class ProcessDeployerPartitionPinningTest {
 
         // Verify normal job type without client name suffix
         assertTrue(result.contains("benchmark-task-Task_1"));
-        assertFalse(result.contains("benchmark-task-Task_1-"));
+        assertFalse(result.contains("-benchmark-task-Task_1"));
     }
 
     @Test
@@ -127,7 +127,7 @@ public class ProcessDeployerPartitionPinningTest {
         String result = processDeployer.injectUniqueJobTypes(bpmnWithoutJobTypes);
 
         // Should use default starterId and extract client ID from it
-        assertTrue(result.contains("benchmark-task-Task_1-1")); // "benchmarkStarter1" -> "1"
+        assertTrue(result.contains("benchmarkStarter1-benchmark-task-Task_1")); // "benchmarkStarter1" -> "1"
     }
 
     @Test
@@ -163,7 +163,7 @@ public class ProcessDeployerPartitionPinningTest {
         assertTrue(result.contains("type=\"existing-job-type\""));
         
         // Verify new job type with client ID was added only to Task_2
-        assertTrue(result.contains("benchmark-task-Task_2-1"));
+        assertTrue(result.contains("1-benchmark-task-Task_2"));
         // Should not have modified Task_1
         assertFalse(result.contains("benchmark-task-Task_1"));
     }
