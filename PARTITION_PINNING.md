@@ -1,16 +1,16 @@
 # Partition Pinning Feature
 
-This document explains how to use the partition pinning feature to improve benchmark performance by having each client instance connect to specific partitions.
+This document explains how to use the partition pinning feature to improve benchmark performance by having each starter instance connect to specific partitions.
 
 ## Overview
 
-By default, the benchmark client connects to all partitions across all brokers in the Camunda 8 cluster. The partition pinning feature allows each benchmark client to be "pinned" to a specific subset of partitions, ideally located on the same broker, which can significantly improve performance.
+By default, the benchmark starter connects to all partitions across all brokers in the Camunda 8 cluster. The partition pinning feature allows each benchmark starter to be "pinned" to a specific subset of partitions, ideally located on the same broker, which can significantly improve performance.
 
 ## How It Works
 
-1. **Client Identity**: Each client has a unique numerical identity (client name from Kubernetes StatefulSet)
-2. **Message-based Process Starting**: Instead of creating process instances directly, the client publishes messages with correlation keys that route to specific partitions
-3. **Partition-specific Job Types**: Job workers only subscribe to job types that include their client name, ensuring they only handle jobs from their assigned partitions
+1. **Starter Identity**: Each starter has a unique identity (starterId configuration)
+2. **Message-based Process Starting**: Instead of creating process instances directly, the starter publishes messages with correlation keys that route to specific partitions
+3. **Partition-specific Job Types**: Job workers only subscribe to job types that include their starter ID, ensuring they only handle jobs from their assigned partitions
 
 ## Configuration
 
@@ -68,41 +68,47 @@ spec:
 
 The partition assignment follows this logic:
 
-- **More partitions than starters**: Each client gets assigned to different partitions evenly distributed
-- **More starters than partitions**: Multiple clients may share the same partition
+- **More partitions than starters**: Each starter gets assigned to different partitions evenly distributed
+- **More starters than partitions**: Extra starters may not get partitions assigned
 - **Equal partitions and starters**: One-to-one mapping
 
 Examples:
 - 9 partitions, 3 starters: 
-  - Client 0 → Partitions 0, 1, 2
-  - Client 1 → Partitions 3, 4, 5  
-  - Client 2 → Partitions 6, 7, 8
+  - Starter 0 → Partitions 0, 1, 2
+  - Starter 1 → Partitions 3, 4, 5  
+  - Starter 2 → Partitions 6, 7, 8
 - 6 partitions, 2 starters:
-  - Client 0 → Partitions 0, 1, 2
-  - Client 1 → Partitions 3, 4, 5
+  - Starter 0 → Partitions 0, 1, 2
+  - Starter 1 → Partitions 3, 4, 5
+- 3 partitions, 6 starters:
+  - Starter 0 → Partition 0
+  - Starter 1 → Partition 1
+  - Starter 2 → Partition 2
+  - Starter 3 → (no partitions)
+  - Starter 4 → (no partitions)
+  - Starter 5 → (no partitions)
 
 ## Job Type Naming
 
-When partition pinning is enabled, job types are automatically suffixed with the client name:
+When partition pinning is enabled, job types are automatically prefixed with the starter ID:
 
 - Normal: `benchmark-task-Task_1`
-- With pinning: `benchmark-task-Task_1-0` (for client name 0)
+- With pinning: `starter-0-benchmark-task-Task_1` (for starter ID `starter-0`)
 
-This ensures that each client only processes jobs from its assigned partitions.
+This ensures that each starter only processes jobs from its assigned partitions.
 
 ## Performance Benefits
 
-- **Reduced network traffic**: Clients only communicate with their assigned brokers
-- **Better cache locality**: Jobs and process instances are co-located on the same broker
+- **Reduced network traffic**: Starters only communicate with their assigned brokers
 - **Improved scalability**: Linear scaling with number of partitions and brokers
-- **Reduced contention**: Each client works with a dedicated subset of data
+- **Reduced contention**: Each starter works with a dedicated subset of data
 
 ## Monitoring
 
 Monitor the following to verify partition pinning is working:
 
 1. **Process Instance Distribution**: Check that process instances are evenly distributed across partitions
-2. **Job Worker Activity**: Verify that each client only processes jobs with its client name suffix
+2. **Job Worker Activity**: Verify that each starter only processes jobs with its starter ID prefix
 3. **Broker Load**: Ensure load is distributed across brokers based on partition assignment
 
 ## Troubleshooting
@@ -111,16 +117,16 @@ Monitor the following to verify partition pinning is working:
 
 1. **Process instances not starting**: Ensure the BPMN process has a message start event with the correct message name (`StartBenchmarkProcess`)
 
-2. **Jobs not being processed**: Verify job types in the BPMN process match the generated job types with client name suffixes
+2. **Jobs not being processed**: Verify job types in the BPMN process match the generated job types with starter ID prefixes
 
-3. **Uneven distribution**: Check that partition count and replica count are configured correctly
+3. **Uneven distribution**: Check that partition count and numberOfStarters are configured correctly
 
 ### Logs to Check
 
 ```
-INFO  - Partition pinning enabled: starterId=1, numericClientId=1, target-partitions=[3, 4, 5], partition-count=9, numberOfStarters=3
-INFO  - Added job type 'benchmark-task-Task_1-1' to service task 'Task_1'
-INFO  - Partition pinning enabled: registering workers for task type with client ID suffix: benchmark-task-1
+INFO  - Partition pinning enabled: starterId=starter-1, target-partitions=[3, 4, 5], partition-count=9, numberOfStarters=3
+INFO  - Added job type 'starter-1-benchmark-task-Task_1' to service task 'Task_1'
+INFO  - Partition pinning enabled: registering workers for task type with starter ID prefix: starter-1-benchmark-task
 ```
 
 ## Migration from Regular Deployment
@@ -128,6 +134,6 @@ INFO  - Partition pinning enabled: registering workers for task type with client
 To migrate from a regular deployment to partition pinning:
 
 1. Update your BPMN process to include a message start event (or use the provided template)
-2. Change from Deployment to StatefulSet in Kubernetes
-3. Add the partition pinning configuration properties
-4. Deploy and verify that clients are processing jobs only from their assigned partitions
+2. Configure the partition pinning properties with appropriate starterId values
+3. Add the partition pinning configuration properties  
+4. Deploy and verify that starters are processing jobs only from their assigned partitions

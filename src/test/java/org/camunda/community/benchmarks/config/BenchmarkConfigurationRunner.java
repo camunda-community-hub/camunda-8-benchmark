@@ -31,8 +31,8 @@ public class BenchmarkConfigurationRunner {
             throw new RuntimeException("Default partition count should be 1");
         }
         
-        if (config.getReplicas() != 1) {
-            throw new RuntimeException("Default replicas should be 1");
+        if (config.getNumberOfStarters() != 1) {
+            throw new RuntimeException("Default numberOfStarters should be 1");
         }
         
         System.out.println("  Default values OK");
@@ -45,25 +45,25 @@ public class BenchmarkConfigurationRunner {
         
         // Set partition pinning values
         config.setEnablePartitionPinning(true);
-        config.setClientName("benchmark-2");
+        config.setStarterId("starter-2");
         config.setPartitionCount(9);
-        config.setReplicas(3);
+        config.setNumberOfStarters(3);
         
         // Verify values
         if (!config.isEnablePartitionPinning()) {
             throw new RuntimeException("Partition pinning should be enabled");
         }
         
-        if (!"benchmark-2".equals(config.getClientName())) {
-            throw new RuntimeException("Client name should be 'benchmark-2'");
+        if (!"starter-2".equals(config.getStarterId())) {
+            throw new RuntimeException("Starter ID should be 'starter-2'");
         }
         
         if (config.getPartitionCount() != 9) {
             throw new RuntimeException("Partition count should be 9");
         }
         
-        if (config.getReplicas() != 3) {
-            throw new RuntimeException("Replicas should be 3");
+        if (config.getNumberOfStarters() != 3) {
+            throw new RuntimeException("NumberOfStarters should be 3");
         }
         
         System.out.println("  Partition pinning configuration OK");

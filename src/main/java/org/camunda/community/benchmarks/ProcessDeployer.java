@@ -138,21 +138,11 @@ public class ProcessDeployer {
         // TODO: use config.getJobType() as prefix
         String baseJobType = "benchmark-task-" + taskId;
         
-        // If partition pinning is enabled, append client ID to make job type unique per client
+        // If partition pinning is enabled, use full starter ID as prefix
         if (config.isEnablePartitionPinning()) {
             String starterId = config.getStarterId();
             if (starterId != null && !starterId.isEmpty()) {
-                String clientIdSuffix = starterId;
-                // Extract numeric part if it's a starter name format
-                try {
-                    int numericClientId = Integer.parseInt(starterId);
-                    clientIdSuffix = String.valueOf(numericClientId);
-                } catch (NumberFormatException e) {
-                    // If not numeric, extract from starter name or use as is
-                    int extracted = org.camunda.community.benchmarks.partition.PartitionHashUtil.extractClientIdFromName(starterId);
-                    clientIdSuffix = String.valueOf(extracted);
-                }
-                return baseJobType + "-" + clientIdSuffix;
+                return starterId + "-" + baseJobType;
             }
         }
         

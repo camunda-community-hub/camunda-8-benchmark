@@ -103,13 +103,13 @@ public class PartitionHashUtilTest {
         assertEquals(0, PartitionHashUtil.getTargetPartitionForClient(0, 4, 2));
         assertEquals(2, PartitionHashUtil.getTargetPartitionForClient(1, 4, 2));
         
-        // Test case: more replicas than partitions  
+        // Test case: more starters than partitions  
         assertEquals(0, PartitionHashUtil.getTargetPartitionForClient(0, 2, 4));
         assertEquals(1, PartitionHashUtil.getTargetPartitionForClient(1, 2, 4));
         assertEquals(0, PartitionHashUtil.getTargetPartitionForClient(2, 2, 4));
         assertEquals(1, PartitionHashUtil.getTargetPartitionForClient(3, 2, 4));
         
-        // Test case: equal partitions and replicas
+        // Test case: equal partitions and starters
         assertEquals(0, PartitionHashUtil.getTargetPartitionForClient(0, 3, 3));
         assertEquals(1, PartitionHashUtil.getTargetPartitionForClient(1, 3, 3));
         assertEquals(2, PartitionHashUtil.getTargetPartitionForClient(2, 3, 3));

@@ -69,25 +69,25 @@ public class PartitionHashUtilRunner {
     private static void testClientPartitionAssignment() {
         System.out.println("Testing client partition assignment...");
         
-        // Test with more partitions than replicas
+        // Test with more partitions than starters
         int partition0 = PartitionHashUtil.getTargetPartitionForClient(0, 8, 3);
         int partition1 = PartitionHashUtil.getTargetPartitionForClient(1, 8, 3);
         int partition2 = PartitionHashUtil.getTargetPartitionForClient(2, 8, 3);
         
-        System.out.println("  Client 0 -> Partition " + partition0);
-        System.out.println("  Client 1 -> Partition " + partition1);
-        System.out.println("  Client 2 -> Partition " + partition2);
+        System.out.println("  Starter 0 -> Partition " + partition0);
+        System.out.println("  Starter 1 -> Partition " + partition1);
+        System.out.println("  Starter 2 -> Partition " + partition2);
         
-        // Test with more replicas than partitions
+        // Test with more starters than partitions
         int partitionA = PartitionHashUtil.getTargetPartitionForClient(0, 2, 4);
         int partitionB = PartitionHashUtil.getTargetPartitionForClient(1, 2, 4);
         int partitionC = PartitionHashUtil.getTargetPartitionForClient(2, 2, 4);
         int partitionD = PartitionHashUtil.getTargetPartitionForClient(3, 2, 4);
         
-        System.out.println("  Replica 0 -> Partition " + partitionA);
-        System.out.println("  Replica 1 -> Partition " + partitionB);
-        System.out.println("  Replica 2 -> Partition " + partitionC);
-        System.out.println("  Replica 3 -> Partition " + partitionD);
+        System.out.println("  Starter 0 -> Partition " + partitionA);
+        System.out.println("  Starter 1 -> Partition " + partitionB);
+        System.out.println("  Starter 2 -> Partition " + partitionC);
+        System.out.println("  Starter 3 -> Partition " + partitionD);
     }
     
     private static void testPodNameParsing() {
