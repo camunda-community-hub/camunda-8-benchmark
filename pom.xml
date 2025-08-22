@@ -73,7 +73,7 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
-      <version>3.4.4</version>
+      <version>3.5.5</version>
     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>
@@ -83,7 +83,7 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webflux</artifactId>
-      <version>3.4.4</version>
+      <version>3.5.5</version>
     </dependency>
     <dependency>
       <groupId>commons-lang</groupId>
@@ -144,7 +144,7 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-        <version>3.4.4</version>
+        <version>3.5.5</version>
         <executions>
           <execution>
             <goals>
