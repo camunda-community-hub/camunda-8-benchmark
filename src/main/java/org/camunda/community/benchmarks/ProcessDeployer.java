@@ -135,8 +135,7 @@ public class ProcessDeployer {
     
     private String generateJobTypeForTask(String taskId) {
         // Note: taskId is guaranteed to be non-null and non-empty by BPMN specification
-        // TODO: use config.getJobType() as prefix
-        String baseJobType = "benchmark-task-" + taskId;
+        String baseJobType = config.getJobType() + "-" + taskId;
         
         // If partition pinning is enabled, use full starter ID as prefix
         if (config.isEnablePartitionPinning()) {
