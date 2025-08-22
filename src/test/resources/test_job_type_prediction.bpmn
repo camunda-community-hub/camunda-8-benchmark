@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="test-process-definitions" 
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="test-process-id" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="task4" name="Task 4">
+      <!-- No zeebe:taskDefinition - should predict benchmark-task-task4 -->
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="static-task-1" name="Static Task 1">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="static-task-1" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="static-task-2" name="Static Task 2">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="static-task-2" />
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="end" />
+  </bpmn:process>
+</bpmn:definitions>
