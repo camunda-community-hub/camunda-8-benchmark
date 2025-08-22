@@ -45,6 +45,7 @@ public class BenchmarkConfiguration {
     private boolean enablePartitionPinning = false;
     private int partitionCount = 1;
     private int numberOfStarters = 1;
+    private int correlationKeyMaxAttempts = 1000;
 
     public String getStartRateAdjustmentStrategy() {
         return startRateAdjustmentStrategy;
@@ -263,5 +264,13 @@ public class BenchmarkConfiguration {
 
     public void setNumberOfStarters(int numberOfStarters) {
         this.numberOfStarters = numberOfStarters;
+    }
+
+    public int getCorrelationKeyMaxAttempts() {
+        return correlationKeyMaxAttempts;
+    }
+
+    public void setCorrelationKeyMaxAttempts(int correlationKeyMaxAttempts) {
+        this.correlationKeyMaxAttempts = correlationKeyMaxAttempts;
     }
 }

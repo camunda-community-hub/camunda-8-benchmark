@@ -123,7 +123,7 @@ public class StartPiExecutor {
         String correlationKey;
         try {
             correlationKey = PartitionHashUtil.generateCorrelationKeyForPartition(
-                selectedPartition, config.getPartitionCount(), 1000);
+                selectedPartition, config.getPartitionCount(), config.getCorrelationKeyMaxAttempts());
         } catch (IllegalStateException e) {
             LOG.warn("Failed to generate correlation key for partition {}, using fallback", selectedPartition, e);
             correlationKey = "benchmark-fallback-" + UUID.randomUUID().toString();

@@ -74,19 +74,18 @@ The partition assignment follows this logic:
 
 Examples:
 - 9 partitions, 3 starters: 
-  - Starter 0 → Partitions 0, 1, 2
-  - Starter 1 → Partitions 3, 4, 5  
-  - Starter 2 → Partitions 6, 7, 8
+  - Starter 0 → Partitions 1, 4, 7
+  - Starter 1 → Partitions 2, 5, 8  
+  - Starter 2 → Partitions 3, 6, 9
 - 6 partitions, 2 starters:
-  - Starter 0 → Partitions 0, 1, 2
-  - Starter 1 → Partitions 3, 4, 5
-- 3 partitions, 6 starters:
-  - Starter 0 → Partition 0
-  - Starter 1 → Partition 1
-  - Starter 2 → Partition 2
-  - Starter 3 → (no partitions)
-  - Starter 4 → (no partitions)
-  - Starter 5 → (no partitions)
+  - Starter 0 → Partitions 1, 3, 5
+  - Starter 1 → Partitions 2, 4, 6
+- 3 partitions, 5 starters:
+  - Starter 0 → Partition 1
+  - Starter 1 → Partition 2
+  - Starter 2 → Partition 3
+  - Starter 3 → Partition 1
+  - Starter 4 → Partition 2
 
 ## Job Type Naming
 
