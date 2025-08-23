@@ -2,5 +2,22 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": [
+        "org.springframework.boot:spring-boot-dependencies",
+        "org.springframework.boot:spring-boot-maven-plugin"
+      ],
+      "allowedVersions": "3.4.x",
+      "description": "Pin Spring Boot BOM and Maven plugin to 3.4.x for compatibility with Camunda SDK"
+    },
+    {
+      "matchPackageNames": [
+        "org.camunda.community:community-hub-release-parent"
+      ],
+      "allowedVersions": "1.x",
+      "description": "Pin Camunda Community Hub release parent to 1.x until proper migration to 2.x is done"
+    }
   ]
 }
