@@ -41,6 +41,12 @@ public class BenchmarkConfiguration {
     private long delayBetweenMessages;
     private long messagesLoadDuration;
 
+    // Partition pinning configuration
+    private boolean enablePartitionPinning = false;
+    private int partitionCount = 1;
+    private int numberOfStarters = 1;
+    private int correlationKeyMaxAttempts = 1000;
+
     public String getStartRateAdjustmentStrategy() {
         return startRateAdjustmentStrategy;
     }
@@ -234,5 +240,37 @@ public class BenchmarkConfiguration {
 
     public void setBpmnProcessIdToReplace(String bpmnProcessIdToReplace) {
         this.bpmnProcessIdToReplace = bpmnProcessIdToReplace;
+    }
+
+    public boolean isEnablePartitionPinning() {
+        return enablePartitionPinning;
+    }
+
+    public void setEnablePartitionPinning(boolean enablePartitionPinning) {
+        this.enablePartitionPinning = enablePartitionPinning;
+    }
+
+    public int getPartitionCount() {
+        return partitionCount;
+    }
+
+    public void setPartitionCount(int partitionCount) {
+        this.partitionCount = partitionCount;
+    }
+
+    public int getNumberOfStarters() {
+        return numberOfStarters;
+    }
+
+    public void setNumberOfStarters(int numberOfStarters) {
+        this.numberOfStarters = numberOfStarters;
+    }
+
+    public int getCorrelationKeyMaxAttempts() {
+        return correlationKeyMaxAttempts;
+    }
+
+    public void setCorrelationKeyMaxAttempts(int correlationKeyMaxAttempts) {
+        this.correlationKeyMaxAttempts = correlationKeyMaxAttempts;
     }
 }

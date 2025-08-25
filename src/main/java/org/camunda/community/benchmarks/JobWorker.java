@@ -146,18 +146,30 @@ public class JobWorker {
     }
 
     private void registerWorkersForTaskType(String taskType) {
+        String effectiveTaskType = taskType;
+        
+        // If partition pinning is enabled, use full starter ID as prefix
+        if (config.isEnablePartitionPinning()) {
+            String starterId = config.getStarterId();
+            if (starterId != null && !starterId.isEmpty()) {
+                effectiveTaskType = starterId + "-" + taskType;
+                LOG.info("Partition pinning enabled: registering workers for task type with starter ID prefix: {}", effectiveTaskType);
+            }
+        }
+        
         // worker for normal task type
-        registerWorker(taskType, false);
+        registerWorker(effectiveTaskType, false);
 
         // worker for normal "task-type-{starterId}"
-        registerWorker(taskType + "-" + config.getStarterId(), false);
+        registerWorker(effectiveTaskType + "-" + config.getStarterId(), false);
 
         // worker marking completion of process instance via "task-type-complete"
-        registerWorker(taskType + "-completed", true);
+        registerWorker(effectiveTaskType + "-completed", true);
 
         // worker marking completion of process instance via "task-type-complete"
-        registerWorker(taskType + "-" + config.getStarterId() + "-completed", true);
+        registerWorker(effectiveTaskType + "-" + config.getStarterId() + "-completed", true);
     }
+
 
     public class SimpleDelayCompletionHandler implements JobHandler {
 
