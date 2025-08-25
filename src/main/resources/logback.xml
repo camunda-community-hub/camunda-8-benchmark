@@ -8,6 +8,9 @@
 
     <logger name="io.camunda.zeebe.client.job.poller" level="WARN" />
 
+    <!-- Suppress MeterFilter warning - this is a known harmless warning in Spring Boot + Micrometer -->
+    <logger name="io.micrometer.prometheus.PrometheusMeterRegistry" level="ERROR" />
+
     <logger name="javax.activation" level="info" />
     <logger name="org.springframework" level="info" />
     <logger name="org.camunda" level="info" />
