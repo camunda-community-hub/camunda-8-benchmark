@@ -75,7 +75,7 @@ public class PartitionPinningE2ETest {
         for (int i = 0; i < totalKeys; i++) {
             String key = "test-key-" + i;
             int partition = PartitionHashUtil.getPartitionForCorrelationKey(key, partitionCount);
-            partitionCounts[partition - 1]++;
+            partitionCounts[partition]++; // partition is 0-based
         }
         
         // Verify reasonable distribution

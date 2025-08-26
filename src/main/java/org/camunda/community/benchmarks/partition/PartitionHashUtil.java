@@ -2,6 +2,9 @@ package org.camunda.community.benchmarks.partition;
 
 import java.util.UUID;
 
+import static io.camunda.zeebe.protocol.impl.SubscriptionUtil.getSubscriptionPartitionId;
+import static io.camunda.zeebe.util.buffer.BufferUtil.wrapString;
+
 /**
  * Utility class for generating correlation keys that map to specific partitions
  * using Zeebe's partition distribution algorithm.
@@ -14,17 +17,22 @@ public class PartitionHashUtil {
      * This uses the same hash function that Zeebe uses internally to distribute
      * messages across partitions: djb2 hash algorithm.
      * 
-     * @param targetPartition The partition ID to target (1-based)
+     * @param targetPartition The partition ID to target (0-based)
      * @param partitionCount Total number of partitions
      * @param maxAttempts Maximum number of attempts to find a suitable key
      * @return A correlation key that hashes to the target partition
      * @throws IllegalStateException if no suitable key is found within maxAttempts
      */
     public static String generateCorrelationKeyForPartition(int targetPartition, int partitionCount, int maxAttempts) {
+        if (partitionCount == 1) {
+            return "benchmark-" + UUID.randomUUID();
+        }
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            String candidateKey = "benchmark-" + UUID.randomUUID().toString();
+            String candidateKey = "benchmark-" + UUID.randomUUID();
+          
             int partition = getPartitionForCorrelationKey(candidateKey, partitionCount);
             if (partition == targetPartition) {
+                //System.out.println("Attempt " + attempt + ": key=" + candidateKey + " -> partition=" + partition);
                 return candidateKey;
             }
         }
@@ -40,7 +48,7 @@ public class PartitionHashUtil {
      * 
      * @param correlationKey The correlation key to hash
      * @param partitionCount Total number of partitions
-     * @return The partition ID (1-based) that this key would route to
+     * @return The partition ID (0-based) that this key would route to
      */
     public static int getPartitionForCorrelationKey(String correlationKey, int partitionCount) {
         if (correlationKey == null) {
@@ -49,17 +57,7 @@ public class PartitionHashUtil {
         if (partitionCount <= 0) {
             throw new IllegalArgumentException("Partition count must be positive");
         }
-        
-        // djb2 hash algorithm - same as used by Zeebe
-        long hash = 5381;
-        byte[] bytes = correlationKey.getBytes();
-        
-        for (byte b : bytes) {
-            hash = ((hash << 5) + hash) + (b & 0xff);
-        }
-        
-        // Ensure positive result and mod by partition count, then add 1 for 1-based indexing
-        return (int) ((hash & 0x7fffffffL) % partitionCount) + 1;
+        return getSubscriptionPartitionId(wrapString(correlationKey), partitionCount);
     }
 
     /**
