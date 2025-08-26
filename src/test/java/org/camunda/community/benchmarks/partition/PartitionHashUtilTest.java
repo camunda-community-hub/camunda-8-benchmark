@@ -13,8 +13,8 @@ public class PartitionHashUtilTest {
         
         int partition = PartitionHashUtil.getPartitionForCorrelationKey(correlationKey, partitionCount);
         
-        assertTrue(partition >= 0, "Partition should be non-negative");
-        assertTrue(partition < partitionCount, "Partition should be less than partition count");
+        assertTrue(partition >= 1, "Partition should be 1-based (>= 1)");
+        assertTrue(partition <= partitionCount, "Partition should be <= partition count");
         
         // Test consistency - same key should always return same partition
         int partition2 = PartitionHashUtil.getPartitionForCorrelationKey(correlationKey, partitionCount);
@@ -179,7 +179,7 @@ public class PartitionHashUtilTest {
         for (int i = 0; i < 100; i++) {
             String key = "test-key-" + i;
             int partition = PartitionHashUtil.getPartitionForCorrelationKey(key, partitionCount);
-            partitionsUsed[partition] = true;
+            partitionsUsed[partition - 1] = true;
         }
         
         // We should have used most partitions with 100 different keys

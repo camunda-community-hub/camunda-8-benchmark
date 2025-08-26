@@ -143,7 +143,7 @@ public class ProcessDeployer {
         if (config.isEnablePartitionPinning()) {
             String starterId = config.getStarterId();
             if (starterId != null && !starterId.isEmpty()) {
-                return "= " + StartPiExecutor.BENCHMARK_STARTER_ID + " + \"-" + baseJobType + "\"";
+                return starterId + "-" + baseJobType;
             }
         }
         
