@@ -12,6 +12,7 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.Timer;
 
+import io.micrometer.core.instrument.search.MeterNotFoundException;
 import jakarta.annotation.PostConstruct;
 
 @Component
@@ -43,15 +44,23 @@ public class StatisticsCollector {
     @Scheduled(fixedRate = 60*1000)
     public void printStatus() {
         System.out.println("------------------- " + Instant.now() + " Current goal (PI/s): " + piPerSecondGoal);
-
+        
         long count = getStartedPiMeter().getCount();
         long backpressure = getBackpressureOnStartPiMeter().getCount();
         System.out.println("PI STARTED:     " + f(count) + " (+ " + f(count-lastPrintStartedProcessInstances) + ") Last minute rate: " + f(getStartedPiMeter().getOneMinuteRate()));
         System.out.print("  Backpressure: " + f(backpressure) + " (+ " + f(backpressure - lastPrintStartedProcessInstancesBackpressure) + ") Last minute rate: " + f(getBackpressureOnStartPiMeter().getOneMinuteRate()));
         System.out.println(". Percentage: " + fpercent(getBackpressureOnStartPercentage()) + " %");
+        try {
+            micrometerMetricRegistry.get("pi_exception").counters().forEach(counter -> {
+                String exceptionType = counter.getId().getTag("exception");
+                System.out.println("  PI Exception [" + exceptionType + "]: " + f((long)counter.count()));
+            });
+        } catch (MeterNotFoundException ignored) {
+            // Ignore if meter not found
+        }
         lastPrintStartedProcessInstances = count;
         lastPrintStartedProcessInstancesBackpressure = backpressure;
-
+        
         count = getCompletedProcessInstancesMeter().getCount();
         System.out.print("PI COMPLETED:   " + f(count) + " (+ " + f(count-lastPrintCompletedProcessInstances) + ") Last minute rate: " + f(getCompletedProcessInstancesMeter().getOneMinuteRate()));
         Snapshot snapshot = getCompletedProcessInstancesTimer().getSnapshot();
@@ -61,12 +70,21 @@ public class StatisticsCollector {
         count = getCompletedJobsMeter().getCount();
         System.out.println("COMPLETED JOBS: " + f(count) + " (+ " + f(count-lastPrintCompletedJobs) + ") Last minute rate: " + f(getCompletedJobsMeter().getOneMinuteRate()));
         lastPrintCompletedJobs = count;
+        try {
+            micrometerMetricRegistry.get("jobs_exception").counters().forEach(counter -> {
+                String exceptionType = counter.getId().getTag("exception");
+                System.out.println("  Job Exception [" + exceptionType + "]: " + f((long)counter.count()));
+            });
+        } catch (MeterNotFoundException ignored) {
+            // Ignore if meter not found
+        }
 
         /*backpressure = getBackpressureOnJobCompleteMeter().getCount();
         System.out.println("Backpressure:   " + f(backpressure) + " (+ " + f(backpressure - lastPrintCompletedJobsBackpressure) + ")");
         lastPrintCompletedJobsBackpressure = backpressure;
         */
-    }
+        
+   }
 
     public String fpercent(double n) {
         return String.format("%5.3f", n);
