@@ -13,8 +13,8 @@ public class PartitionHashUtilTest {
         
         int partition = PartitionHashUtil.getPartitionForCorrelationKey(correlationKey, partitionCount);
         
-        assertTrue(partition >= 0, "Partition should be 0-based (>= 0)");
-        assertTrue(partition < partitionCount, "Partition should be < partition count");
+        assertTrue(partition >= 1, "Partition should be 1-based (>= 1)");
+        assertTrue(partition <= partitionCount, "Partition should be < partition count");
         
         // Test consistency - same key should always return same partition
         int partition2 = PartitionHashUtil.getPartitionForCorrelationKey(correlationKey, partitionCount);
@@ -41,9 +41,9 @@ public class PartitionHashUtilTest {
 
     @Test
     void testGenerateCorrelationKeyForPartition() {
-        int targetPartition = 0; // 0-based
+        int targetPartition = 1; // 1-based
         int partitionCount = 3;
-        int maxAttempts = 100;
+        int maxAttempts = 1000;
         
         String correlationKey = PartitionHashUtil.generateCorrelationKeyForPartition(
             targetPartition, partitionCount, maxAttempts);
@@ -63,16 +63,16 @@ public class PartitionHashUtilTest {
         int[] partitions1 = PartitionHashUtil.getTargetPartitionsForClient(1, 9, 3);
         int[] partitions2 = PartitionHashUtil.getTargetPartitionsForClient(2, 9, 3);
         
-        assertArrayEquals(new int[]{0, 3, 6}, partitions0);
-        assertArrayEquals(new int[]{1, 4, 7}, partitions1);
-        assertArrayEquals(new int[]{2, 5, 8}, partitions2);
+        assertArrayEquals(new int[]{1, 4, 7}, partitions0);
+        assertArrayEquals(new int[]{2, 5, 8}, partitions1);
+        assertArrayEquals(new int[]{3, 6, 9}, partitions2);
         
         // Test case: 6 partitions, 2 starters
         int[] client0_6p2s = PartitionHashUtil.getTargetPartitionsForClient(0, 6, 2);
         int[] client1_6p2s = PartitionHashUtil.getTargetPartitionsForClient(1, 6, 2);
         
-        assertArrayEquals(new int[]{0, 2, 4}, client0_6p2s);
-        assertArrayEquals(new int[]{1, 3, 5}, client1_6p2s);
+        assertArrayEquals(new int[]{1, 3, 5}, client0_6p2s);
+        assertArrayEquals(new int[]{2, 4, 6}, client1_6p2s);
         
         // Test case: more starters than partitions
         int[] client0_3p5s = PartitionHashUtil.getTargetPartitionsForClient(0, 3, 5);
@@ -81,20 +81,20 @@ public class PartitionHashUtilTest {
         int[] client3_3p5s = PartitionHashUtil.getTargetPartitionsForClient(3, 3, 5);
         int[] client4_3p5s = PartitionHashUtil.getTargetPartitionsForClient(4, 3, 5);
         
-        assertArrayEquals(new int[]{0}, client0_3p5s);
-        assertArrayEquals(new int[]{1}, client1_3p5s);
-        assertArrayEquals(new int[]{2}, client2_3p5s);
-        assertArrayEquals(new int[]{0}, client3_3p5s);
-        assertArrayEquals(new int[]{1}, client4_3p5s);
+        assertArrayEquals(new int[]{1}, client0_3p5s);
+        assertArrayEquals(new int[]{2}, client1_3p5s);
+        assertArrayEquals(new int[]{3}, client2_3p5s);
+        assertArrayEquals(new int[]{1}, client3_3p5s);
+        assertArrayEquals(new int[]{2}, client4_3p5s);
         
         // Test case: uneven distribution (10 partitions, 3 starters)
         int[] client0_10p3s = PartitionHashUtil.getTargetPartitionsForClient(0, 10, 3);
         int[] client1_10p3s = PartitionHashUtil.getTargetPartitionsForClient(1, 10, 3);
         int[] client2_10p3s = PartitionHashUtil.getTargetPartitionsForClient(2, 10, 3);
         
-        assertArrayEquals(new int[]{0, 3, 6, 9}, client0_10p3s); // Gets one extra
-        assertArrayEquals(new int[]{1, 4, 7}, client1_10p3s);
-        assertArrayEquals(new int[]{2, 5, 8}, client2_10p3s);
+        assertArrayEquals(new int[]{1, 4, 7, 10}, client0_10p3s); // Gets one extra
+        assertArrayEquals(new int[]{2, 5, 8}, client1_10p3s);
+        assertArrayEquals(new int[]{3, 6, 9}, client2_10p3s);
         
         // Test case: 100 partitions, 4 clients - should distribute evenly (25 each)
         int[] client0_100p4s = PartitionHashUtil.getTargetPartitionsForClient(0, 100, 4);
@@ -114,18 +114,18 @@ public class PartitionHashUtilTest {
         // Client 2 gets: 2, 6, 10, 14, ..., 98
         // Client 3 gets: 3, 7, 11, 15, ..., 99
         for (int i = 0; i < 25; i++) {
-            assertEquals(0 + i * 4, client0_100p4s[i], "Client 0 partition " + i);
-            assertEquals(1 + i * 4, client1_100p4s[i], "Client 1 partition " + i);
-            assertEquals(2 + i * 4, client2_100p4s[i], "Client 2 partition " + i);
-            assertEquals(3 + i * 4, client3_100p4s[i], "Client 3 partition " + i);
+            assertEquals(1 + i * 4, client0_100p4s[i], "Client 0 partition " + i);
+            assertEquals(2 + i * 4, client1_100p4s[i], "Client 1 partition " + i);
+            assertEquals(3 + i * 4, client2_100p4s[i], "Client 2 partition " + i);
+            assertEquals(4 + i * 4, client3_100p4s[i], "Client 3 partition " + i);
         }
         
         // Verify all partitions are covered exactly once
         boolean[] coveredPartitions = new boolean[100]; // 0-indexed, so size 100
-        for (int partition : client0_100p4s) coveredPartitions[partition] = true;
-        for (int partition : client1_100p4s) coveredPartitions[partition] = true;
-        for (int partition : client2_100p4s) coveredPartitions[partition] = true;
-        for (int partition : client3_100p4s) coveredPartitions[partition] = true;
+        for (int partition : client0_100p4s) coveredPartitions[partition - 1] = true;
+        for (int partition : client1_100p4s) coveredPartitions[partition - 1] = true;
+        for (int partition : client2_100p4s) coveredPartitions[partition - 1] = true;
+        for (int partition : client3_100p4s) coveredPartitions[partition - 1] = true;
         
         // Check that partitions 0-99 are all covered
         for (int i = 0; i < 100; i++) {
@@ -177,7 +177,7 @@ public class PartitionHashUtilTest {
         for (int i = 0; i < 100; i++) {
             String key = "test-key-" + i;
             int partition = PartitionHashUtil.getPartitionForCorrelationKey(key, partitionCount);
-            partitionsUsed[partition] = true; // partition is 0-based
+            partitionsUsed[partition - 1] = true; // partition is 1-based
         }
         
         // We should have used most partitions with 100 different keys

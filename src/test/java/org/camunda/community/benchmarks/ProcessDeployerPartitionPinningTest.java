@@ -47,8 +47,8 @@ public class ProcessDeployerPartitionPinningTest {
         assertTrue(result.contains("xmlns:zeebe=\"http://camunda.org/schema/zeebe/1.0\""));
         
         // Verify job types with Zeebe expressions were added
-        assertTrue(result.contains("= benchmark_starter_id + \"-benchmark-task-Task_1\""));
-        assertTrue(result.contains("= benchmark_starter_id + \"-benchmark-task-Task_2\""));
+        assertTrue(result.contains("= benchmark_starter_id + &quot;-benchmark-task-Task_1&quot;"));
+        assertTrue(result.contains("= benchmark_starter_id + &quot;-benchmark-task-Task_2&quot;"));
         
         // Verify extensionElements were added
         assertTrue(result.contains("<extensionElements"));
@@ -77,7 +77,7 @@ public class ProcessDeployerPartitionPinningTest {
         String result = processDeployer.injectUniqueJobTypes(bpmnWithoutJobTypes);
 
         // Verify job type with Zeebe expression was added
-        assertTrue(result.contains("= benchmark_starter_id + \"-benchmark-task-MyTask\""));
+        assertTrue(result.contains("= benchmark_starter_id + &quot;-benchmark-task-MyTask&quot;"));
     }
 
     @Test
@@ -127,7 +127,7 @@ public class ProcessDeployerPartitionPinningTest {
         String result = processDeployer.injectUniqueJobTypes(bpmnWithoutJobTypes);
 
         // Should use default starterId and Zeebe expression
-        assertTrue(result.contains("= benchmark_starter_id + \"-benchmark-task-Task_1\""));
+        assertTrue(result.contains("= benchmark_starter_id + &quot;-benchmark-task-Task_1&quot;"));
     }
 
     @Test
@@ -163,7 +163,7 @@ public class ProcessDeployerPartitionPinningTest {
         assertTrue(result.contains("type=\"existing-job-type\""));
         
         // Verify new job type with Zeebe expression was added only to Task_2
-        assertTrue(result.contains("= benchmark_starter_id + \"-benchmark-task-Task_2\""));
+        assertTrue(result.contains("= benchmark_starter_id + &quot;-benchmark-task-Task_2&quot;"));
         // Should not have modified Task_1
         assertFalse(result.contains("benchmark-task-Task_1"));
     }

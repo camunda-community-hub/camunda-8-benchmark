@@ -17,7 +17,7 @@ public class PartitionHashUtil {
      * This uses the same hash function that Zeebe uses internally to distribute
      * messages across partitions: djb2 hash algorithm.
      * 
-     * @param targetPartition The partition ID to target (0-based)
+     * @param targetPartition The partition ID to target (1-based)
      * @param partitionCount Total number of partitions
      * @param maxAttempts Maximum number of attempts to find a suitable key
      * @return A correlation key that hashes to the target partition
@@ -48,7 +48,7 @@ public class PartitionHashUtil {
      * 
      * @param correlationKey The correlation key to hash
      * @param partitionCount Total number of partitions
-     * @return The partition ID (0-based) that this key would route to
+     * @return The partition ID (1-based) that this key would route to
      */
     public static int getPartitionForCorrelationKey(String correlationKey, int partitionCount) {
         if (correlationKey == null) {
