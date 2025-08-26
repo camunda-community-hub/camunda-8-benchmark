@@ -30,8 +30,7 @@ public class PartitionHashUtil {
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             String candidateKey = "benchmark-" + UUID.randomUUID();
           
-            int partition = getSubscriptionPartitionId(wrapString(candidateKey), partitionCount);
-            //int partition = getPartitionForCorrelationKey(candidateKey, partitionCount);
+            int partition = getPartitionForCorrelationKey(candidateKey, partitionCount);
             if (partition == targetPartition) {
                 //System.out.println("Attempt " + attempt + ": key=" + candidateKey + " -> partition=" + partition);
                 return candidateKey;
@@ -58,17 +57,7 @@ public class PartitionHashUtil {
         if (partitionCount <= 0) {
             throw new IllegalArgumentException("Partition count must be positive");
         }
-        
-        // djb2 hash algorithm - same as used by Zeebe
-        long hash = 5381;
-        byte[] bytes = correlationKey.getBytes();
-        
-        for (byte b : bytes) {
-            hash = ((hash << 5) + hash) + (b & 0xff);
-        }
-        
-        // Ensure positive result and mod by partition count
-        return (int) ((hash & 0x7fffffffL) % partitionCount);
+        return getSubscriptionPartitionId(wrapString(correlationKey), partitionCount);
     }
 
     /**
