@@ -104,7 +104,17 @@ public class JobWorker {
         bpmnOnlyJobTypes.removeAll(configJobTypes);
         
         for (String jobType : bpmnOnlyJobTypes) {
-            registerWorker(jobType, false);
+            String effectiveTaskType = jobType;
+            
+            // If partition pinning is enabled, use full starter ID as prefix
+            if (config.isEnablePartitionPinning()) {
+                String starterId = config.getStarterId();
+                if (starterId != null && !starterId.isEmpty()) {
+                    effectiveTaskType = starterId + "-" + jobType;
+                    LOG.info("Partition pinning enabled: registering workers for task type with starter ID prefix: {}", effectiveTaskType);
+                }
+            }
+            registerWorker(effectiveTaskType, false);
         }
         
         int totalWorkers = configJobTypes.size() + bpmnOnlyJobTypes.size();
@@ -146,28 +156,18 @@ public class JobWorker {
     }
 
     private void registerWorkersForTaskType(String taskType) {
-        String effectiveTaskType = taskType;
-        
-        // If partition pinning is enabled, use full starter ID as prefix
-        if (config.isEnablePartitionPinning()) {
-            String starterId = config.getStarterId();
-            if (starterId != null && !starterId.isEmpty()) {
-                effectiveTaskType = starterId + "-" + taskType;
-                LOG.info("Partition pinning enabled: registering workers for task type with starter ID prefix: {}", effectiveTaskType);
-            }
-        }
         
         // worker for normal task type
-        registerWorker(effectiveTaskType, false);
+        registerWorker(taskType, false);
 
         // worker for normal "task-type-{starterId}"
-        registerWorker(effectiveTaskType + "-" + config.getStarterId(), false);
+        registerWorker(taskType + "-" + config.getStarterId(), false);
 
         // worker marking completion of process instance via "task-type-complete"
-        registerWorker(effectiveTaskType + "-completed", true);
+        registerWorker(taskType + "-completed", true);
 
         // worker marking completion of process instance via "task-type-complete"
-        registerWorker(effectiveTaskType + "-" + config.getStarterId() + "-completed", true);
+        registerWorker(taskType + "-" + config.getStarterId() + "-completed", true);
     }
 
 

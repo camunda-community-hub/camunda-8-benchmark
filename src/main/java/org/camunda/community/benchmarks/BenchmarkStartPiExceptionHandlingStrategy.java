@@ -22,12 +22,22 @@ public class BenchmarkStartPiExceptionHandlingStrategy extends DefaultCommandExc
     }
 
     public void handleCommandError(CommandWrapper command, Throwable throwable) {
+        StatusRuntimeException statusRuntimeException = null;
         if (StatusRuntimeException.class.isAssignableFrom(throwable.getClass())) {
-            StatusRuntimeException exception = (StatusRuntimeException) throwable;
-            stats.incStartedProcessInstancesException(exception.getStatus().getCode().name());
-            if (Status.Code.RESOURCE_EXHAUSTED == exception.getStatus().getCode()) {
+            statusRuntimeException = (StatusRuntimeException) throwable;
+        } else if (StatusRuntimeException.class.isAssignableFrom(throwable.getCause().getClass())) {
+            statusRuntimeException = (StatusRuntimeException) throwable.getCause();
+        }
+        if (statusRuntimeException != null) {            
+            stats.incStartedProcessInstancesException(statusRuntimeException.getStatus().getCode().name());
+            if (Status.Code.RESOURCE_EXHAUSTED == statusRuntimeException.getStatus().getCode()) {
                 stats.incStartedProcessInstancesBackpressure();
                 return; // ignore backpressure, as we don't want to add a big wave of retries
+            // } else if (Status.Code.FAILED_PRECONDITION == statusRuntimeException.getStatus().getCode()) {
+            //     System.err.println("Received FAILED_PRECONDITION from broker - shutting down to avoid further issues.");
+            //     throwable.printStackTrace();
+            //     System.exit(Status.Code.FAILED_PRECONDITION.ordinal());
+            //     return;
             }
         } else {
             stats.incStartedProcessInstancesException(throwable.getMessage());

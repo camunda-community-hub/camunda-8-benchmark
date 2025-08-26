@@ -35,7 +35,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <license.header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</license.header>
-    <version.java>17</version.java>
+    <version.java>21</version.java>
     <maven.version>3.0</maven.version>
   </properties>
 
@@ -50,6 +50,7 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+  
 
   <dependencies>
     <dependency>
@@ -61,6 +62,12 @@
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>spring-boot-starter-camunda-sdk</artifactId>
+      <version>8.7.10</version>
+    </dependency>
+    <dependency>
+      <!-- Get SubscriptionUtil for use in PartitionHashUtil -->
+      <groupId>io.camunda</groupId>
+      <artifactId>zeebe-protocol-impl</artifactId>
       <version>8.7.10</version>
     </dependency>
 

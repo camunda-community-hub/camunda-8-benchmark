@@ -31,7 +31,7 @@ public class StartPiExecutor {
     private static final Logger LOG = LogManager.getLogger(StartPiExecutor.class);
     
     public static final String BENCHMARK_START_DATE_MILLIS = "benchmark_start_date_millis";
-    private static final Object BENCHMARK_STARTER_ID = "benchmark_starter_id";
+    public static final Object BENCHMARK_STARTER_ID = "benchmark_starter_id";
     
     // Message name for partition pinning
     private static final String PARTITION_PINNING_MESSAGE_NAME = "StartBenchmarkProcess";
@@ -56,6 +56,9 @@ public class StartPiExecutor {
     // Partition pinning state
     private int[] targetPartitions = new int[0];
     private int numericClientId = 0;
+    
+    // Cache correlation keys for each partition to avoid regeneration
+    private Map<Integer, String> partitionCorrelationKeyCache = new HashMap<>();
 
     @PostConstruct
     public void init() throws IOException {
@@ -83,9 +86,28 @@ public class StartPiExecutor {
         targetPartitions = PartitionHashUtil.getTargetPartitionsForClient(
             numericClientId, config.getPartitionCount(), config.getNumberOfStarters());
             
-        LOG.info("Partition pinning enabled: starterId={}, numericClientId={}, target-partitions={}, partition-count={}, numberOfStarters={}", 
-                 starterId, numericClientId, java.util.Arrays.toString(targetPartitions), 
-                 config.getPartitionCount(), config.getNumberOfStarters());
+        // Pre-generate and cache correlation keys for all target partitions
+        generateCorrelationKeysForTargetPartitions();
+            
+        LOG.info("Partition Pinning enabled: partition-count={}, numberOfStarters={}, starterId={}, numericClientId={}, target-partitions={}", 
+                 config.getPartitionCount(), config.getNumberOfStarters(), starterId, numericClientId, java.util.Arrays.toString(targetPartitions));
+    }
+    
+    private void generateCorrelationKeysForTargetPartitions() {
+        partitionCorrelationKeyCache.clear();
+        for (int partition : targetPartitions) {
+            int maxAttempts = config.getCorrelationKeyMaxAttempts() * config.getPartitionCount();
+            try {
+                String correlationKey = PartitionHashUtil.generateCorrelationKeyForPartition(
+                    partition, config.getPartitionCount(), maxAttempts);
+                partitionCorrelationKeyCache.put(partition, correlationKey);
+                LOG.debug("Generated correlation key '{}' for partition {}", correlationKey, partition);
+            } catch (IllegalStateException e) {
+                LOG.error("How unlucky can one be! Exiting...", e);
+                System.exit(maxAttempts);
+            }
+        }
+        LOG.info("Generated correlation keys for {} target partitions", partitionCorrelationKeyCache.size());
     }
 
     public void startProcessInstance() {
@@ -119,14 +141,12 @@ public class StartPiExecutor {
         // Select a random partition from our target partitions for load balancing
         int selectedPartition = PartitionHashUtil.selectRandomPartition(targetPartitions);
         
-        // Generate correlation key that hashes to our selected partition
-        String correlationKey;
-        try {
-            correlationKey = PartitionHashUtil.generateCorrelationKeyForPartition(
-                selectedPartition, config.getPartitionCount(), config.getCorrelationKeyMaxAttempts());
-        } catch (IllegalStateException e) {
-            LOG.warn("Failed to generate correlation key for partition {}, using fallback", selectedPartition, e);
-            correlationKey = "benchmark-fallback-" + UUID.randomUUID().toString();
+        // Get the cached correlation key for the selected partition
+        String correlationKey = partitionCorrelationKeyCache.get(selectedPartition);
+        if (correlationKey == null) {
+            // Fallback if key is somehow missing from cache
+            LOG.warn("No cached correlation key found for partition {}, generating fallback", selectedPartition);
+            correlationKey = "benchmark-fallback-p" + selectedPartition + "-" + UUID.randomUUID().toString();
         }
         
         FinalCommandStep publishCommand = client.newPublishMessageCommand()
@@ -142,7 +162,7 @@ public class StartPiExecutor {
                 exceptionHandlingStrategy, micrometerMetricsRecorder);
         command.executeAsyncWithMetrics("PI_action","start_message",config.getBpmnProcessId());
         
-        LOG.debug("Published message with correlation key {} targeting partition {}", 
+        LOG.debug("Published message with cached correlation key '{}' targeting partition {}", 
                   correlationKey, selectedPartition);
     }
 

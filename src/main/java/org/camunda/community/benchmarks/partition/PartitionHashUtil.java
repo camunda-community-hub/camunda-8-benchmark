@@ -2,6 +2,9 @@ package org.camunda.community.benchmarks.partition;
 
 import java.util.UUID;
 
+import static io.camunda.zeebe.protocol.impl.SubscriptionUtil.getSubscriptionPartitionId;
+import static io.camunda.zeebe.util.buffer.BufferUtil.wrapString;
+
 /**
  * Utility class for generating correlation keys that map to specific partitions
  * using Zeebe's partition distribution algorithm.
@@ -21,10 +24,16 @@ public class PartitionHashUtil {
      * @throws IllegalStateException if no suitable key is found within maxAttempts
      */
     public static String generateCorrelationKeyForPartition(int targetPartition, int partitionCount, int maxAttempts) {
+        if (partitionCount == 1) {
+            return "benchmark-" + UUID.randomUUID();
+        }
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            String candidateKey = "benchmark-" + UUID.randomUUID().toString();
-            int partition = getPartitionForCorrelationKey(candidateKey, partitionCount);
+            String candidateKey = "benchmark-" + UUID.randomUUID();
+          
+            int partition = getSubscriptionPartitionId(wrapString(candidateKey), partitionCount);
+            //int partition = getPartitionForCorrelationKey(candidateKey, partitionCount);
             if (partition == targetPartition) {
+                //System.out.println("Attempt " + attempt + ": key=" + candidateKey + " -> partition=" + partition);
                 return candidateKey;
             }
         }

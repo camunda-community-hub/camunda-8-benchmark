@@ -46,7 +46,9 @@ public class ProcessDeployer {
                 }
                 deployResourceCommand.send().join();
             } catch (Exception ex) {
-                throw new RuntimeException("Could not deploy to Zeebe: " + ex.getMessage(), ex);
+                // shut down the application if deployment fails
+                LOG.error("Could not deploy to Zeebe: " + ex.getMessage(), ex);
+                System.exit(1);
             }
         }
     }
@@ -141,7 +143,7 @@ public class ProcessDeployer {
         if (config.isEnablePartitionPinning()) {
             String starterId = config.getStarterId();
             if (starterId != null && !starterId.isEmpty()) {
-                return starterId + "-" + baseJobType;
+                return "= " + StartPiExecutor.BENCHMARK_STARTER_ID + " + \"-" + baseJobType + "\"";
             }
         }
         
