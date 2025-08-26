@@ -12,7 +12,7 @@ Camunda 8 Benchmark is a Spring Boot application for load testing Camunda Platfo
 
 ```bash
 # Verify environment
-java -version  # Must be Java 17+
+java -version  # Must be Java 21+
 mvn -version   # Must be Maven 3.0+
 
 # Build the project - NEVER CANCEL: Build takes 5-15 minutes depending on network

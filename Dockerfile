@@ -1,4 +1,4 @@
-FROM maven:3-openjdk-17 as builder
+FROM maven:3-openjdk-21 as builder
 WORKDIR /usr/src/app
 COPY pom.xml pom.xml
 RUN mvn dependency:resolve-plugins dependency:resolve package -Dspring-boot.repackage.skip=true -Dmaven.test.skip=true -DskipTests -DskipChecks
