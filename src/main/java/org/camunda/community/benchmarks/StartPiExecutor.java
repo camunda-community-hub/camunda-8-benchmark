@@ -152,7 +152,7 @@ public class StartPiExecutor {
         FinalCommandStep publishCommand = client.newPublishMessageCommand()
                 .messageName(PARTITION_PINNING_MESSAGE_NAME)
                 .correlationKey(correlationKey)
-                .timeToLive(Duration.ofMinutes(5))
+                .timeToLive(Duration.ofMinutes(config.getMessagesTtl()))
                 .variables(variables);
                 
         CommandWrapper command = new RefactoredCommandWrapper(
