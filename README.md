@@ -27,14 +27,14 @@ A good environment
 
 # How-to run
 
-You only need to run this one application for driving your benchmark, but you might scale this application if you need to produce more load to utilize your cluster(you might want to adjust the `benchmark.startPiReduceFactor` of the properties as backpressure is then "distributed" over various load generators)
+You only need to run this one application for driving your benchmark, but you might configure/scale this application if you need to produce more load to utilize your cluster(you might want to adjust the `benchmark.startPiReduceFactor` of the properties as backpressure is then "distributed" over various load generators)
 
 
 ```bash
 mvn spring-boot:run
 ```
 
-Or 
+or using the [docker image](https://hub.docker.com/r/camundacommunityhub/camunda-8-benchmark):
 ```bash
 docker run camundacommunityhub/camunda-8-benchmark:main
 ```
