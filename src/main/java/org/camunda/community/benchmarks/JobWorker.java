@@ -127,28 +127,22 @@ public class JobWorker {
      */
     private Set<String> getJobTypesFromConfiguration() {
         Set<String> jobTypes = new HashSet<>();
-        String taskType = config.getJobType();
+        String jobType = config.getJobType();
 
-        String[] jobs = null;
-        if (taskType.contains(",")) {
-            jobs = taskType.split(",");
-        }
-        
-        int numberOfJobTypes = config.getMultipleJobTypes();
-
-        // If the job types are not listed out then generate the jobtypes automatically based on the multipleJobTypes
-        // Otherwise loop through the list of jobTypes and create
-        if (jobs == null) {
-            if (numberOfJobTypes <= 0) {
-                jobTypes.add(taskType);
-            } else {
-                for (int i = 0; i < numberOfJobTypes; i++) {
-                    jobTypes.add(taskType + "-" + (i + 1));
-                }
+        // If the job types are listed out then loop through the list of jobTypes and create
+        // Otherwise generate the jobtypes automatically based on the multipleJobTypes property
+        if (jobType.contains(",")) {
+            for (String job : jobType.split(",")) {
+                jobTypes.add(job);
             }
         } else {
-            for (String job : jobs) {
-                jobTypes.add(job);
+            int numberOfJobTypes = config.getMultipleJobTypes();
+            if (numberOfJobTypes <= 0) {
+                jobTypes.add(jobType);
+            } else {
+                for (int i = 0; i < numberOfJobTypes; i++) {
+                    jobTypes.add(jobType + "-" + (i + 1));
+                }
             }
         }
 
