@@ -1,6 +1,5 @@
 package org.camunda.community.benchmarks;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Map;
@@ -49,6 +48,10 @@ public class JobWorker {
     @Autowired
     private MicrometerMetricsRecorder micrometerMetricsRecorder;
 
+    // currently only used when multipleJobTypes > 0
+    // TODO make configurable to allow combinations with other features
+    private String lastJobType;
+
     // Package-private for testing
     void registerWorker(String jobType, Boolean markPiCompleted) {
 
@@ -92,13 +95,12 @@ public class JobWorker {
         // Register workers for configuration-based job types
         // Only use registerWorkersForTaskType (with variants) when there is exactly one config job type
         // Otherwise use simple registerWorker to avoid conflicts with BPMN-discovered job types
-        if (configJobTypes.size() == 1) {
-            for (String jobType : configJobTypes) {
-                registerWorkersForTaskType(jobType);
-            }
+        if (configJobTypes.size() == 1 && config.getMultipleJobTypes() <= 0) {
+            registerWorkersForTaskType(config.getJobType());
         } else {
             for (String jobType : configJobTypes) {
-                registerWorker(jobType, false);
+                String effectiveJobType = applyPartitionPinning(jobType);
+                registerWorker(effectiveJobType, jobType.equals(lastJobType));
             }
         }
         
@@ -110,16 +112,7 @@ public class JobWorker {
         LOG.info("BPMN job types after removeAll: {}", bpmnOnlyJobTypes);
         
         for (String jobType : bpmnOnlyJobTypes) {
-            String effectiveTaskType = jobType;
-            
-            // If partition pinning is enabled, use full starter ID as prefix
-            if (config.isEnablePartitionPinning()) {
-                String starterId = config.getStarterId();
-                if (starterId != null && !starterId.isEmpty()) {
-                    effectiveTaskType = starterId + "-" + jobType;
-                    LOG.info("Partition pinning enabled: registering workers for task type with starter ID prefix: {}", effectiveTaskType);
-                }
-            }
+            String effectiveTaskType = applyPartitionPinning(jobType);
             registerWorker(effectiveTaskType, false);
         }
         
@@ -127,6 +120,23 @@ public class JobWorker {
         String configDescription = configJobTypes.size() == 1 ? "from config with variants" : "from config with simple registration";
         LOG.info("Registered job workers for {} job types ({} {}, {} from BPMN only)", 
             totalWorkers, configJobTypes.size(), configDescription, bpmnOnlyJobTypes.size());
+    }
+
+    /**
+     * Applies partition pinning to a job type if enabled.
+     * @param jobType The original job type
+     * @return The effective job type with starter ID prefix if partition pinning is enabled
+     */
+    private String applyPartitionPinning(String jobType) {
+        if (config.isEnablePartitionPinning()) {
+            String starterId = config.getStarterId();
+            if (starterId != null && !starterId.isEmpty()) {
+                String effectiveJobType = starterId + "-" + jobType;
+                LOG.info("Partition pinning enabled: registering workers for task type with starter ID prefix: {}", effectiveJobType);
+                return effectiveJobType;
+            }
+        }
+        return jobType;
     }
 
     /**
@@ -148,7 +158,11 @@ public class JobWorker {
                 jobTypes.add(jobType);
             } else {
                 for (int i = 0; i < numberOfJobTypes; i++) {
-                    jobTypes.add(jobType + "-" + (i + 1));
+                    String jobTypeWithIndex = jobType + "-" + (i + 1);
+                    jobTypes.add(jobTypeWithIndex);
+                    if (i == numberOfJobTypes - 1) {
+                        this.lastJobType = jobTypeWithIndex;
+                    }
                 }
             }
         }
@@ -160,15 +174,17 @@ public class JobWorker {
         
         // worker for normal task type
         registerWorker(taskType, false);
-
-        // worker for normal "task-type-{starterId}"
-        registerWorker(taskType + "-" + config.getStarterId(), false);
-
+        
         // worker marking completion of process instance via "task-type-complete"
         registerWorker(taskType + "-completed", true);
 
-        // worker marking completion of process instance via "task-type-complete"
-        registerWorker(taskType + "-" + config.getStarterId() + "-completed", true);
+        if (config.getStarterId() != null && !config.getStarterId().isEmpty()) {
+            // worker for normal "task-type-{starterId}"
+            registerWorker(taskType + "-" + config.getStarterId(), false);
+
+            // worker marking completion of process instance via "task-type-{starterId}-complete"
+            registerWorker(taskType + "-" + config.getStarterId() + "-completed", true);
+        }
     }
 
 

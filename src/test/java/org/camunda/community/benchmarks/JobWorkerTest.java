@@ -131,7 +131,7 @@ class JobWorkerTest {
         
         // Verify the specific job types registered (simple registration, no variants)
         assertTrue(registeredJobTypes.contains("benchmark-task-1:normal"));
-        assertTrue(registeredJobTypes.contains("benchmark-task-2:normal"));
+        assertTrue(registeredJobTypes.contains("benchmark-task-2:completed"));
         
         // Verify that variants are NOT registered when there are multiple config job types
         assertFalse(registeredJobTypes.contains("benchmark-task-1-starter1:normal"));
@@ -216,7 +216,7 @@ class JobWorkerTest {
         
         // Verify config-based job types are registered as simple workers (no variants)
         assertTrue(registeredJobTypes.contains("benchmark-task-1:normal"));
-        assertTrue(registeredJobTypes.contains("benchmark-task-2:normal"));
+        assertTrue(registeredJobTypes.contains("benchmark-task-2:completed"));
         
         // Verify BPMN-only job types are registered as normal workers
         assertTrue(registeredJobTypes.contains("benchmark-task-3:normal"));
@@ -234,38 +234,29 @@ class JobWorkerTest {
         long benchmark1Count = registeredJobTypes.stream().filter(type -> type.equals("benchmark-task-1:normal")).count();
         assertEquals(1, benchmark1Count); // Should be exactly 1 (simple registration, no variants)
         
-        long benchmark2Count = registeredJobTypes.stream().filter(type -> type.equals("benchmark-task-2:normal")).count();
+        long benchmark2Count = registeredJobTypes.stream().filter(type -> type.equals("benchmark-task-2:completed")).count();
         assertEquals(1, benchmark2Count); // Should be exactly 1 (simple registration, no variants)
     }
 
     @Test
     void testStartWorkers_WithPartitionPinning_ShouldAddStarterIdPrefix() {
         // Given
-        config.setAutoDeployProcess(true);
-        config.setBpmnResource(new ClassPathResource[] {
-            new ClassPathResource("bpmn/complex_subprocess.bpmn") // Has "benchmark-task" job type
-        });
+        config.setAutoDeployProcess(false);
+        config.setBpmnResource(null);
         config.setJobType("benchmark-task");
-        config.setMultipleJobTypes(1); // Creates benchmark-task-1
-        config.setStarterId("starter1");
+        config.setMultipleJobTypes(1);
+        config.setStarterId("benchmark-0");
         config.setEnablePartitionPinning(true);
 
         // When
         jobWorker.startWorkers();
 
         // Then
-        // Should register workers for:
-        // - 1 config job type (benchmark-task-1) with 4 variants = 4
-        // - BPMN job type "benchmark-task" with starter prefix = 1 (since benchmark-task != benchmark-task-1)
-        // Total = 5 workers
-        verify(jobWorker, times(5)).registerWorker(anyString(), any(Boolean.class));
+        verify(jobWorker, times(1)).registerWorker(anyString(), any(Boolean.class));
         
-        // Verify config-based workers (no prefix needed as they have variants)
-        assertTrue(registeredJobTypes.contains("benchmark-task-1:normal"));
-        assertTrue(registeredJobTypes.contains("benchmark-task-1-starter1:normal"));
+        // Verify config-based worker with partition pinning prefix
         
-        // Verify BPMN-only worker with partition pinning prefix
-        assertTrue(registeredJobTypes.contains("starter1-benchmark-task:normal"));
+        assertEquals("benchmark-0-benchmark-task-1:completed", registeredJobTypes.get(0));
     }
 
     @Test
@@ -275,8 +266,8 @@ class JobWorkerTest {
         config.setBpmnResource(new ClassPathResource[] {
             new ClassPathResource("bpmn/complex_subprocess.bpmn")
         });
-        config.setJobType("other-task");
-        config.setMultipleJobTypes(1);
+        config.setJobType("benchmark-task");
+        config.setMultipleJobTypes(0);
         config.setStarterId(""); // Empty starter ID
         config.setEnablePartitionPinning(true);
 
@@ -285,13 +276,14 @@ class JobWorkerTest {
 
         // Then
         // Should register workers for:
-        // - 1 config job type (other-task-1) with 4 variants = 4
-        // - BPMN job type "benchmark-task" without prefix (empty starter ID) = 1
-        // Total = 5 workers
-        verify(jobWorker, times(5)).registerWorker(anyString(), any(Boolean.class));
+        // - 1 config job type (benchmark-task) with 4 variants = 4
+        // Total = 4 workers
+        verify(jobWorker, times(2)).registerWorker(anyString(), any(Boolean.class));
         
         // Verify BPMN-only worker without prefix (due to empty starter ID)
-        assertTrue(registeredJobTypes.contains("benchmark-task:normal"));
+        assertEquals("benchmark-task:normal", registeredJobTypes.get(0));
+        assertEquals("benchmark-task-completed:completed", registeredJobTypes.get(1));
+
     }
 
     @Test
@@ -300,7 +292,7 @@ class JobWorkerTest {
         config.setAutoDeployProcess(false);
         config.setBpmnResource(null);
         config.setJobType("benchmark-task");
-        config.setMultipleJobTypes(1);
+        config.setMultipleJobTypes(0);
         config.setStarterId("starter1");
 
         // When
@@ -310,10 +302,10 @@ class JobWorkerTest {
         // Should only register config workers
         verify(jobWorker, times(4)).registerWorker(anyString(), any(Boolean.class));
         
-        assertTrue(registeredJobTypes.contains("benchmark-task-1:normal"));
-        assertTrue(registeredJobTypes.contains("benchmark-task-1-starter1:normal"));
-        assertTrue(registeredJobTypes.contains("benchmark-task-1-completed:completed"));
-        assertTrue(registeredJobTypes.contains("benchmark-task-1-starter1-completed:completed"));
+        assertTrue(registeredJobTypes.contains("benchmark-task:normal"));
+        assertTrue(registeredJobTypes.contains("benchmark-task-starter1:normal"));
+        assertTrue(registeredJobTypes.contains("benchmark-task-completed:completed"));
+        assertTrue(registeredJobTypes.contains("benchmark-task-starter1-completed:completed"));
     }
 
     @Test
@@ -323,15 +315,14 @@ class JobWorkerTest {
         config.setBpmnResource(new ClassPathResource[0]); // Empty array
         config.setJobType("benchmark-task");
         config.setMultipleJobTypes(1);
-        config.setStarterId("starter1");
 
         // When
         jobWorker.startWorkers();
 
         // Then
         // Should only register config workers
-        verify(jobWorker, times(4)).registerWorker(anyString(), any(Boolean.class));
+        verify(jobWorker, times(1)).registerWorker(anyString(), any(Boolean.class));
         
-        assertTrue(registeredJobTypes.contains("benchmark-task-1:normal"));
+        assertEquals("benchmark-task-1:completed", registeredJobTypes.get(0));
     }
 }
