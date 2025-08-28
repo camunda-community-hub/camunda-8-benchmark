@@ -120,7 +120,7 @@ With this process model you need to
 
 ### Sticky processes 
 
-You can tie a process to one cluster instance of the starter (in case you need to scale those). Therefore, you need to makre sure the following configuration property is set differently for every starter instance (e.g. by using environment variables to overwrite it):
+You can tie a process to one instance of the starter (in case you need to scale those). Therefore, you need to makre sure the following configuration property is set differently for every starter instance (e.g. by using environment variables to overwrite it):
 
 ```properties
 benchmark.starterId=benchmarkStarter1

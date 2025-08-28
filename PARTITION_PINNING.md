@@ -37,7 +37,7 @@ When using partition pinning, your BPMN process must have a message start event:
 </bpmn:startEvent>
 ```
 
-Use the provided `benchmark_partition_pinning.bpmn` process or add a message start event to your existing process.
+Use the provided `seq-2tasks-msg-start-no-job-types.bpmn` process or add a message start event to your existing process.
 
 ### Kubernetes Configuration
 
@@ -60,8 +60,8 @@ spec:
                 -Dbenchmark.client.enable-partition-pinning=true
                 -Dbenchmark.client.partitionCount=9
                 -Dbenchmark.client.numberOfStarters=3
-                -Dbenchmark.bpmnProcessId=benchmark_partition_pinning
-                -Dbenchmark.bpmnResource=classpath:bpmn/benchmark_partition_pinning.bpmn
+                -Dbenchmark.bpmnProcessId=seq-2tasks-msg-start-no-job-types
+                -Dbenchmark.bpmnResource=classpath:bpmn/seq-2tasks-msg-start-no-job-types.bpmn
 ```
 
 ## Partition Assignment Strategy

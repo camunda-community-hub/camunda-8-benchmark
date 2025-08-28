@@ -8,7 +8,7 @@
                   targetNamespace="http://bpmn.io/schema/bpmn">
   <bpmn:message id="Message_StartBenchmarkProcess" name="StartBenchmarkProcess" />
   
-  <bpmn:process id="benchmark_partition_pinning" name="Benchmark Process with Partition Pinning" isExecutable="true">
+  <bpmn:process id="seq-2tasks-msg-start-no-job-types" name="Benchmark Process with Partition Pinning" isExecutable="true">
     <bpmn:startEvent id="StartEvent_MessageStart" name="Start via Message">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
       <bpmn:messageEventDefinition id="MessageEventDefinition_1" messageRef="Message_StartBenchmarkProcess" />
@@ -36,7 +36,7 @@
   </bpmn:process>
   
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="benchmark_partition_pinning">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="seq-2tasks-msg-start-no-job-types">
       <bpmndi:BPMNShape id="StartEvent_MessageStart_di" bpmnElement="StartEvent_MessageStart">
         <dc:Bounds x="152" y="102" width="36" height="36" />
         <bpmndi:BPMNLabel>
