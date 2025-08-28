@@ -1,5 +1,6 @@
 package org.camunda.community.benchmarks;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Map;
@@ -48,7 +49,8 @@ public class JobWorker {
     @Autowired
     private MicrometerMetricsRecorder micrometerMetricsRecorder;
 
-    private void registerWorker(String jobType, Boolean markPiCompleted) {
+    // Package-private for testing
+    void registerWorker(String jobType, Boolean markPiCompleted) {
 
         long fixedBackOffDelay = config.getFixedBackOffDelay();
 
@@ -77,31 +79,35 @@ public class JobWorker {
         Set<String> configJobTypes = new HashSet<>();
         
         // Extract job types from BPMN files if available
-        try {
-            if (config.getBpmnResource() != null && config.getBpmnResource().length > 0) {
-                bpmnJobTypes = BpmnJobTypeParser.extractJobTypes(config.getBpmnResource());
-                if (!bpmnJobTypes.isEmpty()) {
-                    LOG.info("Found {} job types from BPMN files: {}", bpmnJobTypes.size(), bpmnJobTypes);
-                } else {
-                    LOG.info("No job types found in BPMN files");
-                }
-            }
-        } catch (Exception e) {
-            LOG.error("Failed to extract job types from BPMN files: {}", e.getMessage(), e);
+        if (config.isAutoDeployProcess()
+            && config.getBpmnResource() != null
+            && config.getBpmnResource().length > 0) {
+            bpmnJobTypes = BpmnJobTypeParser.extractJobTypes(config.getBpmnResource());
         }
 
         // Always extract job types from configuration
         configJobTypes = getJobTypesFromConfiguration();
         LOG.info("Found {} job types from configuration: {}", configJobTypes.size(), configJobTypes);
 
-        // Register workers for configuration-based job types (with variants)
-        for (String jobType : configJobTypes) {
-            registerWorkersForTaskType(jobType);
+        // Register workers for configuration-based job types
+        // Only use registerWorkersForTaskType (with variants) when there is exactly one config job type
+        // Otherwise use simple registerWorker to avoid conflicts with BPMN-discovered job types
+        if (configJobTypes.size() == 1) {
+            for (String jobType : configJobTypes) {
+                registerWorkersForTaskType(jobType);
+            }
+        } else {
+            for (String jobType : configJobTypes) {
+                registerWorker(jobType, false);
+            }
         }
         
         // Register simple workers for BPMN-discovered job types that are NOT in configuration
         Set<String> bpmnOnlyJobTypes = new HashSet<>(bpmnJobTypes);
+        LOG.info("BPMN job types before removeAll: {}", bpmnOnlyJobTypes);
+        LOG.info("Config job types to remove: {}", configJobTypes);
         bpmnOnlyJobTypes.removeAll(configJobTypes);
+        LOG.info("BPMN job types after removeAll: {}", bpmnOnlyJobTypes);
         
         for (String jobType : bpmnOnlyJobTypes) {
             String effectiveTaskType = jobType;
@@ -118,8 +124,9 @@ public class JobWorker {
         }
         
         int totalWorkers = configJobTypes.size() + bpmnOnlyJobTypes.size();
-        LOG.info("Registered job workers for {} job types ({} from config with variants, {} from BPMN only)", 
-            totalWorkers, configJobTypes.size(), bpmnOnlyJobTypes.size());
+        String configDescription = configJobTypes.size() == 1 ? "from config with variants" : "from config with simple registration";
+        LOG.info("Registered job workers for {} job types ({} {}, {} from BPMN only)", 
+            totalWorkers, configJobTypes.size(), configDescription, bpmnOnlyJobTypes.size());
     }
 
     /**

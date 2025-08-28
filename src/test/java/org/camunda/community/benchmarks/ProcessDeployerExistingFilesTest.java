@@ -72,10 +72,10 @@ public class ProcessDeployerExistingFilesTest {
                 
                 String result = new String(resultStream.readAllBytes());
                 
-                // Verify the original job types are preserved
-                assertTrue(result.contains("type=\"= &#34;benchmark-task-1&#34;\""), 
+                // Verify the original job types are preserved (now static, not FEEL expressions)
+                assertTrue(result.contains("type=\"benchmark-task-1\""), 
                           "Original benchmark-task-1 should be preserved");
-                assertTrue(result.contains("type=\"= &#34;benchmark-task-2&#34;\""), 
+                assertTrue(result.contains("type=\"benchmark-task-2\""), 
                           "Original benchmark-task-2 should be preserved");
                 
                 // Verify no duplicate job types were added

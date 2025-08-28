@@ -19,12 +19,13 @@ class JobWorkerIntegrationTest {
 
     @Test
     void shouldExtractJobTypesFromBpmnAndFallbackToConfig() throws Exception {
-        // Test 1: Direct BPMN parsing - with current BPMN files using FEEL expressions
+        // Test 1: Direct BPMN parsing - with current BPMN files using static job types
         Resource[] resources = {new ClassPathResource("bpmn/typical_process_10_jobtypes.bpmn")};
         Set<String> bpmnJobTypes = BpmnJobTypeParser.extractJobTypes(resources);
         
-        // BPMN files use FEEL expressions starting with =, so they're ignored
-        assertEquals(0, bpmnJobTypes.size());
+        // BPMN file uses static job types, so they should be extracted
+        assertEquals(10, bpmnJobTypes.size());
+        assertTrue(bpmnJobTypes.contains("benchmark-task-1"));
         
         // Test 2: JobWorker fallback configuration method
         JobWorker jobWorker = new JobWorker();

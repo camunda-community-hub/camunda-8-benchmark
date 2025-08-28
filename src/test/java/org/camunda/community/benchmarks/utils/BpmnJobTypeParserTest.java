@@ -12,25 +12,30 @@ class BpmnJobTypeParserTest {
 
     @Test
     void shouldExtractStaticJobTypes() throws Exception {
-        // Create a simple test to show functionality with non-FEEL expressions
-        // For actual testing, we'd need a BPMN file with job types that don't start with =
+        // Test extraction from BPMN files with static job types (not FEEL expressions)
         Resource[] resources = {new ClassPathResource("bpmn/typical_process_10_jobtypes.bpmn")};
         
         Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources);
         
-        // With current BPMN files all using FEEL expressions, this returns 0
         assertNotNull(jobTypes);
-        assertEquals(0, jobTypes.size());
+        assertEquals(10, jobTypes.size());
+        assertTrue(jobTypes.contains("benchmark-task-1"));
+        assertTrue(jobTypes.contains("benchmark-task-10"));
     }
 
     @Test
     void shouldIgnoreFEELExpressions() throws Exception {
-        Resource[] resources = {new ClassPathResource("bpmn/typical_process_10_jobtypes.bpmn")};
+        // Test that FEEL expressions are still ignored - use a file that has actual FEEL expressions
+        Resource[] resources = {new ClassPathResource("test_job_type_prediction.bpmn")};
         
         Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources);
         
         assertNotNull(jobTypes);
-        assertEquals(0, jobTypes.size()); // Should ignore all FEEL expressions that start with =
+        // This test BPMN file has mixed content: static job types and FEEL expressions
+        // Only static job types should be extracted
+        assertEquals(3, jobTypes.size()); // static-task-1, static-task-2, benchmark-task-task4
+        assertTrue(jobTypes.contains("static-task-1"));
+        assertTrue(jobTypes.contains("static-task-2"));
     }
 
     @Test

@@ -31,9 +31,8 @@ public class BpmnJobTypeParser {
      * 
      * @param bpmnResources array of BPMN resource files to parse
      * @return set of unique job types found in the BPMN files
-     * @throws IOException if there's an error reading the BPMN files
      */
-    public static Set<String> extractJobTypes(Resource[] bpmnResources) throws IOException {
+    public static Set<String> extractJobTypes(Resource[] bpmnResources) {
         Set<String> jobTypes = new HashSet<>();
         
         if (bpmnResources == null || bpmnResources.length == 0) {
@@ -48,7 +47,7 @@ public class BpmnJobTypeParser {
                     jobTypes.addAll(resourceJobTypes);
                     LOG.info("Extracted {} job types from {}: {}", 
                         resourceJobTypes.size(), resource.getFilename(), resourceJobTypes);
-                } catch (Exception e) {
+                } catch (IOException e) {
                     LOG.error("Failed to extract job types from resource {}: {}", 
                         resource.getFilename(), e.getMessage(), e);
                 }
