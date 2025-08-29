@@ -57,9 +57,6 @@ public class StartPiExecutor {
     private int[] targetPartitions = new int[0];
     private int numericClientId = 0;
     
-    // Cache correlation keys for each partition to avoid regeneration
-    private Map<Integer, String> partitionCorrelationKeyCache = new HashMap<>();
-
     @PostConstruct
     public void init() throws IOException {
         String variablesJsonString = tryReadVariables(config.getPayloadPath().getInputStream());
@@ -86,28 +83,8 @@ public class StartPiExecutor {
         targetPartitions = PartitionHashUtil.getTargetPartitionsForClient(
             numericClientId, config.getPartitionCount(), config.getNumberOfStarters());
             
-        // Pre-generate and cache correlation keys for all target partitions
-        generateCorrelationKeysForTargetPartitions();
-            
         LOG.info("Partition Pinning enabled: partition-count={}, numberOfStarters={}, starterId={}, numericClientId={}, target-partitions={}", 
                  config.getPartitionCount(), config.getNumberOfStarters(), starterId, numericClientId, java.util.Arrays.toString(targetPartitions));
-    }
-    
-    private void generateCorrelationKeysForTargetPartitions() {
-        partitionCorrelationKeyCache.clear();
-        for (int partition : targetPartitions) {
-            int maxAttempts = config.getCorrelationKeyMaxAttempts() * config.getPartitionCount();
-            try {
-                String correlationKey = PartitionHashUtil.generateCorrelationKeyForPartition(
-                    partition, config.getPartitionCount(), maxAttempts);
-                partitionCorrelationKeyCache.put(partition, correlationKey);
-                LOG.debug("Generated correlation key '{}' for partition {}", correlationKey, partition);
-            } catch (IllegalStateException e) {
-                LOG.error("How unlucky can one be! Exiting...", e);
-                System.exit(maxAttempts);
-            }
-        }
-        LOG.info("Generated correlation keys for {} target partitions", partitionCorrelationKeyCache.size());
     }
 
     public void startProcessInstance() {
@@ -139,14 +116,18 @@ public class StartPiExecutor {
     
     private void startProcessInstanceViaMessage(HashMap<Object, Object> variables) {
         // Select a random partition from our target partitions for load balancing
-        int selectedPartition = PartitionHashUtil.selectRandomPartition(targetPartitions);
+        int partition = PartitionHashUtil.selectRandomPartition(targetPartitions);
         
-        // Get the cached correlation key for the selected partition
-        String correlationKey = partitionCorrelationKeyCache.get(selectedPartition);
-        if (correlationKey == null) {
-            // Fallback if key is somehow missing from cache
-            LOG.warn("No cached correlation key found for partition {}, generating fallback", selectedPartition);
-            correlationKey = "benchmark-fallback-p" + selectedPartition + "-" + UUID.randomUUID().toString();
+        // Generate correlation key that hashes to our selected partition
+        String correlationKey;
+            int maxAttempts = config.getCorrelationKeyMaxAttempts() * config.getPartitionCount();
+            try {
+                correlationKey = PartitionHashUtil.generateCorrelationKeyForPartition(
+                    partition, config.getPartitionCount(), maxAttempts);
+                LOG.debug("Generated correlation key '{}' for partition {}", correlationKey, partition);
+            } catch (IllegalStateException e) {
+            LOG.warn("Failed to generate correlation key for partition {}, using fallback", partition, e);
+            correlationKey = "benchmark-fallback-p" + partition + "-" + UUID.randomUUID().toString();
         }
         
         FinalCommandStep publishCommand = client.newPublishMessageCommand()
@@ -162,8 +143,8 @@ public class StartPiExecutor {
                 exceptionHandlingStrategy, micrometerMetricsRecorder);
         command.executeAsyncWithMetrics("PI_action","start_message",config.getBpmnProcessId());
         
-        LOG.debug("Published message with cached correlation key '{}' targeting partition {}", 
-                  correlationKey, selectedPartition);
+        LOG.debug("Published message with correlation key {} targeting partition {}", 
+                  correlationKey, partition);
     }
 
     private String tryReadVariables(final InputStream inputStream) throws IOException {
