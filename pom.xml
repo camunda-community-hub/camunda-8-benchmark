@@ -68,7 +68,7 @@
       <!-- Get SubscriptionUtil for use in PartitionHashUtil -->
       <groupId>io.camunda</groupId>
       <artifactId>zeebe-protocol-impl</artifactId>
-      <version>8.7.11</version>
+      <version>8.7.12</version>
     </dependency>
 
     <dependency>
