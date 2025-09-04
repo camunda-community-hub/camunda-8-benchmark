@@ -232,6 +232,47 @@ kubectl apply -f k8s/benchmark.yaml
 ````
 
 
+# Logging Configuration
+
+The benchmark application is configured to suppress verbose error messages from Zeebe client libraries while preserving essential statistics. This prevents log flooding during connection issues or job failures.
+
+## Exception Statistics vs. Verbose Logs
+
+Instead of seeing detailed stack traces like:
+```log
+09:19:23.695 [grpc-default-executor-168] WARN  io.camunda.zeebe.client.job.poller - Failed to activated jobs for worker default and job type benchmark-task-benchmarkStarter1
+  io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: deadline exceeded after 19.999980100s.
+  at io.grpc.Status.asRuntimeException(Status.java:535)
+  at io.grpc.stub.ClientCalls$StreamObserverToCallListenerAdapter.onClose(ClientCalls.java:479)
+  ...
+```
+
+The application shows clean statistics every minute:
+```
+------------------- 2024-01-15T10:30:00.123Z Current goal (PI/s): 10
+PI STARTED:      1250 (+ 10) Last minute rate: 10.2
+COMPLETED JOBS:  1180 (+ 12) Last minute rate: 12.1
+  Job Exception [DEADLINE_EXCEEDED]: 5
+  Job Exception [NOT_FOUND]: 3
+  Job Exception [UNAVAILABLE]: 2
+```
+
+## Suppressed Loggers
+
+The following loggers are set to ERROR level in `src/main/resources/logback.xml`:
+- `io.camunda.zeebe.client.job.poller` - job activation failures
+- `io.camunda.zeebe.client.job.worker` - job streaming failures  
+- `io.camunda.zeebe.client` - general Zeebe client connection issues
+- `io.grpc` - gRPC timeout and connection errors
+- `io.netty` - low-level network errors
+
+This configuration ensures that:
+1. **Statistics are preserved** - Exception counts are tracked and displayed
+2. **Critical errors still appear** - ERROR level messages are not suppressed
+3. **Log noise is reduced** - Repetitive connection and timeout warnings are muted
+4. **Debugging remains possible** - You can change log levels if needed for troubleshooting
+
+
 # Todos and open issues
 
 - Extract stuff so that it can be used as library and provide an example (Benchmark Starter), own code for startzing and job completion (but recognize/handle backpressure)
@@ -241,6 +282,9 @@ kubectl apply -f k8s/benchmark.yaml
   - Pool Size Parameters
 - Add message correlation
 - Get information about job activation back pressure / Check if we need to look at JobActivation-Backoff?
+
+**Note**: The verbose logging shown below has been suppressed by default. See the [Logging Configuration](#logging-configuration) section for details.
+
 ```log
 09:19:23.695 [grpc-default-executor-168] WARN  io.camunda.zeebe.client.job.poller - Failed to activated jobs for worker default and job type benchmark-task-benchmarkStarter1
   io.grpc.StatusRuntimeException: DEADLINE_EXCEEDED: deadline exceeded after 19.999980100s. [closed=[UNAVAILABLE], committed=[remote_addr=3e93d2f8-adf2-4d45-86f6-19581c016972.bru-3.zeebe.ultrawombat.com/34.76.29.41:443]]
