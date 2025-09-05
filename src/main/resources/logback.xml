@@ -6,11 +6,20 @@
         </encoder>
     </appender>
 
-    <logger name="io.camunda.zeebe.client.job.poller" level="WARN" />
+    <!-- Suppress verbose job activation and streaming failure logs -->
+    <logger name="io.camunda.zeebe.client.job.poller" level="ERROR" />
+    <logger name="io.camunda.zeebe.client.job.worker" level="ERROR" />
+    
+    <!-- Suppress gRPC connection and deadline exceeded errors -->
+    <logger name="io.grpc" level="ERROR" />
+    <logger name="io.netty" level="ERROR" />
+    
+    <!-- Suppress general Zeebe client connection issues -->
+    <logger name="io.camunda.zeebe.client" level="ERROR" />
 
-    <logger name="javax.activation" level="info" />
-    <logger name="org.springframework" level="info" />
-    <logger name="org.camunda" level="info" />
+    <logger name="javax.activation" level="ERROR" />
+    <logger name="org.springframework" level="ERROR" />
+    <logger name="org.camunda" level="ERROR" />
     <!--
       <logger name="org.camunda" level="DEBUG"/>
     -->

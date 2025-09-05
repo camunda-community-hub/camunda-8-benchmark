@@ -148,12 +148,16 @@ public class StatisticsCollector {
         micrometerMetricRegistry.counter("jobs_completed").increment();
     }
 
-    public void incStartedProcessInstancesException(String exceptionMessage) {
-        micrometerMetricRegistry.counter("pi_exception", "exception", exceptionMessage).increment();
+    public double incStartedProcessInstancesException(String exceptionMessage) {
+        io.micrometer.core.instrument.Counter counter = micrometerMetricRegistry.counter("pi_exception", "exception", exceptionMessage);
+        counter.increment();
+        return counter.count();
     }
 
-    public void incCompletedJobsException(String exceptionMessage) {
-        micrometerMetricRegistry.counter("jobs_exception", "exception", exceptionMessage).increment();
+    public double incCompletedJobsException(String exceptionMessage) {
+        io.micrometer.core.instrument.Counter counter = micrometerMetricRegistry.counter("jobs_exception", "exception", exceptionMessage);
+        counter.increment();
+        return counter.count();
     }
     public void registerJobTypeTimer(String jobType) {
         io.micrometer.core.instrument.Timer.builder("job_timer_"+jobType)
