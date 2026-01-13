@@ -15,8 +15,8 @@
  */
 package org.camunda.community.benchmarks;
 
-import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.spring.client.actuator.MicrometerMetricsRecorder;
+import io.camunda.client.CamundaClient;
+import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.strategy.BenchmarkCompleteJobExceptionHandlingStrategy;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.*;
 class JobWorkerTest {
 
     @Mock
-    private ZeebeClient client;
+    private CamundaClient client;
 
     @Mock
     private StatisticsCollector stats;
