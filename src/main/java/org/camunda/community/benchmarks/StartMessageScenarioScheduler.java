@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.databind.DatabindException;
 
-import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.client.CamundaClient;
 import jakarta.annotation.PostConstruct;
 
 @Component
@@ -34,7 +34,7 @@ public class StartMessageScenarioScheduler {
 
   private BenchmarkConfiguration config;
 
-  private ZeebeClient client;
+  private CamundaClient client;
 
   private TaskScheduler taskScheduler;
 
@@ -45,7 +45,7 @@ public class StartMessageScenarioScheduler {
   long loadDuration = 0;
   private Duration messageTtl = null;
   
-  public StartMessageScenarioScheduler(ZeebeClient client, 
+  public StartMessageScenarioScheduler(CamundaClient client,
       BenchmarkConfiguration config,
       TaskScheduler taskScheduler) {
     this.client = client;

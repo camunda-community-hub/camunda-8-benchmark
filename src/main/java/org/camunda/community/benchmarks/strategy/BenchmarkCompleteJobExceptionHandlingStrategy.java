@@ -1,9 +1,10 @@
-package org.camunda.community.benchmarks;
+package org.camunda.community.benchmarks.strategy;
 
-import io.camunda.zeebe.client.api.worker.BackoffSupplier;
-import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
-import io.camunda.zeebe.spring.client.jobhandling.DefaultCommandExceptionHandlingStrategy;
+import io.camunda.client.jobhandling.CommandWrapper;
+import io.camunda.client.jobhandling.DefaultCommandExceptionHandlingStrategy;
+import io.camunda.client.api.worker.BackoffSupplier;
 import io.grpc.StatusRuntimeException;
+import org.camunda.community.benchmarks.StatisticsCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 @Primary
 @Component
-public class BenchmarkCompleteJobExceptionHandlingStrategy extends DefaultCommandExceptionHandlingStrategy  {
+public class BenchmarkCompleteJobExceptionHandlingStrategy extends DefaultCommandExceptionHandlingStrategy {
 
     private static final Logger LOG = LoggerFactory.getLogger(BenchmarkCompleteJobExceptionHandlingStrategy.class);
 

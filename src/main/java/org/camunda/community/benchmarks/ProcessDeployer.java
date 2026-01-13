@@ -6,14 +6,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 
+import io.camunda.client.CamundaClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.api.command.DeployResourceCommandStep1;
+import io.camunda.client.api.command.DeployResourceCommandStep1;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.builder.ServiceTaskBuilder;
@@ -26,11 +26,11 @@ public class ProcessDeployer {
 
     private static final Logger LOG = LogManager.getLogger(ProcessDeployer.class);
 
-    private final ZeebeClient zeebeClient;
+    private final CamundaClient camundaClient;
     private final BenchmarkConfiguration config;
 
-    public ProcessDeployer(ZeebeClient zeebeClient, BenchmarkConfiguration config) {
-        this.zeebeClient = zeebeClient;
+    public ProcessDeployer(CamundaClient camundaClient, BenchmarkConfiguration config) {
+        this.camundaClient = camundaClient;
         this.config = config;
     }
 
@@ -39,7 +39,7 @@ public class ProcessDeployer {
         if (config.isAutoDeployProcess()) {
             try {
                 LOG.info("Deploy " + StringUtils.arrayToCommaDelimitedString(config.getBpmnResource()) + " to Zeebe...");
-                DeployResourceCommandStep1.DeployResourceCommandStep2 deployResourceCommand = zeebeClient.newDeployResourceCommand()
+                DeployResourceCommandStep1.DeployResourceCommandStep2 deployResourceCommand = camundaClient.newDeployResourceCommand()
                         .addResourceStream(adjustInputStreamBasedOnConfig(config.getBpmnResource()[0].getInputStream()), config.getBpmnResource()[0].getFilename()); // Have to add at least the first resource to have the right class of Step2
                 for (int i = 1; i < config.getBpmnResource().length; i++) { // now adding the rest of resources starting from 1
                     deployResourceCommand = deployResourceCommand.addResourceStream(adjustInputStreamBasedOnConfig(config.getBpmnResource()[i].getInputStream()), config.getBpmnResource()[i].getFilename());

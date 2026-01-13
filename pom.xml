@@ -36,6 +36,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <license.header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</license.header>
     <version.java>21</version.java>
+    <camunda.version>8.8.5</camunda.version>
     <maven.version>3.0</maven.version>
   </properties>
 
@@ -59,16 +60,17 @@
       <version>33.4.8-jre</version>
     </dependency>
 
+
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>spring-boot-starter-camunda-sdk</artifactId>
-      <version>8.7.11</version>
+      <version>${camunda.version}</version>
     </dependency>
     <dependency>
       <!-- Get SubscriptionUtil for use in PartitionHashUtil -->
       <groupId>io.camunda</groupId>
       <artifactId>zeebe-protocol-impl</artifactId>
-      <version>8.7.11</version>
+      <version>${camunda.version}</version>
     </dependency>
 
     <dependency>
@@ -152,6 +154,11 @@
       <artifactId>mockito-junit-jupiter</artifactId>
       <version>5.19.0</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 
