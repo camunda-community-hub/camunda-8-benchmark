@@ -7,9 +7,11 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.camunda.community.benchmarks.StatisticsCollector;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ScheduledExecutorService;
 
+@Component
 public class BenchmarkStartDecisionExceptionHandlingStrategy extends DefaultCommandExceptionHandlingStrategy {
 
   @Autowired
