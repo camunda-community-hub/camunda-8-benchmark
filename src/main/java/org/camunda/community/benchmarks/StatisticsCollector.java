@@ -119,6 +119,10 @@ public class StatisticsCollector {
         return dropwizardMetricRegistry.meter("pi_backpressure" );
     }
 
+    public Meter getEvaluatedDiMeter() { return dropwizardMetricRegistry.meter("di_evaluated" ); }
+    public Meter getStartedDiMeter() { return dropwizardMetricRegistry.meter("di_started" ); }
+    public Meter getBackpressureOnStartDiMeter() { return dropwizardMetricRegistry.meter("di_backpressure" ); }
+
     public void hintOnNewPiPerSecondGoald(long piPerSecondGoal) {
         this.piPerSecondGoal = piPerSecondGoal;
     }
@@ -168,5 +172,24 @@ public class StatisticsCollector {
     public void recordJobTypeCompletion(String jobType, long executionDurationMillis){
         io.micrometer.core.instrument.Timer timer = micrometerMetricRegistry.timer("job_timer_"+jobType);
         timer.record(executionDurationMillis, TimeUnit.MILLISECONDS );
+    }
+
+    public void incEvaluatedDecisionInstances() {
+        getEvaluatedDiMeter().mark();
+        micrometerMetricRegistry.counter("di_evaluated").increment();
+    }
+
+    public void incStartedDecisionInstances() {
+        getStartedDiMeter().mark();
+        micrometerMetricRegistry.counter("di_started").increment();
+    }
+
+    public void incStartedDecisionInstancesBackpressure() {
+        getBackpressureOnStartDiMeter().mark();
+        micrometerMetricRegistry.counter("di_backpressure").increment();
+    }
+
+    public void incStartedDecisionInstancesException(String exceptionMessage) {
+        micrometerMetricRegistry.counter("di_exception", "exception", exceptionMessage).increment();
     }
 }

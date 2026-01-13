@@ -5,25 +5,27 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import io.camunda.zeebe.spring.client.actuator.MicrometerMetricsRecorder;
-import io.camunda.zeebe.spring.common.exception.ZeebeBpmnError;
+import io.camunda.client.api.command.ThrowErrorCommandStep1;
+import io.camunda.client.exception.BpmnError;
+import io.camunda.client.jobhandling.CommandWrapper;
+import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
+import org.camunda.community.benchmarks.strategy.BenchmarkCompleteJobExceptionHandlingStrategy;
 import org.camunda.community.benchmarks.utils.BpmnJobTypeParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
-import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
-import io.camunda.zeebe.client.api.command.FinalCommandStep;
-import io.camunda.zeebe.client.api.response.ActivatedJob;
-import io.camunda.zeebe.client.api.worker.JobClient;
-import io.camunda.zeebe.client.api.worker.JobHandler;
-import io.camunda.zeebe.client.api.worker.JobWorkerBuilderStep1;
-import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.CompleteJobCommandStep1;
+import io.camunda.client.api.command.FinalCommandStep;
+import io.camunda.client.api.response.ActivatedJob;
+import io.camunda.client.api.worker.JobClient;
+import io.camunda.client.api.worker.JobHandler;
+import io.camunda.client.api.worker.JobWorkerBuilderStep1;
 
 @Component
 public class JobWorker {
@@ -40,7 +42,7 @@ public class JobWorker {
     private TaskScheduler scheduler;
 
     @Autowired
-    private ZeebeClient client;
+    private CamundaClient client;
 
     @Autowired
     private StatisticsCollector stats;
@@ -235,7 +237,7 @@ public class JobWorker {
                             }
                         }
                     }
-                    catch (ZeebeBpmnError bpmnError) {
+                    catch (BpmnError bpmnError) {
                         CommandWrapper command = new RefactoredCommandWrapper(
                                 createThrowErrorCommand(jobClient, job, bpmnError),
                                 job.getDeadline(),
@@ -249,8 +251,8 @@ public class JobWorker {
         }
     }
 
-    private FinalCommandStep<Void> createThrowErrorCommand(JobClient jobClient, ActivatedJob job, ZeebeBpmnError bpmnError) {
-        FinalCommandStep<Void> command = jobClient.newThrowErrorCommand(job.getKey()) // TODO: PR for taking a job only in command chain
+    private ThrowErrorCommandStep1.ThrowErrorCommandStep2 createThrowErrorCommand(JobClient jobClient, ActivatedJob job, BpmnError bpmnError) {
+        ThrowErrorCommandStep1.ThrowErrorCommandStep2 command = jobClient.newThrowErrorCommand(job.getKey()) // TODO: PR for taking a job only in command chain
                 .errorCode(bpmnError.getErrorCode())
                 .errorMessage(bpmnError.getErrorMessage());
         return command;

@@ -1,6 +1,6 @@
 package org.camunda.community.benchmarks;
 
-import io.camunda.zeebe.client.api.worker.BackoffSupplier;
+import io.camunda.client.api.worker.BackoffSupplier;
 
 public class FixedBackoffSupplier implements BackoffSupplier {
 

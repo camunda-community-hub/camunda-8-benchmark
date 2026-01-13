@@ -1,32 +1,33 @@
 package org.camunda.community.benchmarks;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import io.camunda.zeebe.spring.client.actuator.MicrometerMetricsRecorder;
+import io.camunda.client.CamundaClient;
+import io.camunda.client.CamundaClientConfiguration;
+import io.camunda.client.api.command.FinalCommandStep;
+import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.client.api.response.PublishMessageResponse;
+import io.camunda.client.jobhandling.CommandWrapper;
+import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.camunda.community.benchmarks.common.BenchmarkExecutor;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.partition.PartitionHashUtil;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
+import org.camunda.community.benchmarks.strategy.BenchmarkStartPiExceptionHandlingStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.ZeebeClientConfiguration;
-import io.camunda.zeebe.client.api.command.FinalCommandStep;
-import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
 import jakarta.annotation.PostConstruct;
 
 @Component
-public class StartPiExecutor {
+public class StartPiExecutor extends BenchmarkExecutor {
 
     private static final Logger LOG = LogManager.getLogger(StartPiExecutor.class);
     
@@ -40,13 +41,13 @@ public class StartPiExecutor {
     private BenchmarkConfiguration config;
 
     @Autowired
-    private ZeebeClient client;
+    private CamundaClient client;
 
     @Autowired
     private BenchmarkStartPiExceptionHandlingStrategy exceptionHandlingStrategy;
 
     @Autowired
-    private ZeebeClientConfiguration zeebeClientConfiguration;
+    private CamundaClientConfiguration zeebeClientConfiguration;
 
     @Autowired
     private MicrometerMetricsRecorder micrometerMetricsRecorder;
@@ -87,9 +88,9 @@ public class StartPiExecutor {
                  config.getPartitionCount(), config.getNumberOfStarters(), starterId, numericClientId, java.util.Arrays.toString(targetPartitions));
     }
 
-    public void startProcessInstance() {
-        HashMap<Object, Object> variables = new HashMap<>();
-        variables.putAll(this.benchmarkPayload);
+    @Override
+    public void startInstance() {
+      HashMap<Object, Object> variables = new HashMap<>(this.benchmarkPayload);
         variables.put(BENCHMARK_START_DATE_MILLIS, Instant.now().toEpochMilli());
         variables.put(BENCHMARK_STARTER_ID, config.getStarterId());
 
@@ -102,7 +103,7 @@ public class StartPiExecutor {
     
     private void startProcessInstanceDirectly(HashMap<Object, Object> variables) {
         // Auto-complete logic from https://github.com/camunda-community-hub/spring-zeebe/blob/ec41c5af1f64e512c8e7a8deea2aeacb35e61a16/client/spring-zeebe/src/main/java/io/camunda/zeebe/spring/client/jobhandling/JobHandlerInvokingSpringBeans.java#L24
-        FinalCommandStep createCommand = client.newCreateInstanceCommand()
+        FinalCommandStep<ProcessInstanceEvent> createCommand = client.newCreateInstanceCommand()
                 .bpmnProcessId(config.getBpmnProcessId())
                 .latestVersion()
                 .variables(variables);
@@ -130,7 +131,7 @@ public class StartPiExecutor {
             correlationKey = "benchmark-fallback-p" + partition + "-" + UUID.randomUUID().toString();
         }
         
-        FinalCommandStep publishCommand = client.newPublishMessageCommand()
+        FinalCommandStep<PublishMessageResponse> publishCommand = client.newPublishMessageCommand()
                 .messageName(PARTITION_PINNING_MESSAGE_NAME)
                 .correlationKey(correlationKey)
                 .timeToLive(Duration.ofMinutes(config.getMessagesTtl()))
@@ -145,18 +146,5 @@ public class StartPiExecutor {
         
         LOG.debug("Published message with correlation key {} targeting partition {}", 
                   correlationKey, partition);
-    }
-
-    private String tryReadVariables(final InputStream inputStream) throws IOException {
-        final StringBuilder stringBuilder = new StringBuilder();
-        try (final InputStreamReader reader = new InputStreamReader(inputStream)) {
-            try (final BufferedReader br = new BufferedReader(reader)) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    stringBuilder.append(line).append("\n");
-                }
-            }
-        }
-        return stringBuilder.toString();
     }
 }

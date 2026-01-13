@@ -18,6 +18,7 @@ package org.camunda.community.benchmarks;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.actuator.MicrometerMetricsRecorder;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
+import org.camunda.community.benchmarks.strategy.BenchmarkCompleteJobExceptionHandlingStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
