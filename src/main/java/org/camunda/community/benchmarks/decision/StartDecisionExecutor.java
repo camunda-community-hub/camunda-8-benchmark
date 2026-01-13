@@ -13,11 +13,13 @@ import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
 import org.camunda.community.benchmarks.strategy.BenchmarkStartDecisionExceptionHandlingStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+@Component
 public class StartDecisionExecutor extends BenchmarkExecutor {
 
   @Autowired
