@@ -1,6 +1,6 @@
 package org.camunda.community.benchmarks.config;
 
-import io.camunda.zeebe.spring.client.actuator.MicrometerMetricsRecorder;
+import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
