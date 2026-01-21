@@ -116,10 +116,14 @@ public class StartPiExecutor extends BenchmarkExecutor {
     
     private void startProcessInstanceWithResilience(HashMap<Object, Object> variables) {
         try {
+            // Convert HashMap<Object, Object> to Map<String, Object>
+            @SuppressWarnings("unchecked")
+            Map<String, Object> stringVariables = (Map<String, Object>) (Map<?, ?>) variables;
+            
             // Use the ResilientCamundaStarter with rate limiting and retry
             resilientStarter.startProcessInstanceAsync(
                 config.getBpmnProcessId(), 
-                variables
+                stringVariables
             ).whenComplete((event, error) -> {
                 if (error != null) {
                     LOG.error("Failed to start process instance with resilience", error);
