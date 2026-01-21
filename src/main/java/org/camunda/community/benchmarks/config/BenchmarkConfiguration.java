@@ -55,4 +55,12 @@ public class BenchmarkConfiguration {
     private boolean startDecisions = true;
     private long startDiPerSecond = 500;
     private String dmnDecisionId = "benchmark-decision";
+
+    // Resilience4j configuration
+    private boolean resilienceEnabled = false;
+    private int resilienceRatelimiterLimitForPeriod = 50;
+    private long resilienceRatelimiterLimitRefreshPeriod = 1;
+    private long resilienceRatelimiterTimeoutDuration = 5;
+    private int resilienceRetryMaxAttempts = 5;
+    private long resilienceRetryWaitDuration = 200;
 }
