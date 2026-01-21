@@ -160,22 +160,7 @@
       <artifactId>lombok</artifactId>
       <scope>provided</scope>
     </dependency>
-    <!-- Resilience4j dependencies -->
-    <dependency>
-      <groupId>io.github.resilience4j</groupId>
-      <artifactId>resilience4j-core</artifactId>
-      <version>2.2.0</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.resilience4j</groupId>
-      <artifactId>resilience4j-ratelimiter</artifactId>
-      <version>2.2.0</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.resilience4j</groupId>
-      <artifactId>resilience4j-retry</artifactId>
-      <version>2.2.0</version>
-    </dependency>
+    <!-- Resilience4j dependencies - using 'all' module for Decorators utility -->
     <dependency>
       <groupId>io.github.resilience4j</groupId>
       <artifactId>resilience4j-all</artifactId>

@@ -106,8 +106,8 @@ public class StartPiExecutor extends BenchmarkExecutor {
     }
     
     private void startProcessInstanceDirectly(HashMap<Object, Object> variables) {
-        // Use resilient starter if enabled, otherwise use the traditional approach
-        if (config.isResilienceEnabled() && resilientStarter != null) {
+        // Use resilient starter if available (conditionally created when resilience is enabled)
+        if (resilientStarter != null) {
             startProcessInstanceWithResilience(variables);
         } else {
             startProcessInstanceWithCommandWrapper(variables);
