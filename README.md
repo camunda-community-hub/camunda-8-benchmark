@@ -53,7 +53,16 @@ The most common parameters to adjust are:
 - If workers shall be started (`startWorkers`). If set to false, the benchmark will only start process instances, not start any workers.
 - If all jobs shall be of the same type, of if multiple types will be used (`multipleJobTypes`). If set to 0, only one worker is started for job type `benchmark-task` (unless the name is overwritten using `jobType`), otherwise, there is the configured number of workers started, e.g. if set to 2, it will start workers for `benchmark-test-1` and `benchmark-test-2`. We noticed that changing to use a 8 unique job types (different job type for each service task) allowed the gateway to distribute the work more evenly across brokers. There is a measurable improvement in performance and it is more realistic, so it is actually recommended.
 - `fixedBackOffDelay`:  When set to 0, will default to Exponential Backoff Delay. Otherwise, specify fixed number of millis backoff
-- `startRateAdjustmentStrategy` can be `backoff` or `none` - when set to none, the start rate is constant  
+- `startRateAdjustmentStrategy` can be `backoff` or `none` - when set to none, the start rate is constant
+
+## Flow Control with Resilience4j
+
+The benchmark supports **Resilience4j-based flow control** as an alternative to the traditional backpressure strategy. This provides:
+- **Rate Limiting**: Control the rate of process instance creation
+- **Automatic Retry**: Retry on `RESOURCE_EXHAUSTED` errors with configurable backoff
+- **Better Observability**: Built-in metrics and events from Resilience4j
+
+Enable with `benchmark.resilience.enabled=true`. See [RESILIENCE.md](RESILIENCE.md) for complete documentation and configuration options.
 
 # Define your process and payload
 
