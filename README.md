@@ -159,8 +159,6 @@ When enabled, a gRPC client interceptor is registered that provides:
 
 2. **Backpressure Handling**: When a `RESOURCE_EXHAUSTED` status is received from Zeebe, the interceptor "penalizes" the bucket by consuming additional tokens. This creates a feedback loop that automatically slows down other waiting requests, giving the Zeebe broker breathing room to recover.
 
-3. **Optional Retry with Exponential Backoff**: When enabled, failed requests due to backpressure are automatically retried with exponential backoff delays.
-
 ### Configuration
 
 To enable flow control with Bucket4j, add the following to your `application.properties`:
@@ -180,15 +178,6 @@ benchmark.flowControlRefillPeriodMs=1000
 
 # Number of tokens to consume when backpressure (RESOURCE_EXHAUSTED) is detected
 benchmark.flowControlBackpressurePenalty=20
-
-# Enable automatic retry with exponential backoff on RESOURCE_EXHAUSTED errors
-benchmark.flowControlRetryEnabled=false
-
-# Maximum number of retries when flowControlRetryEnabled is true
-benchmark.flowControlMaxRetries=5
-
-# Initial backoff delay in milliseconds (doubles with each retry)
-benchmark.flowControlInitialBackoffMs=100
 ```
 
 ### Use Cases
@@ -197,7 +186,7 @@ This flow control mechanism is particularly useful for:
 
 - **Controlled Load Testing**: Set a specific rate of requests to test broker behavior under known load conditions.
 - **Production Environments**: Protect the Zeebe broker from sudden spikes in traffic by smoothing out the request rate.
-- **Self-Healing Systems**: With retry enabled, the system automatically recovers from temporary backpressure situations.
+- **Self-Healing Systems**: When combined with the existing backpressure handling, the system automatically adjusts to broker capacity.
 
 ### Comparison with Default Backpressure Strategy
 

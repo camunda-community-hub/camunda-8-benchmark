@@ -62,7 +62,4 @@ public class BenchmarkConfiguration {
     private long flowControlRefillTokens = 50;
     private long flowControlRefillPeriodMs = 1000;
     private int flowControlBackpressurePenalty = 20;
-    private boolean flowControlRetryEnabled = false;
-    private int flowControlMaxRetries = 5;
-    private long flowControlInitialBackoffMs = 100;
 }

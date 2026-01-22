@@ -62,17 +62,11 @@ public class FlowControlConfiguration {
     @Bean
     @ConditionalOnProperty(name = "benchmark.flowControlEnabled", havingValue = "true")
     public ClientInterceptor flowControlInterceptor(Bucket flowControlBucket, BenchmarkConfiguration config) {
-        LOG.info("Creating flow control interceptor with backpressurePenalty={}, retryEnabled={}, maxRetries={}, initialBackoffMs={}",
-                config.getFlowControlBackpressurePenalty(),
-                config.isFlowControlRetryEnabled(),
-                config.getFlowControlMaxRetries(),
-                config.getFlowControlInitialBackoffMs());
+        LOG.info("Creating flow control interceptor with backpressurePenalty={}",
+                config.getFlowControlBackpressurePenalty());
 
         return new FlowControlInterceptor(
                 flowControlBucket,
-                config.getFlowControlBackpressurePenalty(),
-                config.isFlowControlRetryEnabled(),
-                config.getFlowControlMaxRetries(),
-                config.getFlowControlInitialBackoffMs());
+                config.getFlowControlBackpressurePenalty());
     }
 }

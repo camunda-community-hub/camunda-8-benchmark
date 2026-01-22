@@ -38,7 +38,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -71,7 +70,7 @@ class FlowControlInterceptorTest {
                 .addLimit(Bandwidth.builder().capacity(10).refillGreedy(1, Duration.ofSeconds(1)).build())
                 .build();
 
-        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, 5, false, 0, 0);
+        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, 5);
 
         long initialTokens = bucket.getAvailableTokens();
 
@@ -93,7 +92,7 @@ class FlowControlInterceptorTest {
                 .build();
 
         int backpressurePenalty = 5;
-        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, backpressurePenalty, false, 0, 0);
+        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, backpressurePenalty);
 
         ClientCall<Object, Object> interceptedCall = interceptor.interceptCall(
                 methodDescriptor, CallOptions.DEFAULT, channel);
@@ -113,7 +112,7 @@ class FlowControlInterceptorTest {
         // Simulate backpressure
         wrappedListener.onClose(Status.RESOURCE_EXHAUSTED, new Metadata());
 
-        // Verify penalty was applied (1 token consumed + 5 penalty tokens)
+        // Verify penalty was applied (5 penalty tokens consumed)
         assertEquals(tokensBeforeBackpressure - backpressurePenalty, bucket.getAvailableTokens());
     }
 
@@ -124,7 +123,7 @@ class FlowControlInterceptorTest {
                 .addLimit(Bandwidth.builder().capacity(20).refillGreedy(1, Duration.ofSeconds(1)).build())
                 .build();
 
-        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, 10, false, 0, 0);
+        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, 10);
 
         ClientCall<Object, Object> interceptedCall = interceptor.interceptCall(
                 methodDescriptor, CallOptions.DEFAULT, channel);
@@ -153,7 +152,7 @@ class FlowControlInterceptorTest {
                 .addLimit(Bandwidth.builder().capacity(2).refillGreedy(1, Duration.ofSeconds(10)).build())
                 .build();
 
-        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, 1, false, 0, 0);
+        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, 1);
 
         AtomicInteger completedCalls = new AtomicInteger(0);
         CountDownLatch latch = new CountDownLatch(3);
@@ -178,54 +177,12 @@ class FlowControlInterceptorTest {
     }
 
     @Test
-    void testRetryOnResourceExhausted() throws InterruptedException {
-        // Create a bucket with enough tokens
-        bucket = Bucket.builder()
-                .addLimit(Bandwidth.builder().capacity(100).refillGreedy(10, Duration.ofMillis(100)).build())
-                .build();
-
-        // Enable retry with max 3 retries and 10ms initial backoff
-        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, 2, true, 3, 10);
-
-        // Create multiple mock client calls for retries
-        ClientCall<Object, Object> retryCall1 = mock(ClientCall.class);
-        ClientCall<Object, Object> retryCall2 = mock(ClientCall.class);
-
-        when(channel.newCall(any(), any())).thenReturn(clientCall, retryCall1, retryCall2);
-
-        ClientCall<Object, Object> interceptedCall = interceptor.interceptCall(
-                methodDescriptor, CallOptions.DEFAULT, channel);
-
-        @SuppressWarnings("unchecked")
-        ClientCall.Listener<Object> originalListener = mock(ClientCall.Listener.class);
-
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<ClientCall.Listener<Object>> listenerCaptor = ArgumentCaptor.forClass(ClientCall.Listener.class);
-
-        interceptedCall.start(originalListener, new Metadata());
-
-        // Verify first call started
-        verify(clientCall).start(listenerCaptor.capture(), any(Metadata.class));
-
-        // Simulate RESOURCE_EXHAUSTED - should trigger retry
-        ClientCall.Listener<Object> firstListener = listenerCaptor.getValue();
-        firstListener.onClose(Status.RESOURCE_EXHAUSTED, new Metadata());
-
-        // Wait for async retry (backoff + processing time)
-        Thread.sleep(100);
-
-        // Verify a new call was created for retry
-        verify(channel, times(2)).newCall(any(), any());
-    }
-
-    @Test
-    void testRetryDisabledPassesErrorDirectly() throws InterruptedException {
+    void testBackpressurePassesErrorToOriginalListener() throws InterruptedException {
         bucket = Bucket.builder()
                 .addLimit(Bandwidth.builder().capacity(100).refillGreedy(50, Duration.ofMillis(100)).build())
                 .build();
 
-        // Disable retry
-        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, 2, false, 0, 0);
+        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, 2);
 
         when(channel.newCall(any(), any())).thenReturn(clientCall);
 
@@ -248,12 +205,12 @@ class FlowControlInterceptorTest {
         ArgumentCaptor<ClientCall.Listener<Object>> listenerCaptor = ArgumentCaptor.forClass(ClientCall.Listener.class);
         verify(clientCall).start(listenerCaptor.capture(), any(Metadata.class));
 
-        // Simulate RESOURCE_EXHAUSTED - with retry disabled, should pass directly
+        // Simulate RESOURCE_EXHAUSTED - should pass directly to original listener
         listenerCaptor.getValue().onClose(Status.RESOURCE_EXHAUSTED, new Metadata());
 
-        // Should receive error immediately since retry is disabled
+        // Should receive error immediately
         boolean received = errorReceived.await(100, TimeUnit.MILLISECONDS);
-        assertTrue(received, "Error should be passed directly when retry is disabled");
+        assertTrue(received, "Error should be passed to original listener");
 
         // Verify only one call was made (no retry)
         verify(channel, times(1)).newCall(any(), any());

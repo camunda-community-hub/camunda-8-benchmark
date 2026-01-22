@@ -41,9 +41,6 @@ import org.slf4j.LoggerFactory;
  *       Zeebe, the interceptor penalizes the bucket by consuming additional tokens. This creates
  *       a feedback loop that automatically slows down other waiting requests.</li>
  * </ol>
- * <p>
- * Optionally, the interceptor can also retry failed calls with exponential backoff when
- * RESOURCE_EXHAUSTED errors are received.
  *
  * @see <a href="https://bucket4j.com/">Bucket4j documentation</a>
  */
@@ -53,26 +50,16 @@ public class FlowControlInterceptor implements ClientInterceptor {
 
     private final Bucket bucket;
     private final int backpressurePenalty;
-    private final boolean retryEnabled;
-    private final int maxRetries;
-    private final long initialBackoffMs;
 
     /**
      * Creates a new flow control interceptor.
      *
      * @param bucket              The Bucket4j bucket for rate limiting
      * @param backpressurePenalty Number of tokens to consume when backpressure is detected
-     * @param retryEnabled        Whether to retry on RESOURCE_EXHAUSTED errors
-     * @param maxRetries          Maximum number of retries (if retry is enabled)
-     * @param initialBackoffMs    Initial backoff delay in milliseconds (if retry is enabled)
      */
-    public FlowControlInterceptor(Bucket bucket, int backpressurePenalty, boolean retryEnabled,
-                                  int maxRetries, long initialBackoffMs) {
+    public FlowControlInterceptor(Bucket bucket, int backpressurePenalty) {
         this.bucket = bucket;
         this.backpressurePenalty = backpressurePenalty;
-        this.retryEnabled = retryEnabled;
-        this.maxRetries = maxRetries;
-        this.initialBackoffMs = initialBackoffMs;
     }
 
     @Override
@@ -93,8 +80,7 @@ public class FlowControlInterceptor implements ClientInterceptor {
                 }
 
                 // Wrap the listener to detect backpressure responses
-                Listener<RespT> wrappedListener = new BackpressureListener<>(
-                        responseListener, method, callOptions, next, headers, 0);
+                Listener<RespT> wrappedListener = new BackpressureListener<>(responseListener, method);
 
                 super.start(wrappedListener, headers);
             }
@@ -102,74 +88,35 @@ public class FlowControlInterceptor implements ClientInterceptor {
     }
 
     /**
-     * A listener that handles backpressure responses and optionally retries failed calls.
+     * A listener that handles backpressure responses by penalizing the token bucket.
+     * <p>
+     * When a RESOURCE_EXHAUSTED status is received, this listener consumes additional tokens
+     * from the bucket, which slows down other threads waiting for tokens.
+     * <p>
+     * Note: onClose is called when the gRPC call has completed (either successfully or with error).
+     * At this point, no request resources need to be cleaned up.
      */
     private class BackpressureListener<RespT>
             extends ForwardingClientCallListener.SimpleForwardingClientCallListener<RespT> {
 
         private final MethodDescriptor<?, RespT> method;
-        private final CallOptions callOptions;
-        private final Channel channel;
-        private final Metadata headers;
-        private final int retryCount;
 
-        BackpressureListener(Listener<RespT> delegate, MethodDescriptor<?, RespT> method,
-                             CallOptions callOptions, Channel channel, Metadata headers, int retryCount) {
+        BackpressureListener(Listener<RespT> delegate, MethodDescriptor<?, RespT> method) {
             super(delegate);
             this.method = method;
-            this.callOptions = callOptions;
-            this.channel = channel;
-            this.headers = headers;
-            this.retryCount = retryCount;
         }
 
         @Override
         public void onClose(Status status, Metadata trailers) {
             if (status.getCode() == Status.Code.RESOURCE_EXHAUSTED) {
-                handleBackpressure(status, trailers);
-            } else {
-                super.onClose(status, trailers);
+                // Penalize the bucket to slow down other waiting threads
+                bucket.consumeIgnoringRateLimits(backpressurePenalty);
+
+                LOG.debug("Backpressure detected for method: {}. Penalized bucket by {} tokens.",
+                        method.getFullMethodName(), backpressurePenalty);
             }
-        }
-
-        private void handleBackpressure(Status status, Metadata trailers) {
-            // Penalize the bucket to slow down other waiting threads
-            bucket.consumeIgnoringRateLimits(backpressurePenalty);
-
-            LOG.debug("Backpressure detected for method: {}. Penalized bucket by {} tokens.",
-                    method.getFullMethodName(), backpressurePenalty);
-
-            if (retryEnabled && retryCount < maxRetries) {
-                // Calculate exponential backoff delay
-                long sleepTime = initialBackoffMs * (long) Math.pow(2, retryCount);
-
-                LOG.debug("Retrying method: {} after {}ms (attempt {}/{})",
-                        method.getFullMethodName(), sleepTime, retryCount + 1, maxRetries);
-
-                try {
-                    // Sleep with exponential backoff - virtual threads park efficiently here
-                    Thread.sleep(sleepTime);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    super.onClose(status, trailers);
-                    return;
-                }
-
-                // Wait for a new token before retrying
-                bucket.asBlocking().consumeUninterruptibly(1);
-
-                // Create a new call for the retry
-                ClientCall<?, RespT> retryCall = channel.newCall(method, callOptions);
-                BackpressureListener<RespT> retryListener = new BackpressureListener<>(
-                        delegate(), method, callOptions, channel, headers, retryCount + 1);
-                retryCall.start(retryListener, headers);
-            } else {
-                // No more retries, pass the error to the application
-                if (retryEnabled && retryCount >= maxRetries) {
-                    LOG.warn("Max retries ({}) exhausted for method: {}", maxRetries, method.getFullMethodName());
-                }
-                super.onClose(status, trailers);
-            }
+            // Always pass the status to the original listener
+            super.onClose(status, trailers);
         }
     }
 }
