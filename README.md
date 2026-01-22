@@ -147,6 +147,67 @@ Normally you simply configure the task type via the modeler:
 
 See https://github.com/camunda-community-hub/camunda-8-benchmark/blob/main/src/main/resources/application.properties
 
+## Flow Control with Bucket4j
+
+This benchmark project supports an alternative flow control strategy using [Bucket4j](https://bucket4j.com/), a Java rate-limiting library based on the token-bucket algorithm.
+
+### How It Works
+
+When enabled, a gRPC client interceptor is registered that provides:
+
+1. **Rate Limiting**: Before each gRPC call to Zeebe, the interceptor waits for a token from the bucket. This effectively limits the rate of outgoing requests. With Java 21 virtual threads, this waiting is efficient and doesn't block OS threads.
+
+2. **Backpressure Handling**: When a `RESOURCE_EXHAUSTED` status is received from Zeebe, the interceptor "penalizes" the bucket by consuming additional tokens. This creates a feedback loop that automatically slows down other waiting requests, giving the Zeebe broker breathing room to recover.
+
+3. **Optional Retry with Exponential Backoff**: When enabled, failed requests due to backpressure are automatically retried with exponential backoff delays.
+
+### Configuration
+
+To enable flow control with Bucket4j, add the following to your `application.properties`:
+
+```properties
+# Enable flow control
+benchmark.flowControlEnabled=true
+
+# Maximum number of tokens in the bucket (burst capacity)
+benchmark.flowControlCapacity=100
+
+# Number of tokens added per refill period
+benchmark.flowControlRefillTokens=50
+
+# Refill period in milliseconds
+benchmark.flowControlRefillPeriodMs=1000
+
+# Number of tokens to consume when backpressure (RESOURCE_EXHAUSTED) is detected
+benchmark.flowControlBackpressurePenalty=20
+
+# Enable automatic retry with exponential backoff on RESOURCE_EXHAUSTED errors
+benchmark.flowControlRetryEnabled=false
+
+# Maximum number of retries when flowControlRetryEnabled is true
+benchmark.flowControlMaxRetries=5
+
+# Initial backoff delay in milliseconds (doubles with each retry)
+benchmark.flowControlInitialBackoffMs=100
+```
+
+### Use Cases
+
+This flow control mechanism is particularly useful for:
+
+- **Controlled Load Testing**: Set a specific rate of requests to test broker behavior under known load conditions.
+- **Production Environments**: Protect the Zeebe broker from sudden spikes in traffic by smoothing out the request rate.
+- **Self-Healing Systems**: With retry enabled, the system automatically recovers from temporary backpressure situations.
+
+### Comparison with Default Backpressure Strategy
+
+| Feature | Default Strategy | Bucket4j Flow Control |
+|---------|-----------------|----------------------|
+| Rate Limiting | Reactive (adjusts after backpressure) | Proactive (prevents excessive requests) |
+| Backpressure Response | Reduces start rate | Penalizes token bucket |
+| Burst Handling | May overwhelm broker initially | Controlled burst capacity |
+| Virtual Thread Friendly | Yes | Yes (efficient parking) |
+
 
 ## Thoughts on load generation
 
