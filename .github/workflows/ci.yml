@@ -28,7 +28,7 @@ jobs:
       - name: Build with Maven
         run: mvn clean verify -DfailTest=${{ github.event.inputs.fail }} -B --no-transfer-progress -T4
       - name: Archive Test Results on Failure
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: test-results
