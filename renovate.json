@@ -18,6 +18,11 @@
       ],
       "allowedVersions": "1.x",
       "description": "Pin Camunda Community Hub release parent to 1.x until proper migration to 2.x is done"
+    },
+    {
+      "description": "Automerge patches",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
     }
   ]
 }
