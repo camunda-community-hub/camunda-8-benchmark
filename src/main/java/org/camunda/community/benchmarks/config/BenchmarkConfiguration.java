@@ -55,4 +55,11 @@ public class BenchmarkConfiguration {
     private boolean startDecisions = true;
     private long startDiPerSecond = 500;
     private String dmnDecisionId = "benchmark-decision";
+
+    // Flow Control with Bucket4j
+    private boolean flowControlEnabled = false;
+    private long flowControlCapacity = 100;
+    private long flowControlRefillTokens = 50;
+    private long flowControlRefillPeriodMs = 1000;
+    private int flowControlBackpressurePenalty = 20;
 }
