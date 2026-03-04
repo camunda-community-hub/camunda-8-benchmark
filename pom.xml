@@ -160,6 +160,12 @@
       <artifactId>lombok</artifactId>
       <scope>provided</scope>
     </dependency>
+    <!-- Resilience4j dependencies - using 'all' module for Decorators utility -->
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-all</artifactId>
+      <version>2.2.0</version>
+    </dependency>
   </dependencies>
 
   <build>
