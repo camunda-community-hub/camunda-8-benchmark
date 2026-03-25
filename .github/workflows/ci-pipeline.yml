@@ -73,7 +73,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PSW }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@032a4b3bda1b716928481836ac5bfe36e1feaad6
+        uses: docker/metadata-action@4378dc6be7f72231dfe78ac7e0364a44f1c9f54b
         with:
           images: camundacommunityhub/camunda-8-benchmark
       - name: Build and push Docker image
