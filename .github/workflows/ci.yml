@@ -32,11 +32,15 @@ jobs:
         if: failure()
         with:
           name: test-results
-          path: target/surefire-reports/
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
           retention-days: 7
       - name: Publish Unit Test Results
         id: publish
         uses: EnricoMi/publish-unit-test-result-action@v2.20.0
         if: failure()
         with:
-          junit_files: target/surefire-reports/*.xml
+          junit_files: |
+            target/surefire-reports/*.xml
+            target/failsafe-reports/*.xml
