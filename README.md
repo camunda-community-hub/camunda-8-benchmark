@@ -147,55 +147,47 @@ Normally you simply configure the task type via the modeler:
 
 See https://github.com/camunda-community-hub/camunda-8-benchmark/blob/main/src/main/resources/application.properties
 
-## Flow Control with Bucket4j
+## Bucket4j Flow Control Strategies
 
-This benchmark project supports an alternative flow control strategy using [Bucket4j](https://bucket4j.com/), a Java rate-limiting library based on the token-bucket algorithm.
+Two additional rate adjustment strategies are available using [Bucket4j](https://bucket4j.com/) and Java 21 virtual threads. They replace the traditional 10ms batch scheduling loop with a simpler model: virtual threads consume tokens from a token bucket to pace process instance creation.
+
+### `backoff` — Fixed Rate with Backpressure Penalty
+
+Runs at the configured `startPiPerSecond` rate. When `RESOURCE_EXHAUSTED` is received from Zeebe, the token bucket is penalized (tokens drained proportional to `startPiReduceFactor`), temporarily reducing the effective rate. The rate recovers automatically as tokens refill.
+
+```properties
+benchmark.startRateAdjustmentStrategy=backoff
+benchmark.startPiPerSecond=500
+benchmark.startPiReduceFactor=0.1
+```
+
+### `autoTune` — Automatic Rate Discovery
+
+Starts at `startPiPerSecond` and periodically adjusts the rate to match what the cluster can handle. Uses the same immediate penalty as `backoff`, plus a periodic adjuster (every 10s) that increases or decreases the base rate based on the observed backpressure percentage.
+
+```properties
+benchmark.startRateAdjustmentStrategy=autoTune
+benchmark.startPiPerSecond=500
+benchmark.startPiReduceFactor=0.1
+benchmark.startPiIncreaseFactor=0.4
+benchmark.maxBackpressurePercentage=10.0
+```
 
 ### How It Works
 
-When enabled, a gRPC client interceptor is registered that provides:
+1. **Virtual threads** consume tokens from a Bucket4j bucket, each running a simple loop: acquire token → start process instance → repeat.
+2. **The bucket's refill rate** equals `startPiPerSecond`, controlling throughput.
+3. **A gRPC interceptor** detects `RESOURCE_EXHAUSTED` responses and penalizes the bucket, immediately slowing all waiting threads.
+4. **For `autoTune`:** a periodic adjuster checks backpressure percentage against `maxBackpressurePercentage` and adjusts the refill rate using the reduce/increase factors.
 
-1. **Rate Limiting**: Before each gRPC call to Zeebe, the interceptor waits for a token from the bucket. This effectively limits the rate of outgoing requests. With Java 21 virtual threads, this waiting is efficient and doesn't block OS threads.
+### Comparison of Strategies
 
-2. **Backpressure Handling**: When a `RESOURCE_EXHAUSTED` status is received from Zeebe, the interceptor "penalizes" the bucket by consuming additional tokens. This creates a feedback loop that automatically slows down other waiting requests, giving the Zeebe broker breathing room to recover.
-
-### Configuration
-
-To enable flow control with Bucket4j, add the following to your `application.properties`:
-
-```properties
-# Enable flow control
-benchmark.flowControlEnabled=true
-
-# Maximum number of tokens in the bucket (burst capacity)
-benchmark.flowControlCapacity=100
-
-# Number of tokens added per refill period
-benchmark.flowControlRefillTokens=50
-
-# Refill period in milliseconds
-benchmark.flowControlRefillPeriodMs=1000
-
-# Number of tokens to consume when backpressure (RESOURCE_EXHAUSTED) is detected
-benchmark.flowControlBackpressurePenalty=20
-```
-
-### Use Cases
-
-This flow control mechanism is particularly useful for:
-
-- **Controlled Load Testing**: Set a specific rate of requests to test broker behavior under known load conditions.
-- **Production Environments**: Protect the Zeebe broker from sudden spikes in traffic by smoothing out the request rate.
-- **Self-Healing Systems**: When combined with the existing backpressure handling, the system automatically adjusts to broker capacity.
-
-### Comparison with Default Backpressure Strategy
-
-| Feature | Default Strategy | Bucket4j Flow Control |
-|---------|-----------------|----------------------|
-| Rate Limiting | Reactive (adjusts after backpressure) | Proactive (prevents excessive requests) |
-| Backpressure Response | Reduces start rate | Penalizes token bucket |
-| Burst Handling | May overwhelm broker initially | Controlled burst capacity |
-| Virtual Thread Friendly | Yes | Yes (efficient parking) |
+| Feature | `none` | `backpressure` | `backoff` | `autoTune` |
+|---------|--------|---------------|-----------|------------|
+| Rate control | Fixed | 30s polling loop | Token bucket | Token bucket |
+| Backpressure response | None | Adjusts goal rate | Immediate penalty | Immediate penalty + rate adjustment |
+| Rate can increase | No | Yes | No | Yes |
+| Concurrency model | Thread pool + @Async | Thread pool + @Async | Virtual threads | Virtual threads |
 
 
 ## Thoughts on load generation
