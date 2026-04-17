@@ -1,21 +1,22 @@
 package org.camunda.community.benchmarks;
 
-import java.time.Instant;
-
 import org.camunda.community.benchmarks.common.BenchmarkScheduler;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 
 @Component
 @ConditionalOnProperty(name = "benchmark.startProcesses", havingValue = "true", matchIfMissing = true)
+@ConditionalOnExpression(
+    "'${benchmark.startRateAdjustmentStrategy:backpressure}' != 'backoff' and "
+  + "'${benchmark.startRateAdjustmentStrategy:backpressure}' != 'autoTune'")
 public class StartPiScheduler extends BenchmarkScheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(StartPiScheduler.class);
