@@ -23,16 +23,12 @@ class FlowControlConditionalBeanTest {
      */
     @Configuration
     @ConditionalOnProperty(name = "benchmark.startProcesses", havingValue = "true", matchIfMissing = true)
-    @ConditionalOnExpression(
-        "'${benchmark.startRateAdjustmentStrategy:backpressure}' != 'backoff' and "
-      + "'${benchmark.startRateAdjustmentStrategy:backpressure}' != 'autoTune'")
+    @ConditionalOnExpression(FlowControlStrategyExpressions.IS_NOT_FLOW_CONTROL_STRATEGY)
     static class ClassicSchedulerStandIn {
     }
 
     @Configuration
-    @ConditionalOnExpression(
-        "'${benchmark.startRateAdjustmentStrategy:backpressure}' == 'backoff' or "
-      + "'${benchmark.startRateAdjustmentStrategy:backpressure}' == 'autoTune'")
+    @ConditionalOnExpression(FlowControlStrategyExpressions.IS_FLOW_CONTROL_STRATEGY)
     static class FlowControlStandIn {
     }
 

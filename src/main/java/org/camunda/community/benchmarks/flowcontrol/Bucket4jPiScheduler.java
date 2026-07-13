@@ -8,6 +8,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.camunda.community.benchmarks.StartPiExecutor;
 import org.camunda.community.benchmarks.StatisticsCollector;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
+import org.camunda.community.benchmarks.config.FlowControlStrategyExpressions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -18,16 +19,20 @@ import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * Bucket4j-based process instance scheduler using virtual threads.
+ * Bucket4j-based process instance scheduler using a virtual thread.
  * <p>
- * Replaces the traditional 10ms batch scheduling loop with a simpler model:
- * virtual threads consume tokens from a Bucket4j bucket and fire PI starts.
- * The bucket's refill rate controls throughput, and the {@link FlowControlInterceptor}
- * provides backpressure feedback by penalizing the bucket on RESOURCE_EXHAUSTED.
+ * Replaces the traditional 10ms batch scheduling loop with a simpler model: a virtual thread
+ * consumes tokens from a Bucket4j bucket and fires PI starts. The bucket's refill rate controls
+ * throughput, and the {@link FlowControlInterceptor} provides backpressure feedback by
+ * penalizing the bucket on RESOURCE_EXHAUSTED.
+ * <p>
+ * A single virtual thread is enough here: {@link StartPiExecutor#startInstance()} is fire-and-forget
+ * (it dispatches the gRPC call asynchronously and returns immediately), so there is no blocking
+ * work per iteration to parallelize — pacing is governed entirely by the token bucket, not by
+ * how many threads are polling it. A fixed pool of worker threads would just be the classic
+ * thread-pool pattern grafted onto virtual threads, which doesn't need it.
  * <p>
  * Supports two strategies:
  * <ul>
@@ -37,22 +42,19 @@ import java.util.List;
  */
 @Component
 @ConditionalOnProperty(name = "benchmark.startProcesses", havingValue = "true", matchIfMissing = true)
-@ConditionalOnExpression(
-    "'${benchmark.startRateAdjustmentStrategy:backpressure}' == 'backoff' or "
-  + "'${benchmark.startRateAdjustmentStrategy:backpressure}' == 'autoTune'")
+@ConditionalOnExpression(FlowControlStrategyExpressions.IS_FLOW_CONTROL_STRATEGY)
 public class Bucket4jPiScheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(Bucket4jPiScheduler.class);
-    private static final int VIRTUAL_THREAD_COUNT = 100;
 
     private final Bucket bucket;
     private final StartPiExecutor executor;
     private final StatisticsCollector stats;
     private final BenchmarkConfiguration config;
     private final FlowControlInterceptor interceptor;
-    private final List<Thread> workers = new ArrayList<>();
+    private final FlowControlRate rate;
 
-    private volatile long currentRate;
+    private volatile Thread worker;
 
     public Bucket4jPiScheduler(
             Bucket flowControlBucket,
@@ -60,31 +62,26 @@ public class Bucket4jPiScheduler {
             StatisticsCollector stats,
             BenchmarkConfiguration config,
             FlowControlInterceptor flowControlInterceptor,
+            FlowControlRate flowControlRate,
             MeterRegistry meterRegistry) {
         this.bucket = flowControlBucket;
         this.executor = executor;
         this.stats = stats;
         this.config = config;
         this.interceptor = flowControlInterceptor;
-        this.currentRate = config.getStartPiPerSecond();
+        this.rate = flowControlRate;
 
-        meterRegistry.gauge("pi_rate_goal", this, s -> s.currentRate);
+        meterRegistry.gauge("pi_rate_goal", rate, FlowControlRate::get);
         meterRegistry.gauge("flowcontrol_available_tokens", bucket, Bucket::getAvailableTokens);
     }
 
     @PostConstruct
     public void start() {
         String strategy = config.getStartRateAdjustmentStrategy();
-        LOG.info("Starting Bucket4j PI scheduler: strategy={}, initialRate={}/s, virtualThreads={}",
-                strategy, currentRate, VIRTUAL_THREAD_COUNT);
-        stats.hintOnNewPiPerSecondGoald(currentRate);
+        LOG.info("Starting Bucket4j PI scheduler: strategy={}, initialRate={}/s", strategy, rate.get());
+        stats.hintOnNewPiPerSecondGoald(rate.get());
 
-        for (int i = 0; i < VIRTUAL_THREAD_COUNT; i++) {
-            Thread worker = Thread.ofVirtual()
-                    .name("bucket4j-pi-starter-", i)
-                    .start(this::startLoop);
-            workers.add(worker);
-        }
+        worker = Thread.ofVirtual().name("bucket4j-pi-starter").start(this::startLoop);
     }
 
     private void startLoop() {
@@ -123,34 +120,45 @@ public class Bucket4jPiScheduler {
 
         double backpressurePercent = (double) recentBackpressure / recentTotal * 100.0;
 
-        long previousRate = currentRate;
+        long previousRate = rate.get();
+        long newRate;
         if (backpressurePercent > config.getMaxBackpressurePercentage()) {
-            currentRate = Math.max(1, Math.round(currentRate * (1.0 - config.getStartPiReduceFactor())));
+            newRate = Math.max(1, Math.round(previousRate * (1.0 - config.getStartPiReduceFactor())));
             LOG.info("AutoTune: backpressure {}% > {}% threshold, reducing rate {} -> {}/s",
                     String.format("%.1f", backpressurePercent),
                     String.format("%.1f", config.getMaxBackpressurePercentage()),
-                    previousRate, currentRate);
+                    previousRate, newRate);
         } else {
-            currentRate = Math.max(1, Math.round(currentRate * (1.0 + config.getStartPiIncreaseFactor())));
+            newRate = Math.max(1, Math.round(previousRate * (1.0 + config.getStartPiIncreaseFactor())));
             LOG.info("AutoTune: backpressure {}% <= {}% threshold, increasing rate {} -> {}/s",
                     String.format("%.1f", backpressurePercent),
                     String.format("%.1f", config.getMaxBackpressurePercentage()),
-                    previousRate, currentRate);
+                    previousRate, newRate);
         }
+        rate.set(newRate);
 
         Bandwidth newLimit = Bandwidth.builder()
-                .capacity(currentRate)
-                .refillGreedy(currentRate, Duration.ofSeconds(1))
+                .capacity(newRate)
+                .refillGreedy(newRate, Duration.ofSeconds(1))
                 .build();
         bucket.replaceConfiguration(
                 BucketConfiguration.builder().addLimit(newLimit).build(),
                 TokensInheritanceStrategy.PROPORTIONALLY);
-        stats.hintOnNewPiPerSecondGoald(currentRate);
+        stats.hintOnNewPiPerSecondGoald(newRate);
     }
 
     @PreDestroy
     public void stop() {
-        LOG.info("Stopping Bucket4j PI scheduler ({} virtual threads)", workers.size());
-        workers.forEach(Thread::interrupt);
+        LOG.info("Stopping Bucket4j PI scheduler");
+        Thread w = worker;
+        if (w == null) {
+            return;
+        }
+        w.interrupt();
+        try {
+            w.join(Duration.ofSeconds(5).toMillis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

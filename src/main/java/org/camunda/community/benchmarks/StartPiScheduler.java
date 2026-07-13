@@ -2,6 +2,7 @@ package org.camunda.community.benchmarks;
 
 import org.camunda.community.benchmarks.common.BenchmarkScheduler;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
+import org.camunda.community.benchmarks.config.FlowControlStrategyExpressions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,9 +15,7 @@ import jakarta.annotation.PostConstruct;
 
 @Component
 @ConditionalOnProperty(name = "benchmark.startProcesses", havingValue = "true", matchIfMissing = true)
-@ConditionalOnExpression(
-    "'${benchmark.startRateAdjustmentStrategy:backpressure}' != 'backoff' and "
-  + "'${benchmark.startRateAdjustmentStrategy:backpressure}' != 'autoTune'")
+@ConditionalOnExpression(FlowControlStrategyExpressions.IS_NOT_FLOW_CONTROL_STRATEGY)
 public class StartPiScheduler extends BenchmarkScheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(StartPiScheduler.class);

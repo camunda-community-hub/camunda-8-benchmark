@@ -6,15 +6,19 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.camunda.community.benchmarks.StartPiExecutor;
 import org.camunda.community.benchmarks.StatisticsCollector;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 class Bucket4jPiSchedulerTest {
@@ -31,11 +35,19 @@ class Bucket4jPiSchedulerTest {
     private SimpleMeterRegistry meterRegistry;
     private Bucket bucket;
     private FlowControlInterceptor interceptor;
+    private Bucket4jPiScheduler scheduler;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         meterRegistry = new SimpleMeterRegistry();
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (scheduler != null) {
+            scheduler.stop();
+        }
     }
 
     private Bucket4jPiScheduler createScheduler(long startPiPerSecond, String strategy) {
@@ -52,11 +64,12 @@ class Bucket4jPiSchedulerTest {
                         .build())
                 .build();
 
-        long penaltyTokens = Math.max(1, Math.round(startPiPerSecond * 0.1));
-        interceptor = new FlowControlInterceptor(bucket, penaltyTokens, stats);
+        FlowControlRate rate = new FlowControlRate(startPiPerSecond);
+        interceptor = new FlowControlInterceptor(bucket, rate, 0.1, stats);
 
-        // Constructor does NOT call start(), so no virtual threads are spawned
-        return new Bucket4jPiScheduler(bucket, executor, stats, config, interceptor, meterRegistry);
+        // start() is not called here, so no worker thread is spawned
+        scheduler = new Bucket4jPiScheduler(bucket, executor, stats, config, interceptor, rate, meterRegistry);
+        return scheduler;
     }
 
     private double rateGoal() {
@@ -151,5 +164,39 @@ class Bucket4jPiSchedulerTest {
         assertNotNull(meterRegistry.find("pi_rate_goal").gauge());
         assertNotNull(meterRegistry.find("flowcontrol_available_tokens").gauge());
         assertEquals(500, (long) rateGoal());
+    }
+
+    /**
+     * Exercises the actual worker thread ({@code start()}/{@code startLoop()}/{@code stop()}),
+     * which the other tests above deliberately avoid (they never call {@code start()}, so no
+     * worker thread is spawned). Uses a counting fake instead of asserting an exact count, since
+     * the loop's throughput is timing-sensitive; the bounds are wide enough to tolerate slow CI
+     * while still catching gross bugs (loop never running, or running far faster/slower than the
+     * configured rate).
+     */
+    @Test
+    void startLoop_observedCallRateTracksConfiguredRate() throws InterruptedException {
+        long ratePerSecond = 200;
+        AtomicInteger callCount = new AtomicInteger();
+        doAnswer(invocation -> {
+            callCount.incrementAndGet();
+            return null;
+        }).when(executor).startInstance();
+
+        Bucket4jPiScheduler scheduler = createScheduler(ratePerSecond, "backoff");
+        scheduler.start();
+
+        long runMillis = 500;
+        Thread.sleep(runMillis);
+        scheduler.stop();
+
+        int observed = callCount.get();
+        long expected = ratePerSecond * runMillis / 1000;
+        // Wide tolerance (25%-300% of expected) to absorb scheduling jitter on shared/slow CI
+        // runners while still failing if the loop doesn't run at all or runs wildly off-rate.
+        assertTrue(observed > expected * 0.25,
+                "expected at least ~25% of " + expected + " calls in " + runMillis + "ms, got " + observed);
+        assertTrue(observed < expected * 3,
+                "expected at most ~300% of " + expected + " calls in " + runMillis + "ms, got " + observed);
     }
 }

@@ -4,6 +4,7 @@ import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import org.camunda.community.benchmarks.StatisticsCollector;
 import org.camunda.community.benchmarks.flowcontrol.FlowControlInterceptor;
+import org.camunda.community.benchmarks.flowcontrol.FlowControlRate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -20,12 +21,15 @@ import java.time.Duration;
  * {@code startPiPerSecond}. The penalty is derived from {@code startPiReduceFactor}.
  */
 @Configuration
-@ConditionalOnExpression(
-    "'${benchmark.startRateAdjustmentStrategy:backpressure}' == 'backoff' or "
-  + "'${benchmark.startRateAdjustmentStrategy:backpressure}' == 'autoTune'")
+@ConditionalOnExpression(FlowControlStrategyExpressions.IS_FLOW_CONTROL_STRATEGY)
 public class FlowControlConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(FlowControlConfiguration.class);
+
+    @Bean
+    public FlowControlRate flowControlRate(BenchmarkConfiguration config) {
+        return new FlowControlRate(config.getStartPiPerSecond());
+    }
 
     @Bean
     public Bucket flowControlBucket(BenchmarkConfiguration config) {
@@ -47,13 +51,10 @@ public class FlowControlConfiguration {
 
     @Bean
     public FlowControlInterceptor flowControlInterceptor(
-            Bucket flowControlBucket, BenchmarkConfiguration config, StatisticsCollector stats) {
-        long penaltyTokens = Math.max(1,
-                Math.round(config.getStartPiPerSecond() * config.getStartPiReduceFactor()));
+            Bucket flowControlBucket, BenchmarkConfiguration config, StatisticsCollector stats,
+            FlowControlRate flowControlRate) {
+        LOG.info("Creating flow control interceptor: reduceFactor={}", config.getStartPiReduceFactor());
 
-        LOG.info("Creating flow control interceptor: penaltyTokens={} ({}% of capacity)",
-                penaltyTokens, config.getStartPiReduceFactor() * 100);
-
-        return new FlowControlInterceptor(flowControlBucket, penaltyTokens, stats);
+        return new FlowControlInterceptor(flowControlBucket, flowControlRate, config.getStartPiReduceFactor(), stats);
     }
 }
