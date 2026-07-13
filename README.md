@@ -151,6 +151,54 @@ Normally you simply configure the task type via the modeler:
 
 See https://github.com/camunda-community-hub/camunda-8-benchmark/blob/main/src/main/resources/application.properties
 
+## Bucket4j Flow Control Strategies
+
+Two additional rate adjustment strategies are available using [Bucket4j](https://bucket4j.com/) and Java 21 virtual threads. They replace the traditional 10ms batch scheduling loop with a simpler model: a virtual thread consumes tokens from a token bucket to pace process instance creation.
+
+Only the PI-starting path (`benchmark.startProcesses`) has a Bucket4j-based scheduler. `benchmark.startDecisions=true` (DMN load testing) is not supported together with `backoff`/`autoTune` and stays disabled while either is selected.
+
+### `backoff` — Fixed Rate with Backpressure Penalty
+
+Runs at the configured `startPiPerSecond` rate. When `RESOURCE_EXHAUSTED` is received from Zeebe, the token bucket is penalized (tokens drained proportional to `startPiReduceFactor`), temporarily reducing the effective rate. The rate recovers automatically as tokens refill.
+
+```properties
+benchmark.startRateAdjustmentStrategy=backoff
+benchmark.startPiPerSecond=500
+benchmark.startPiReduceFactor=0.1
+```
+
+### `autoTune` — Automatic Rate Discovery
+
+Starts at `startPiPerSecond` and periodically adjusts the rate to match what the cluster can handle. Uses the same immediate penalty as `backoff`, plus a periodic adjuster (every 10s) that increases or decreases the base rate based on the observed backpressure percentage.
+
+```properties
+benchmark.startRateAdjustmentStrategy=autoTune
+benchmark.startPiPerSecond=500
+benchmark.startPiReduceFactor=0.1
+benchmark.startPiIncreaseFactor=0.4
+benchmark.maxBackpressurePercentage=10.0
+```
+
+### How It Works
+
+1. **A virtual thread** consumes tokens from a Bucket4j bucket, running a simple loop: acquire token → start process instance → repeat. A single thread is enough because starting a process instance is fire-and-forget (async, non-blocking), so throughput is governed entirely by the token bucket, not by how many threads poll it.
+2. **The bucket's refill rate** equals `startPiPerSecond`, controlling throughput.
+3. **A gRPC interceptor** detects `RESOURCE_EXHAUSTED` responses and penalizes the bucket, immediately slowing down the waiting thread. Note that this interceptor is registered on the whole client, not just PI-start calls — see the caveat about `startDecisions` above.
+4. **For `autoTune`:** a periodic adjuster checks backpressure percentage against `maxBackpressurePercentage` and adjusts the refill rate using the reduce/increase factors.
+
+### Comparison of Strategies
+
+| Feature | `none` | `backpressure` | `backoff` | `autoTune` |
+|---------|--------|---------------|-----------|------------|
+| Rate control | Fixed | 30s polling loop | Token bucket | Token bucket |
+| Backpressure response | None | Adjusts goal rate | Immediate penalty | Immediate penalty + rate adjustment |
+| Rate can increase | No | Yes | No | Yes |
+| Concurrency model | Thread pool + @Async | Thread pool + @Async | 1 virtual thread | 1 virtual thread |
+
+### Testing
+
+The `backoff`/`autoTune`/`none`/`backpressure` strategies are covered by `*IT` integration tests (e.g. `FlowControlIntegrationIT`, `NoneStrategyIT`, `BackpressureStrategyIT`) that spin up a real Zeebe engine via `camunda-process-test-spring`/Testcontainers. These run as part of `mvn clean verify` (via `maven-failsafe-plugin`), so **Docker must be running** for that command to succeed — this is a new requirement introduced alongside this feature; previously `mvn clean verify` had no Docker dependency. Each `*IT` class starts its own container (roughly 20-50s), adding a couple of minutes to local/CI build time.
+
 
 ## Thoughts on load generation
 
