@@ -64,7 +64,7 @@ class Bucket4jPiSchedulerTest {
                         .build())
                 .build();
 
-        FlowControlRate rate = new FlowControlRate(startPiPerSecond);
+        RateGoal rate = new RateGoal(startPiPerSecond);
         interceptor = new FlowControlInterceptor(bucket, rate, 0.1, stats);
 
         // start() is not called here, so no worker thread is spawned

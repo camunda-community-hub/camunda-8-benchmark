@@ -4,7 +4,7 @@ import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import org.camunda.community.benchmarks.StatisticsCollector;
 import org.camunda.community.benchmarks.flowcontrol.FlowControlInterceptor;
-import org.camunda.community.benchmarks.flowcontrol.FlowControlRate;
+import org.camunda.community.benchmarks.flowcontrol.RateGoal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -27,8 +27,8 @@ public class FlowControlConfiguration {
     private static final Logger LOG = LoggerFactory.getLogger(FlowControlConfiguration.class);
 
     @Bean
-    public FlowControlRate flowControlRate(BenchmarkConfiguration config) {
-        return new FlowControlRate(config.getStartPiPerSecond());
+    public RateGoal rateGoal(BenchmarkConfiguration config) {
+        return new RateGoal(config.getStartPiPerSecond());
     }
 
     @Bean
@@ -52,9 +52,9 @@ public class FlowControlConfiguration {
     @Bean
     public FlowControlInterceptor flowControlInterceptor(
             Bucket flowControlBucket, BenchmarkConfiguration config, StatisticsCollector stats,
-            FlowControlRate flowControlRate) {
+            RateGoal rateGoal) {
         LOG.info("Creating flow control interceptor: reduceFactor={}", config.getStartPiReduceFactor());
 
-        return new FlowControlInterceptor(flowControlBucket, flowControlRate, config.getStartPiReduceFactor(), stats);
+        return new FlowControlInterceptor(flowControlBucket, rateGoal, config.getStartPiReduceFactor(), stats);
     }
 }

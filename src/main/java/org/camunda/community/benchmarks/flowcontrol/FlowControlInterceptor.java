@@ -41,13 +41,13 @@ public class FlowControlInterceptor implements ClientInterceptor {
     private static final Logger LOG = LoggerFactory.getLogger(FlowControlInterceptor.class);
 
     private final Bucket bucket;
-    private final FlowControlRate rate;
+    private final RateGoal rate;
     private final double penaltyFactor;
     private final StatisticsCollector stats;
     private final AtomicLong backpressureCount = new AtomicLong(0);
     private final AtomicLong totalCallCount = new AtomicLong(0);
 
-    public FlowControlInterceptor(Bucket bucket, FlowControlRate rate, double penaltyFactor, StatisticsCollector stats) {
+    public FlowControlInterceptor(Bucket bucket, RateGoal rate, double penaltyFactor, StatisticsCollector stats) {
         this.bucket = bucket;
         this.rate = rate;
         this.penaltyFactor = penaltyFactor;

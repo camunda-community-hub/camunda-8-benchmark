@@ -52,7 +52,7 @@ public class Bucket4jPiScheduler {
     private final StatisticsCollector stats;
     private final BenchmarkConfiguration config;
     private final FlowControlInterceptor interceptor;
-    private final FlowControlRate rate;
+    private final RateGoal rate;
 
     private volatile Thread worker;
 
@@ -62,16 +62,16 @@ public class Bucket4jPiScheduler {
             StatisticsCollector stats,
             BenchmarkConfiguration config,
             FlowControlInterceptor flowControlInterceptor,
-            FlowControlRate flowControlRate,
+            RateGoal rateGoal,
             MeterRegistry meterRegistry) {
         this.bucket = flowControlBucket;
         this.executor = executor;
         this.stats = stats;
         this.config = config;
         this.interceptor = flowControlInterceptor;
-        this.rate = flowControlRate;
+        this.rate = rateGoal;
 
-        meterRegistry.gauge("pi_rate_goal", rate, FlowControlRate::get);
+        meterRegistry.gauge("pi_rate_goal", rate, RateGoal::get);
         meterRegistry.gauge("flowcontrol_available_tokens", bucket, Bucket::getAvailableTokens);
     }
 
