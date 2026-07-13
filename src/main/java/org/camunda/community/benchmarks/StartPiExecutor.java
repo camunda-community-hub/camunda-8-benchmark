@@ -21,6 +21,7 @@ import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.partition.PartitionHashUtil;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
 import org.camunda.community.benchmarks.strategy.BenchmarkStartPiExceptionHandlingStrategy;
+import org.camunda.community.benchmarks.resilience.ResilientCamundaStarter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -51,6 +52,9 @@ public class StartPiExecutor extends BenchmarkExecutor {
 
     @Autowired
     private MicrometerMetricsRecorder micrometerMetricsRecorder;
+
+    @Autowired(required = false)
+    private ResilientCamundaStarter resilientStarter;
 
     private Map<String, Object> benchmarkPayload;
     
@@ -102,6 +106,37 @@ public class StartPiExecutor extends BenchmarkExecutor {
     }
     
     private void startProcessInstanceDirectly(HashMap<Object, Object> variables) {
+        // Use resilient starter if available (conditionally created when resilience is enabled)
+        if (resilientStarter != null) {
+            startProcessInstanceWithResilience(variables);
+        } else {
+            startProcessInstanceWithCommandWrapper(variables);
+        }
+    }
+    
+    private void startProcessInstanceWithResilience(HashMap<Object, Object> variables) {
+        try {
+            // Convert HashMap<Object, Object> to Map<String, Object>
+            @SuppressWarnings("unchecked")
+            Map<String, Object> stringVariables = (Map<String, Object>) (Map<?, ?>) variables;
+            
+            // Use the ResilientCamundaStarter with rate limiting and retry
+            resilientStarter.startProcessInstanceAsync(
+                config.getBpmnProcessId(), 
+                stringVariables
+            ).whenComplete((event, error) -> {
+                if (error != null) {
+                    LOG.error("Failed to start process instance with resilience", error);
+                } else {
+                    LOG.debug("Started process instance with key: {}", event.getProcessInstanceKey());
+                }
+            });
+        } catch (Exception e) {
+            LOG.error("Exception in resilient process start", e);
+        }
+    }
+    
+    private void startProcessInstanceWithCommandWrapper(HashMap<Object, Object> variables) {
         // Auto-complete logic from https://github.com/camunda-community-hub/spring-zeebe/blob/ec41c5af1f64e512c8e7a8deea2aeacb35e61a16/client/spring-zeebe/src/main/java/io/camunda/zeebe/spring/client/jobhandling/JobHandlerInvokingSpringBeans.java#L24
         FinalCommandStep<ProcessInstanceEvent> createCommand = client.newCreateInstanceCommand()
                 .bpmnProcessId(config.getBpmnProcessId())
