@@ -57,7 +57,7 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>33.4.8-jre</version>
+      <version>33.6.0-jre</version>
     </dependency>
 
 
@@ -82,7 +82,7 @@
     <dependency>
       <groupId>com.typesafe</groupId>
       <artifactId>config</artifactId>
-      <version>1.4.6</version>
+      <version>1.4.9</version>
     </dependency>
 
     <dependency>
@@ -98,7 +98,7 @@
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-prometheus</artifactId>
-      <version>1.15.3</version>
+      <version>1.17.0</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -161,19 +161,19 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>5.13.4</version>
+      <version>5.14.4</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>5.19.0</version>
+      <version>5.23.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
-      <version>5.19.0</version>
+      <version>5.23.0</version>
       <scope>test</scope>
     </dependency>
     <!-- Generates getters/setters (e.g. on BenchmarkConfiguration). Maven picks this up
@@ -196,7 +196,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>3.5.1</version>
+        <version>3.6.3</version>
         <configuration>
           <mainClass>org.camunda.community.benchmarks.BenchmarkApplication</mainClass>
         </configuration>
