@@ -155,6 +155,9 @@
       <version>5.19.0</version>
       <scope>test</scope>
     </dependency>
+    <!-- Generates getters/setters (e.g. on BenchmarkConfiguration). Maven picks this up
+         automatically, but your IDE needs the Lombok plugin + annotation processing enabled,
+         see https://projectlombok.org/setup/ -->
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
