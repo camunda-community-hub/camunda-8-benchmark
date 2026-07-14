@@ -25,10 +25,6 @@ A good environment
 * is either setup in Camunda SaaS with a Camunda representive helping you to get a resonable sized cluster
 * or provisioned [self-managed](https://docs.camunda.io/docs/next/self-managed/platform-deployment/overview/#deployment-recommendation) in a properly sized environment.
 
-# Development setup
-
-This project uses [Lombok](https://projectlombok.org/) to generate getters/setters (e.g. on `BenchmarkConfiguration`). Building with Maven (`mvn clean install`) works out of the box, but if you open the code in an IDE, install the Lombok plugin and enable annotation processing — otherwise the IDE will show false "cannot find symbol" errors for methods like `getStartPiPerSecond()`. See [projectlombok.org/setup](https://projectlombok.org/setup/) for IDE-specific instructions.
-
 # How-to run
 
 You only need to run this one application for driving your benchmark, but you might configure/scale this application if you need to produce more load to utilize your cluster(you might want to adjust the `benchmark.startPiReduceFactor` of the properties as backpressure is then "distributed" over various load generators)
@@ -308,6 +304,14 @@ kubectl apply -f k8s/benchmark.yaml
   at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
   at java.base/java.lang.Thread.run(Thread.java:833)
 ```
+
+# Development setup
+
+This project uses [Lombok](https://projectlombok.org/) to generate getters/setters (e.g. on `BenchmarkConfiguration`).
+Building with Maven (`mvn clean install`) works out of the box, but if you open the code in an IDE,
+install the Lombok plugin and enable annotation processing — otherwise the IDE will show false "cannot find symbol" errors
+for methods like `getStartPiPerSecond()`.
+See [projectlombok.org/setup](https://projectlombok.org/setup/) for IDE-specific instructions.
 
 # Building and using an own version of the Docker image
 
