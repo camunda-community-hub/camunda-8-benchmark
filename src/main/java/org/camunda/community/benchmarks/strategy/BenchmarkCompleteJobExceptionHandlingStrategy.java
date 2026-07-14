@@ -8,6 +8,7 @@ import org.camunda.community.benchmarks.StatisticsCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +23,7 @@ public class BenchmarkCompleteJobExceptionHandlingStrategy extends DefaultComman
     @Autowired
     private StatisticsCollector stats;
 
-    public BenchmarkCompleteJobExceptionHandlingStrategy(@Autowired BackoffSupplier backoffSupplier, @Autowired ScheduledExecutorService scheduledExecutorService) {
+    public BenchmarkCompleteJobExceptionHandlingStrategy(@Autowired @Qualifier("backoffSupplier") BackoffSupplier backoffSupplier, @Autowired ScheduledExecutorService scheduledExecutorService) {
         super(backoffSupplier, scheduledExecutorService);
     }
 

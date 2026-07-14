@@ -9,6 +9,7 @@ import org.camunda.community.benchmarks.StatisticsCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ScheduledExecutorService;
@@ -17,11 +18,11 @@ import java.util.concurrent.ScheduledExecutorService;
 public class BenchmarkStartPiExceptionHandlingStrategy extends DefaultCommandExceptionHandlingStrategy {
 
     private static final Logger LOG = LoggerFactory.getLogger(BenchmarkStartPiExceptionHandlingStrategy.class);
-    
+
     @Autowired
     private StatisticsCollector stats;
 
-    public BenchmarkStartPiExceptionHandlingStrategy(@Autowired BackoffSupplier backoffSupplier, @Autowired ScheduledExecutorService scheduledExecutorService) {
+    public BenchmarkStartPiExceptionHandlingStrategy(@Autowired @Qualifier("backoffSupplier") BackoffSupplier backoffSupplier, @Autowired ScheduledExecutorService scheduledExecutorService) {
         super(backoffSupplier, scheduledExecutorService);
     }
 

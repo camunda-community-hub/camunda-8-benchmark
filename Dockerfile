@@ -4,7 +4,7 @@ COPY pom.xml pom.xml
 RUN mvn dependency:resolve-plugins dependency:resolve package -Dspring-boot.repackage.skip=true -Dmaven.test.skip=true -DskipTests -DskipChecks
 COPY src/ src/
 RUN mvn package -Dspring-boot.repackage.layers.enabled=true -Dmaven.test.skip=true -DskipTests -DskipChecks
-RUN java -Djarmode=layertools -jar target/*.jar extract
+RUN java -Djarmode=tools -jar target/*.jar extract --layers --launcher --destination . --force
 
 FROM azul/zulu-openjdk-alpine:25.0.3-jre-headless
 CMD java $JAVA_OPTIONS org.springframework.boot.loader.launch.JarLauncher

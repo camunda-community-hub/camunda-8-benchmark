@@ -5,6 +5,7 @@ import io.camunda.client.CamundaClientConfiguration;
 import io.camunda.client.api.command.FinalCommandStep;
 import io.camunda.client.api.response.EvaluateDecisionResponse;
 import io.camunda.client.jobhandling.CommandWrapper;
+import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import jakarta.annotation.PostConstruct;
 import org.camunda.community.benchmarks.common.BenchmarkExecutor;
@@ -59,9 +60,11 @@ public class StartDecisionExecutor extends BenchmarkExecutor {
             createCommand,
             System.currentTimeMillis() + 5 * 60 * 1000, // 5 minutes
             "CreateDi" + config.getDmnDecisionId(),
-            exceptionHandlingStrategy, micrometerMetricsRecorder);
+            exceptionHandlingStrategy, micrometerMetricsRecorder,
+            new MetricsRecorder.CounterMetricsContext("DI_action",
+                    Map.of("op", "start", "type", config.getDmnDecisionId()), 1));
 
-    command.executeAsyncWithMetrics("DI_action","start",config.getDmnDecisionId());
+    command.executeAsyncWithMetrics(MetricsRecorder::increaseCompleted);
     stats.incEvaluatedDecisionInstances();
   }
 }

@@ -13,6 +13,7 @@ import io.camunda.client.api.command.FinalCommandStep;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.client.api.response.PublishMessageResponse;
 import io.camunda.client.jobhandling.CommandWrapper;
+import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -111,8 +112,10 @@ public class StartPiExecutor extends BenchmarkExecutor {
                 createCommand,
                 System.currentTimeMillis() + 5 * 60 * 1000, // 5 minutes
                 "CreatePi" + config.getBpmnProcessId(),
-                exceptionHandlingStrategy, micrometerMetricsRecorder);
-        command.executeAsyncWithMetrics("PI_action","start",config.getBpmnProcessId());
+                exceptionHandlingStrategy, micrometerMetricsRecorder,
+                new MetricsRecorder.CounterMetricsContext("PI_action",
+                        Map.of("op", "start", "type", config.getBpmnProcessId()), 1));
+        command.executeAsyncWithMetrics(MetricsRecorder::increaseCompleted);
     }
     
     private void startProcessInstanceViaMessage(HashMap<Object, Object> variables) {
@@ -139,10 +142,12 @@ public class StartPiExecutor extends BenchmarkExecutor {
                 
         CommandWrapper command = new RefactoredCommandWrapper(
                 publishCommand,
-                System.currentTimeMillis() + 5 * 60 * 1000, // 5 minutes  
+                System.currentTimeMillis() + 5 * 60 * 1000, // 5 minutes
                 "PublishMessage" + PARTITION_PINNING_MESSAGE_NAME,
-                exceptionHandlingStrategy, micrometerMetricsRecorder);
-        command.executeAsyncWithMetrics("PI_action","start_message",config.getBpmnProcessId());
+                exceptionHandlingStrategy, micrometerMetricsRecorder,
+                new MetricsRecorder.CounterMetricsContext("PI_action",
+                        Map.of("op", "start_message", "type", config.getBpmnProcessId()), 1));
+        command.executeAsyncWithMetrics(MetricsRecorder::increaseCompleted);
         
         LOG.debug("Published message with correlation key {} targeting partition {}", 
                   correlationKey, partition);

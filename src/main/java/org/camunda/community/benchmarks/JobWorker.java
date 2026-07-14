@@ -8,6 +8,7 @@ import java.util.Set;
 import io.camunda.client.api.command.ThrowErrorCommandStep1;
 import io.camunda.client.exception.BpmnError;
 import io.camunda.client.jobhandling.CommandWrapper;
+import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -208,7 +209,9 @@ public class JobWorker {
                     job.getDeadline(),
                     job.toString(),
                     exceptionHandlingStrategy,
-                    micrometerMetricsRecorder);
+                    micrometerMetricsRecorder,
+                    new MetricsRecorder.CounterMetricsContext("job_completion",
+                            Map.of("type", job.getType()), 1));
             Map<String, Object> variables = job.getVariablesAsMap();
             Long delay = config.getTaskCompletionDelay();
             if (variables.containsKey("delay")) {
@@ -222,7 +225,7 @@ public class JobWorker {
                 public void run() {
                     try {
                         var jobType =job.getType();
-                        command.executeAsyncWithMetrics("job_completion",jobType,"complete");
+                        command.executeAsyncWithMetrics(MetricsRecorder::increaseCompleted);
 
                         var completionTime = Instant.now().toEpochMilli();
                         stats.incCompletedJobs();
@@ -243,8 +246,10 @@ public class JobWorker {
                                 job.getDeadline(),
                                 job.toString(),
                                 exceptionHandlingStrategy,
-                                micrometerMetricsRecorder);
-                        command.executeAsyncWithMetrics("job_error",job.getType(),bpmnError.getErrorCode()+"-"+bpmnError.getErrorMessage());
+                                micrometerMetricsRecorder,
+                                new MetricsRecorder.CounterMetricsContext("job_error",
+                                        Map.of("type", job.getType(), "error", bpmnError.getErrorCode() + "-" + bpmnError.getErrorMessage()), 1));
+                        command.executeAsyncWithMetrics(MetricsRecorder::increaseCompleted);
                     }
                 }
             }, Instant.now().plusMillis(delay));

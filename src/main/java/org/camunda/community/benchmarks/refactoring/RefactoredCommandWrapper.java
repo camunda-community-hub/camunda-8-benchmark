@@ -23,8 +23,8 @@ public class RefactoredCommandWrapper extends CommandWrapper {
         private int invocationCounter = 0;
         private final int maxRetries = 20;
 
-        public RefactoredCommandWrapper(FinalCommandStep<?> command, long deadline, String entityLogInfo, DefaultCommandExceptionHandlingStrategy commandExceptionHandlingStrategy, MetricsRecorder metricsRecorder) {
-            super(command, null, commandExceptionHandlingStrategy, metricsRecorder, 20);
+        public RefactoredCommandWrapper(FinalCommandStep<?> command, long deadline, String entityLogInfo, DefaultCommandExceptionHandlingStrategy commandExceptionHandlingStrategy, MetricsRecorder metricsRecorder, MetricsRecorder.CounterMetricsContext metricsContext) {
+            super(command, null, commandExceptionHandlingStrategy, metricsRecorder, metricsContext, 20);
             this.command = command;
             this.deadline = deadline;
             this.entityLogInfo = entityLogInfo;

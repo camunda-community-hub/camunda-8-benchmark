@@ -7,6 +7,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.camunda.community.benchmarks.StatisticsCollector;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ScheduledExecutorService;
@@ -17,7 +18,7 @@ public class BenchmarkStartDecisionExceptionHandlingStrategy extends DefaultComm
   @Autowired
   private StatisticsCollector stats;
 
-  public BenchmarkStartDecisionExceptionHandlingStrategy(@Autowired BackoffSupplier backoffSupplier, @Autowired ScheduledExecutorService scheduledExecutorService) {
+  public BenchmarkStartDecisionExceptionHandlingStrategy(@Autowired @Qualifier("backoffSupplier") BackoffSupplier backoffSupplier, @Autowired ScheduledExecutorService scheduledExecutorService) {
     super(backoffSupplier, scheduledExecutorService);
   }
 

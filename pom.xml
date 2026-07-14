@@ -36,7 +36,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <license.header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</license.header>
     <version.java>21</version.java>
-    <camunda.version>8.8.14</camunda.version>
+    <camunda.version>8.9.12</camunda.version>
     <maven.version>3.0</maven.version>
   </properties>
 
@@ -45,7 +45,7 @@
       <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-dependencies</artifactId>
-        <version>3.4.8</version>
+        <version>4.1.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -63,7 +63,7 @@
 
     <dependency>
       <groupId>io.camunda</groupId>
-      <artifactId>spring-boot-starter-camunda-sdk</artifactId>
+      <artifactId>camunda-spring-boot-starter</artifactId>
       <version>${camunda.version}</version>
     </dependency>
     <dependency>
@@ -204,7 +204,7 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-        <version>3.4.8</version>
+        <version>4.1.0</version>
         <executions>
           <execution>
             <goals>
