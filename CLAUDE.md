@@ -26,9 +26,9 @@ The `license-maven-plugin` enforces an Apache-2.0 header on source files; `mvn c
 
 `mvn clean verify` (and `mvn clean install`, since it passes through the `verify` phase too) also runs `*IT` integration tests via `maven-failsafe-plugin`. Several of these (`BackpressureStrategyIT`, `NoneStrategyIT`, `FlowControlIntegrationIT`) spin up a real Zeebe engine per test class via `camunda-process-test-spring`/Testcontainers — **Docker must be running locally** for those commands to succeed; each class takes roughly 20-50s to start its container. `mvn test` (surefire only) stays Docker-free.
 
-CI (`.github/workflows/ci.yml`) runs `mvn clean verify -B --no-transfer-progress -T4` on every push/PR to non-main branches. `.github/workflows/ci-pipeline.yml` builds/publishes on `main` and on releases (Docker push to `camundacommunityhub/camunda-8-benchmark`, Maven Central deploy is currently disabled, see issue #149).
+CI (`.github/workflows/ci.yml`) runs `mvn clean verify -B --no-transfer-progress -T4` on every push/PR to non-main branches. `.github/workflows/ci-pipeline.yml` builds/publishes on `main` and on releases (Docker push to `camundacommunityhub/camunda-8-benchmark`, tag `main` or the release tag; Maven Central deploy is currently disabled, see issue #149).
 
-Docker: `docker build . --tag <name>` (see `Makefile` for the image tags used to push to the internal GCR registry). Local metrics stack: `cd grafana && docker compose up` (Prometheus on :9090, Grafana on :3000, app metrics at `http://localhost:8088/actuator/prometheus`).
+Docker: images are built via the Spring Boot Maven plugin's Cloud Native Buildpacks support (`mvn spring-boot:build-image`), not a Dockerfile — there isn't one in this repo. Override the tag with `-Dspring-boot.build-image.imageName=<name>:<tag>`; see `Makefile` for the tag pushed to the internal GCR test registry. Local metrics stack: `cd grafana && docker compose up` (Prometheus on :9090, Grafana on :3000, app metrics at `http://localhost:8088/actuator/prometheus`).
 
 ## Architecture
 

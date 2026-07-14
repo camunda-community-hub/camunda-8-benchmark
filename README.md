@@ -315,5 +315,9 @@ See [projectlombok.org/setup](https://projectlombok.org/setup/) for IDE-specific
 
 # Building and using an own version of the Docker image
 
-1. To build the docker image you can run `docker build . --tag gcr.io/camunda-researchanddevelopment/falko-camunda-8-benchmark:0.0.1-SNAPSHOT`
-2. Then you can push the image: `docker push 'gcr.io/camunda-researchanddevelopment/falko-camunda-8-benchmark:0.0.1-SNAPSHOT'`
+The image is built with the Spring Boot Maven plugin's [Cloud Native Buildpacks](https://docs.spring.io/spring-boot/maven-plugin/build-image.html) support instead of a Dockerfile — no Docker daemon config or manual layering to maintain, and repeat builds reuse cached dependency/buildpack layers automatically (only re-fetching/rebuilding what actually changed).
+
+1. To build a local image, run `mvn spring-boot:build-image` — this tags it as `camunda-8-benchmark:<version>` by default. To use your own name/tag: `mvn spring-boot:build-image -Dspring-boot.build-image.imageName=<your-registry>/<name>:<tag>`
+2. Then push it: `docker push <your-registry>/<name>:<tag>`
+
+See the `Makefile` for an example (targets `all`/`install`) pushing to a private test registry — unrelated to the public image at [hub.docker.com/r/camundacommunityhub/camunda-8-benchmark](https://hub.docker.com/r/camundacommunityhub/camunda-8-benchmark), which CI builds and publishes the same way on every push to `main` (tag `main`) and on every GitHub release (tag matching the release name).
