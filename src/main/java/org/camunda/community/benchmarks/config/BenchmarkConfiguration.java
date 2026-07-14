@@ -47,6 +47,10 @@ public class BenchmarkConfiguration {
 
     private int taskPiRatio;
 
+    // Used by the "autoTuneJobRatio" strategy: how far actual/expected job completion rate
+    // (expected = jobsPerInstance * PI-start rate) may drop before the strategy throttles.
+    private double minJobCompletionRatio = 0.8;
+
     private long fixedBackOffDelay = 0;
     
     private Resource messageScenario;

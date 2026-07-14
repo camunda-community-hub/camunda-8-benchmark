@@ -9,6 +9,8 @@ import org.camunda.community.benchmarks.StartPiExecutor;
 import org.camunda.community.benchmarks.StatisticsCollector;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.config.FlowControlStrategyExpressions;
+import org.camunda.community.benchmarks.utils.BpmnJobTypeParser;
+import org.camunda.community.benchmarks.utils.JobTypeCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -19,6 +21,8 @@ import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.Duration;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Bucket4j-based process instance scheduler using a virtual thread.
@@ -34,10 +38,13 @@ import java.time.Duration;
  * how many threads are polling it. A fixed pool of worker threads would just be the classic
  * thread-pool pattern grafted onto virtual threads, which doesn't need it.
  * <p>
- * Supports two strategies:
+ * Supports three strategies:
  * <ul>
  *   <li>{@code backoff} — fixed rate with penalty-based backoff, recovers to target</li>
- *   <li>{@code autoTune} — periodic rate adjustment to discover cluster capacity, see {@link #adjustRate()}</li>
+ *   <li>{@code autoTune} — gRPC-backpressure-driven rate discovery, see {@link #adjustRate()}</li>
+ *   <li>{@code autoTuneJobRatio} — job-completion-rate-driven rate discovery, see
+ *       {@link #adjustRateByJobRatio()}; a better signal where applicable, but requires this same
+ *       instance to also run job workers for the deployed process</li>
  * </ul>
  */
 @Component
@@ -53,12 +60,20 @@ public class Bucket4jPiScheduler {
     private final BenchmarkConfiguration config;
     private final RateGoal rate;
 
+    /**
+     * Distinct job types for the deployed process (BPMN-discovered union configured), i.e. how
+     * many job completions one fully-executed process instance is expected to produce. Only used
+     * by {@code autoTuneJobRatio}; computed unconditionally at startup regardless of strategy
+     * since it's cheap and doesn't depend on {@code benchmark.startWorkers} being enabled here.
+     */
+    private final int jobsPerInstance;
+
     private volatile Thread worker;
 
     /**
-     * Once {@code true}, {@link #adjustRate()} has seen a real congestion event and permanently
-     * stays in additive-increase mode (see {@link #adjustRate()}) instead of ever returning to
-     * exponential slow-start growth. This assumes a roughly fixed-size target cluster for the
+     * Once {@code true}, {@link #adjustRate()}/{@link #adjustRateByJobRatio()} has seen a real
+     * congestion event and permanently stays in additive-increase mode instead of ever returning
+     * to exponential slow-start growth. This assumes a roughly fixed-size target cluster for the
      * lifetime of a single benchmark run.
      */
     private volatile boolean slowStart = true;
@@ -75,16 +90,34 @@ public class Bucket4jPiScheduler {
         this.stats = stats;
         this.config = config;
         this.rate = rateGoal;
+        this.jobsPerInstance = countJobTypes(config);
 
         meterRegistry.gauge("pi_rate_goal", rate, RateGoal::get);
         meterRegistry.gauge("flowcontrol_available_tokens", bucket, Bucket::getAvailableTokens);
     }
 
+    private static int countJobTypes(BenchmarkConfiguration config) {
+        Set<String> jobTypes = new HashSet<>(JobTypeCounter.fromConfiguration(config));
+        if (config.isAutoDeployProcess() && config.getBpmnResource() != null && config.getBpmnResource().length > 0) {
+            jobTypes.addAll(BpmnJobTypeParser.extractJobTypes(config.getBpmnResource()));
+        }
+        return jobTypes.size();
+    }
+
     @PostConstruct
     public void start() {
         String strategy = config.getStartRateAdjustmentStrategy();
-        LOG.info("Starting Bucket4j PI scheduler: strategy={}, initialRate={}/s", strategy, rate.get());
+        LOG.info("Starting Bucket4j PI scheduler: strategy={}, initialRate={}/s, jobsPerInstance={}",
+                strategy, rate.get(), jobsPerInstance);
         stats.hintOnNewPiPerSecondGoald(rate.get());
+
+        if ("autoTuneJobRatio".equals(strategy) && jobsPerInstance <= 0) {
+            LOG.warn("autoTuneJobRatio selected, but no job types were found for the deployed process "
+                    + "(BPMN parsing disabled/no service tasks, or benchmark.autoDeployProcess=false with "
+                    + "no configured benchmark.jobType). This strategy cannot compute an expected job "
+                    + "completion rate without at least one job type and will never adjust the rate — "
+                    + "use autoTune or backoff instead for processes without jobs.");
+        }
 
         worker = Thread.ofVirtual().name("bucket4j-pi-starter").start(this::startLoop);
     }
@@ -136,33 +169,86 @@ public class Bucket4jPiScheduler {
         }
         double backpressureRate = stats.getBackpressureOnStartPiMeter().getOneMinuteRate();
         double backpressurePercent = backpressureRate / startedRate * 100.0;
+        boolean congested = backpressurePercent > config.getMaxBackpressurePercentage();
 
-        long previousRate = rate.get();
+        String metric = String.format("backpressure %.1f%% (threshold %.1f%%)",
+                backpressurePercent, config.getMaxBackpressurePercentage());
+        applyNewRate(computeNextRate(congested, rate.get(), "AutoTune", metric));
+    }
+
+    /**
+     * Periodic rate adjustment for the {@code autoTuneJobRatio} strategy: the same slow-start-then-
+     * AIMD search as {@link #adjustRate()}, but driven by whether job completions are keeping pace
+     * with PI starts instead of gRPC backpressure on the PI-start command.
+     * <p>
+     * Zeebe can accept/persist {@code CreateProcessInstance} commands (cheap: a log append) far
+     * faster than it can activate/execute/export the resulting jobs (expensive), so PI-start
+     * backpressure alone can badly lag real engine saturation — {@link #adjustRate()} may see a
+     * "healthy" tick long after the engine is already falling behind. Job completions are a more
+     * direct measurement of whether full process execution is keeping up: for a process with
+     * {@code jobsPerInstance} tasks, a healthy pipeline completes roughly that many jobs per PI
+     * started; if the observed completion rate falls below {@code minJobCompletionRatio} of that
+     * expectation, that's this strategy's "congested" signal.
+     * <p>
+     * This only works when this same instance also runs job workers for the deployed process (the
+     * common single-replica benchmark setup) — a "starter-only" replica
+     * ({@code benchmark.startWorkers=false} in a "sticky" multi-starter deployment) has no local
+     * job completions to measure and should use {@code autoTune}/{@code backoff} instead. Likewise
+     * a process with no job types at all ({@code jobsPerInstance == 0}) has nothing to measure —
+     * see the startup warning in {@link #start()}.
+     */
+    @Scheduled(fixedDelay = 10000, initialDelay = 10000)
+    public void adjustRateByJobRatio() {
+        if (!"autoTuneJobRatio".equals(config.getStartRateAdjustmentStrategy())) {
+            return;
+        }
+        if (jobsPerInstance <= 0) {
+            return; // already warned about this in start()
+        }
+
+        double startedRate = stats.getStartedPiMeter().getOneMinuteRate();
+        if (startedRate <= 0) {
+            return;
+        }
+        double completedJobsRate = stats.getCompletedJobsMeter().getOneMinuteRate();
+        double expectedJobsRate = startedRate * jobsPerInstance;
+        double completionRatio = completedJobsRate / expectedJobsRate;
+        boolean congested = completionRatio < config.getMinJobCompletionRatio();
+
+        String metric = String.format("job completion ratio %.2f (threshold %.2f, jobsPerInstance=%d)",
+                completionRatio, config.getMinJobCompletionRatio(), jobsPerInstance);
+        applyNewRate(computeNextRate(congested, rate.get(), "AutoTuneJobRatio", metric));
+    }
+
+    /**
+     * Shared slow-start-then-AIMD decision: grow exponentially until the first {@code congested}
+     * signal, then permanently switch to a hard multiplicative cut followed by small additive
+     * steps for the rest of the run. See {@link #adjustRate()} for the full rationale.
+     */
+    private long computeNextRate(boolean congested, long previousRate, String strategyLabel, String metricDescription) {
         long newRate;
-        if (backpressurePercent > config.getMaxBackpressurePercentage()) {
+        if (congested) {
             // Once we've seen real congestion, stop trusting exponential growth for the rest of
             // this run and switch to careful additive steps instead of risking another unbounded
             // run-up the next time a tick happens to look healthy.
             slowStart = false;
             newRate = Math.max(1, Math.round(previousRate * (1.0 - config.getStartPiReduceFactor())));
-            LOG.info("AutoTune: backpressure {}% > {}% threshold, AIMD cut rate {} -> {}/s",
-                    String.format("%.1f", backpressurePercent),
-                    String.format("%.1f", config.getMaxBackpressurePercentage()),
-                    previousRate, newRate);
+            LOG.info("{}: {}, congested -> AIMD cut rate {} -> {}/s",
+                    strategyLabel, metricDescription, previousRate, newRate);
         } else if (slowStart) {
             newRate = Math.max(1, Math.round(previousRate * (1.0 + config.getStartPiIncreaseFactor())));
-            LOG.info("AutoTune: backpressure {}% <= {}% threshold, slow-start increasing rate {} -> {}/s",
-                    String.format("%.1f", backpressurePercent),
-                    String.format("%.1f", config.getMaxBackpressurePercentage()),
-                    previousRate, newRate);
+            LOG.info("{}: {}, healthy -> slow-start increasing rate {} -> {}/s",
+                    strategyLabel, metricDescription, previousRate, newRate);
         } else {
             long step = Math.max(1, Math.round(config.getStartPiPerSecond() * config.getStartPiIncreaseFactor()));
             newRate = previousRate + step;
-            LOG.info("AutoTune: backpressure {}% <= {}% threshold, AIMD additive increase rate {} -> {}/s (+{}/s)",
-                    String.format("%.1f", backpressurePercent),
-                    String.format("%.1f", config.getMaxBackpressurePercentage()),
-                    previousRate, newRate, step);
+            LOG.info("{}: {}, healthy -> AIMD additive increase rate {} -> {}/s (+{}/s)",
+                    strategyLabel, metricDescription, previousRate, newRate, step);
         }
+        return newRate;
+    }
+
+    private void applyNewRate(long newRate) {
         rate.set(newRate);
 
         Bandwidth newLimit = Bandwidth.builder()

@@ -54,6 +54,15 @@ class FlowControlConditionalBeanTest {
     }
 
     @Test
+    void autoTuneJobRatioStrategy_activatesFlowControlBeans() {
+        runner.withPropertyValues("benchmark.startRateAdjustmentStrategy=autoTuneJobRatio")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(FlowControlStandIn.class);
+                    assertThat(context).doesNotHaveBean(ClassicSchedulerStandIn.class);
+                });
+    }
+
+    @Test
     void backpressureStrategy_activatesClassicScheduler() {
         runner.withPropertyValues("benchmark.startRateAdjustmentStrategy=backpressure")
                 .run(context -> {

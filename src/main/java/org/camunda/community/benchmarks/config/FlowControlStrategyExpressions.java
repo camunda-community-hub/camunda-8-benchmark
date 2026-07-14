@@ -11,11 +11,13 @@ public final class FlowControlStrategyExpressions {
 
     public static final String IS_FLOW_CONTROL_STRATEGY =
         "'${benchmark.startRateAdjustmentStrategy:backpressure}' == 'backoff' or "
-      + "'${benchmark.startRateAdjustmentStrategy:backpressure}' == 'autoTune'";
+      + "'${benchmark.startRateAdjustmentStrategy:backpressure}' == 'autoTune' or "
+      + "'${benchmark.startRateAdjustmentStrategy:backpressure}' == 'autoTuneJobRatio'";
 
     public static final String IS_NOT_FLOW_CONTROL_STRATEGY =
         "'${benchmark.startRateAdjustmentStrategy:backpressure}' != 'backoff' and "
-      + "'${benchmark.startRateAdjustmentStrategy:backpressure}' != 'autoTune'";
+      + "'${benchmark.startRateAdjustmentStrategy:backpressure}' != 'autoTune' and "
+      + "'${benchmark.startRateAdjustmentStrategy:backpressure}' != 'autoTuneJobRatio'";
 
     private FlowControlStrategyExpressions() {
     }

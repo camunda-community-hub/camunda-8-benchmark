@@ -16,6 +16,7 @@ import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
 import org.camunda.community.benchmarks.strategy.BenchmarkCompleteJobExceptionHandlingStrategy;
 import org.camunda.community.benchmarks.utils.BpmnJobTypeParser;
+import org.camunda.community.benchmarks.utils.JobTypeCounter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
@@ -146,30 +147,10 @@ public class JobWorker {
      * Gets job types from configuration properties (fallback method).
      */
     private Set<String> getJobTypesFromConfiguration() {
-        Set<String> jobTypes = new HashSet<>();
-        String jobType = config.getJobType();
-
-        // If the job types are listed out then loop through the list of jobTypes and create
-        // Otherwise generate the jobtypes automatically based on the multipleJobTypes property
-        if (jobType.contains(",")) {
-            for (String job : jobType.split(",")) {
-                jobTypes.add(job);
-            }
-        } else {
-            int numberOfJobTypes = config.getMultipleJobTypes();
-            if (numberOfJobTypes <= 0) {
-                jobTypes.add(jobType);
-            } else {
-                for (int i = 0; i < numberOfJobTypes; i++) {
-                    String jobTypeWithIndex = jobType + "-" + (i + 1);
-                    jobTypes.add(jobTypeWithIndex);
-                    if (i == numberOfJobTypes - 1) {
-                        this.lastJobType = jobTypeWithIndex;
-                    }
-                }
-            }
+        Set<String> jobTypes = JobTypeCounter.fromConfiguration(config);
+        if (config.getMultipleJobTypes() > 0 && !config.getJobType().contains(",")) {
+            this.lastJobType = config.getJobType() + "-" + config.getMultipleJobTypes();
         }
-
         return jobTypes;
     }
 

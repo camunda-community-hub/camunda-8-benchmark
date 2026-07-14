@@ -39,6 +39,9 @@ class Bucket4jPiSchedulerTest {
     @Mock
     private Meter backpressureMeter;
 
+    @Mock
+    private Meter completedJobsMeter;
+
     private SimpleMeterRegistry meterRegistry;
     private Bucket bucket;
     private Bucket4jPiScheduler scheduler;
@@ -57,13 +60,24 @@ class Bucket4jPiSchedulerTest {
     }
 
     private Bucket4jPiScheduler createScheduler(long startPiPerSecond, String strategy) {
+        // 1 job type by default (config.getJobType()'s default, no BPMN parsing) — irrelevant to
+        // the autoTune (gRPC-backpressure) tests below, only used by the autoTuneJobRatio ones.
+        return createScheduler(startPiPerSecond, strategy, 1);
+    }
+
+    private Bucket4jPiScheduler createScheduler(long startPiPerSecond, String strategy, int jobsPerInstance) {
         when(config.getStartPiPerSecond()).thenReturn(startPiPerSecond);
         when(config.getStartRateAdjustmentStrategy()).thenReturn(strategy);
         when(config.getMaxBackpressurePercentage()).thenReturn(10.0);
         when(config.getStartPiReduceFactor()).thenReturn(0.1);
         when(config.getStartPiIncreaseFactor()).thenReturn(0.4);
+        when(config.getMinJobCompletionRatio()).thenReturn(0.8);
+        when(config.getJobType()).thenReturn("benchmark-task");
+        when(config.getMultipleJobTypes()).thenReturn(jobsPerInstance);
+        when(config.isAutoDeployProcess()).thenReturn(false);
         when(stats.getStartedPiMeter()).thenReturn(startedMeter);
         when(stats.getBackpressureOnStartPiMeter()).thenReturn(backpressureMeter);
+        when(stats.getCompletedJobsMeter()).thenReturn(completedJobsMeter);
 
         bucket = Bucket.builder()
                 .addLimit(Bandwidth.builder()
@@ -83,6 +97,13 @@ class Bucket4jPiSchedulerTest {
     private void simulateBackpressurePercent(double startedRatePerSecond, double backpressurePercent) {
         when(startedMeter.getOneMinuteRate()).thenReturn(startedRatePerSecond);
         when(backpressureMeter.getOneMinuteRate()).thenReturn(startedRatePerSecond * backpressurePercent / 100.0);
+    }
+
+    /** Sets the one-minute rates {@code adjustRateByJobRatio()} reads, as actual/expected. */
+    private void simulateJobCompletionRatio(double startedRatePerSecond, int jobsPerInstance, double completionRatio) {
+        when(startedMeter.getOneMinuteRate()).thenReturn(startedRatePerSecond);
+        when(completedJobsMeter.getOneMinuteRate())
+                .thenReturn(startedRatePerSecond * jobsPerInstance * completionRatio);
     }
 
     private double rateGoal() {
@@ -179,6 +200,65 @@ class Bucket4jPiSchedulerTest {
 
         // max(1, round(1 * 0.9)) = 1
         assertEquals(1, (long) rateGoal());
+    }
+
+    @Test
+    void adjustRateByJobRatio_lowCompletionRatio_cutsRateMultiplicatively() {
+        Bucket4jPiScheduler scheduler = createScheduler(100, "autoTuneJobRatio", 4);
+
+        // 4 jobs/instance expected; only delivering half of that -> congested (< 0.8 threshold)
+        simulateJobCompletionRatio(100, 4, 0.5);
+        scheduler.adjustRateByJobRatio();
+
+        // 100 * (1 - 0.1) = 90
+        assertEquals(90, (long) rateGoal());
+    }
+
+    @Test
+    void adjustRateByJobRatio_healthyRatioDuringSlowStart_increasesMultiplicatively() {
+        Bucket4jPiScheduler scheduler = createScheduler(100, "autoTuneJobRatio", 4);
+
+        // Delivering all 4 expected jobs/instance -> healthy (>= 0.8 threshold)
+        simulateJobCompletionRatio(100, 4, 1.0);
+        scheduler.adjustRateByJobRatio();
+
+        // 100 * (1 + 0.4) = 140
+        assertEquals(140, (long) rateGoal());
+    }
+
+    @Test
+    void adjustRateByJobRatio_lowRatioAfterCongestion_increasesAdditivelyNotMultiplicatively() {
+        Bucket4jPiScheduler scheduler = createScheduler(100, "autoTuneJobRatio", 4);
+
+        // First tick: congestion, ends slow start. 100 * (1 - 0.1) = 90
+        simulateJobCompletionRatio(100, 4, 0.5);
+        scheduler.adjustRateByJobRatio();
+        assertEquals(90, (long) rateGoal());
+
+        // Second tick: healthy again, must increase additively (+40/s), not multiplicatively.
+        simulateJobCompletionRatio(90, 4, 1.0);
+        scheduler.adjustRateByJobRatio();
+        assertEquals(130, (long) rateGoal());
+    }
+
+    @Test
+    void adjustRateByJobRatio_ignoredForOtherStrategies() {
+        Bucket4jPiScheduler scheduler = createScheduler(100, "autoTune", 4);
+
+        simulateJobCompletionRatio(100, 4, 0.1); // would be heavily congested if it applied
+        scheduler.adjustRateByJobRatio();
+
+        assertEquals(100, (long) rateGoal());
+    }
+
+    @Test
+    void adjustRateByJobRatio_zeroStartedRate_noAdjustment() {
+        Bucket4jPiScheduler scheduler = createScheduler(100, "autoTuneJobRatio", 4);
+
+        when(startedMeter.getOneMinuteRate()).thenReturn(0.0);
+        scheduler.adjustRateByJobRatio();
+
+        assertEquals(100, (long) rateGoal());
     }
 
     @Test

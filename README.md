@@ -151,7 +151,7 @@ See https://github.com/camunda-community-hub/camunda-8-benchmark/blob/main/src/m
 
 Two additional rate adjustment strategies are available using [Bucket4j](https://bucket4j.com/) and Java 21 virtual threads. They replace the traditional 10ms batch scheduling loop with a simpler model: a virtual thread consumes tokens from a token bucket to pace process instance creation.
 
-Only the PI-starting path (`benchmark.startProcesses`) has a Bucket4j-based scheduler. `benchmark.startDecisions=true` (DMN load testing) is not supported together with `backoff`/`autoTune` and stays disabled while either is selected.
+Only the PI-starting path (`benchmark.startProcesses`) has a Bucket4j-based scheduler. `benchmark.startDecisions=true` (DMN load testing) is not supported together with `backoff`/`autoTune`/`autoTuneJobRatio` and stays disabled while any of them is selected.
 
 ### `backoff` — Fixed Rate with Backpressure Penalty
 
@@ -182,18 +182,38 @@ benchmark.maxBackpressurePercentage=10.0
 3. **A gRPC interceptor** detects `RESOURCE_EXHAUSTED` responses and penalizes the bucket, immediately slowing down the waiting thread. Note that this interceptor is registered on the whole client, not just PI-start calls — see the caveat about `startDecisions` above.
 4. **For `autoTune`:** a periodic adjuster (every 10s) reads the PI-start and PI-backpressure one-minute rates from the same metrics the classic `backpressure` strategy uses (rolling rates, not a hard-reset counter, so a slow-to-resolve rejection still counts toward the window it was actually sent in). While no congestion has been seen yet, it grows the rate exponentially (`* (1 + startPiIncreaseFactor)`); once backpressure first exceeds `maxBackpressurePercentage`, it cuts the rate (`* (1 - startPiReduceFactor)`) and permanently switches to additive steps (`+ startPiPerSecond * startPiIncreaseFactor` per tick) for the rest of the run — this assumes the target cluster's capacity is roughly fixed for a single benchmark run.
 
+### `autoTuneJobRatio` — Rate Discovery via Job Completion Rate
+
+Same slow-start-then-AIMD search as `autoTune`, but driven by a different, generally more reliable signal: whether **job completions** are keeping pace with PI starts, instead of gRPC backpressure on the PI-start command itself.
+
+The problem this solves: Zeebe can accept and persist `CreateProcessInstance` commands (a cheap log append) far faster than it can actually activate, execute, and export the resulting jobs (expensive). That means `RESOURCE_EXHAUSTED` on the *start* command specifically can lag badly behind real engine saturation — `autoTune` may see a "healthy" tick long after the engine has already fallen behind. For a deployed process with `N` distinct job types, a healthy pipeline completes roughly `N` jobs for every PI started; if the observed job-completion rate drops below `minJobCompletionRatio` of that expectation, `autoTuneJobRatio` treats that as congestion, the same way `autoTune` treats high backpressure.
+
+```properties
+benchmark.startRateAdjustmentStrategy=autoTuneJobRatio
+benchmark.startPiPerSecond=500
+benchmark.startPiReduceFactor=0.1
+benchmark.startPiIncreaseFactor=0.4
+benchmark.minJobCompletionRatio=0.8
+```
+
+**Limitations:**
+- Requires this same instance to also run job workers for the deployed process (the common single-replica benchmark setup). A "starter-only" replica (`benchmark.startWorkers=false`, used in "sticky" multi-starter deployments) has no local job completions to measure and should use `autoTune`/`backoff` instead.
+- Requires at least one job type. A process with none has nothing to measure against — c8b logs a warning at startup and never adjusts the rate in that case; use `autoTune`/`backoff` for job-less processes (this is why it's a separate strategy rather than a mode of `autoTune`).
+- `N` (jobs per instance) is derived once at startup from the same job-type discovery `JobWorker` already does (BPMN parsing plus `benchmark.jobType`/`multipleJobTypes`), so it inherits that logic's one existing quirk: when relying purely on BPMN auto-discovery (no explicit `benchmark.jobType` matching a real task), the unused default `jobType` config value still contributes one extra count. `minJobCompletionRatio`'s default (0.8) has some slack built in, but for processes with very few tasks this may need adjusting.
+
 ### Comparison of Strategies
 
-| Feature | `none` | `backpressure` | `backoff` | `autoTune` |
-|---------|--------|---------------|-----------|------------|
-| Rate control | Fixed | 30s polling loop | Token bucket | Token bucket |
-| Backpressure response | None | Adjusts goal rate | Immediate penalty | Immediate penalty + rate adjustment |
-| Rate can increase | No | Yes | No | Yes |
-| Concurrency model | Thread pool + @Async | Thread pool + @Async | 1 virtual thread | 1 virtual thread |
+| Feature | `none` | `backpressure` | `backoff` | `autoTune` | `autoTuneJobRatio` |
+|---------|--------|---------------|-----------|------------|--------------------|
+| Rate control | Fixed | 30s polling loop | Token bucket | Token bucket | Token bucket |
+| Backpressure response | None | Adjusts goal rate | Immediate penalty | Immediate penalty + rate adjustment | Immediate penalty + rate adjustment |
+| Rate can increase | No | Yes | No | Yes | Yes |
+| Adjustment signal | — | gRPC backpressure | gRPC backpressure | gRPC backpressure | Job completion rate |
+| Concurrency model | Thread pool + @Async | Thread pool + @Async | 1 virtual thread | 1 virtual thread | 1 virtual thread |
 
 ### Testing
 
-The `backoff`/`autoTune`/`none`/`backpressure` strategies are covered by `*IT` integration tests (e.g. `FlowControlIntegrationIT`, `NoneStrategyIT`, `BackpressureStrategyIT`) that spin up a real Zeebe engine via `camunda-process-test-spring`/Testcontainers. These run as part of `mvn clean verify` (via `maven-failsafe-plugin`), so **Docker must be running** for that command to succeed — this is a new requirement introduced alongside this feature; previously `mvn clean verify` had no Docker dependency. Each `*IT` class starts its own container (roughly 20-50s), adding a couple of minutes to local/CI build time.
+The `backoff`/`autoTune`/`none`/`backpressure` strategies are covered by `*IT` integration tests (e.g. `FlowControlIntegrationIT`, `NoneStrategyIT`, `BackpressureStrategyIT`) that spin up a real Zeebe engine via `camunda-process-test-spring`/Testcontainers. These run as part of `mvn clean verify` (via `maven-failsafe-plugin`), so **Docker must be running** for that command to succeed — this is a new requirement introduced alongside this feature; previously `mvn clean verify` had no Docker dependency. Each `*IT` class starts its own container (roughly 20-50s), adding a couple of minutes to local/CI build time. `autoTuneJobRatio`'s bean-activation is covered by the lightweight, Docker-free `FlowControlConditionalBeanTest`; its rate-adjustment algorithm is covered by `Bucket4jPiSchedulerTest` (same as `autoTune`).
 
 
 ## Thoughts on load generation
