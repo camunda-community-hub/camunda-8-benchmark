@@ -37,7 +37,7 @@ import java.time.Duration;
  * Supports two strategies:
  * <ul>
  *   <li>{@code backoff} — fixed rate with penalty-based backoff, recovers to target</li>
- *   <li>{@code autoTune} — periodic rate adjustment to discover cluster capacity</li>
+ *   <li>{@code autoTune} — periodic rate adjustment to discover cluster capacity, see {@link #adjustRate()}</li>
  * </ul>
  */
 @Component
@@ -51,24 +51,29 @@ public class Bucket4jPiScheduler {
     private final StartPiExecutor executor;
     private final StatisticsCollector stats;
     private final BenchmarkConfiguration config;
-    private final FlowControlInterceptor interceptor;
     private final RateGoal rate;
 
     private volatile Thread worker;
+
+    /**
+     * Once {@code true}, {@link #adjustRate()} has seen a real congestion event and permanently
+     * stays in additive-increase mode (see {@link #adjustRate()}) instead of ever returning to
+     * exponential slow-start growth. This assumes a roughly fixed-size target cluster for the
+     * lifetime of a single benchmark run.
+     */
+    private volatile boolean slowStart = true;
 
     public Bucket4jPiScheduler(
             Bucket flowControlBucket,
             StartPiExecutor executor,
             StatisticsCollector stats,
             BenchmarkConfiguration config,
-            FlowControlInterceptor flowControlInterceptor,
             RateGoal rateGoal,
             MeterRegistry meterRegistry) {
         this.bucket = flowControlBucket;
         this.executor = executor;
         this.stats = stats;
         this.config = config;
-        this.interceptor = flowControlInterceptor;
         this.rate = rateGoal;
 
         meterRegistry.gauge("pi_rate_goal", rate, RateGoal::get);
@@ -98,12 +103,26 @@ public class Bucket4jPiScheduler {
     }
 
     /**
-     * Periodic rate adjustment for the {@code autoTune} strategy.
+     * Periodic rate adjustment for the {@code autoTune} strategy: TCP-style slow-start followed
+     * by AIMD (additive-increase/multiplicative-decrease) congestion avoidance.
      * <p>
-     * Reads backpressure and total call counts from the interceptor, calculates
-     * the backpressure percentage, and adjusts the bucket's refill rate using
-     * the configured reduce/increase factors. Mirrors the logic of
-     * {@code RateCalculator.adjustByUsingBackpressure()} but with Bucket4j.
+     * Reads the PI-start and PI-start-backpressure one-minute rates from {@link StatisticsCollector}
+     * (the same rolling meters {@code common.RateCalculator}'s classic {@code backpressure} strategy
+     * uses) rather than the interceptor's own raw counters — those meters decay smoothly instead of
+     * being hard-reset every tick, so a rejection that resolves a little late still counts toward
+     * the window it was actually sent in instead of silently vanishing into whichever tick happens
+     * to be open when it finally resolves.
+     * <p>
+     * Growth is exponential ({@code previousRate * (1 + startPiIncreaseFactor)}) only until the
+     * first tick where backpressure exceeds {@code maxBackpressurePercentage}. From then on this
+     * assumes the cluster's ceiling is roughly fixed for the rest of the run: it cuts hard
+     * (multiplicative decrease, same as before) and permanently switches to small, fixed additive
+     * steps (sized as {@code startPiPerSecond * startPiIncreaseFactor}, i.e. a fraction of the
+     * originally configured rate, not of the current one) for any further increases. This bounds
+     * how far a single misleading "healthy" tick can push the rate — the old always-multiplicative
+     * growth had no such bound and could compound into runaway overshoot (and eventual OOM from the
+     * resulting backlog of in-flight commands) long before a slow-to-resolve rejection ever caught
+     * up in the accounting.
      */
     @Scheduled(fixedDelay = 10000, initialDelay = 10000)
     public void adjustRate() {
@@ -111,29 +130,38 @@ public class Bucket4jPiScheduler {
             return;
         }
 
-        long recentBackpressure = interceptor.getBackpressureCount().getAndSet(0);
-        long recentTotal = interceptor.getTotalCallCount().getAndSet(0);
-
-        if (recentTotal == 0) {
+        double startedRate = stats.getStartedPiMeter().getOneMinuteRate();
+        if (startedRate <= 0) {
             return;
         }
-
-        double backpressurePercent = (double) recentBackpressure / recentTotal * 100.0;
+        double backpressureRate = stats.getBackpressureOnStartPiMeter().getOneMinuteRate();
+        double backpressurePercent = backpressureRate / startedRate * 100.0;
 
         long previousRate = rate.get();
         long newRate;
         if (backpressurePercent > config.getMaxBackpressurePercentage()) {
+            // Once we've seen real congestion, stop trusting exponential growth for the rest of
+            // this run and switch to careful additive steps instead of risking another unbounded
+            // run-up the next time a tick happens to look healthy.
+            slowStart = false;
             newRate = Math.max(1, Math.round(previousRate * (1.0 - config.getStartPiReduceFactor())));
-            LOG.info("AutoTune: backpressure {}% > {}% threshold, reducing rate {} -> {}/s",
+            LOG.info("AutoTune: backpressure {}% > {}% threshold, AIMD cut rate {} -> {}/s",
+                    String.format("%.1f", backpressurePercent),
+                    String.format("%.1f", config.getMaxBackpressurePercentage()),
+                    previousRate, newRate);
+        } else if (slowStart) {
+            newRate = Math.max(1, Math.round(previousRate * (1.0 + config.getStartPiIncreaseFactor())));
+            LOG.info("AutoTune: backpressure {}% <= {}% threshold, slow-start increasing rate {} -> {}/s",
                     String.format("%.1f", backpressurePercent),
                     String.format("%.1f", config.getMaxBackpressurePercentage()),
                     previousRate, newRate);
         } else {
-            newRate = Math.max(1, Math.round(previousRate * (1.0 + config.getStartPiIncreaseFactor())));
-            LOG.info("AutoTune: backpressure {}% <= {}% threshold, increasing rate {} -> {}/s",
+            long step = Math.max(1, Math.round(config.getStartPiPerSecond() * config.getStartPiIncreaseFactor()));
+            newRate = previousRate + step;
+            LOG.info("AutoTune: backpressure {}% <= {}% threshold, AIMD additive increase rate {} -> {}/s (+{}/s)",
                     String.format("%.1f", backpressurePercent),
                     String.format("%.1f", config.getMaxBackpressurePercentage()),
-                    previousRate, newRate);
+                    previousRate, newRate, step);
         }
         rate.set(newRate);
 

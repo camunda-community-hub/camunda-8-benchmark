@@ -8,7 +8,6 @@ import io.grpc.ClientCall;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.Status;
-import org.camunda.community.benchmarks.StatisticsCollector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -36,9 +35,6 @@ class FlowControlInterceptorTest {
 
     private Bucket bucket;
 
-    @Mock
-    private StatisticsCollector stats;
-
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -53,7 +49,7 @@ class FlowControlInterceptorTest {
                 .build();
 
         long penaltyTokens = 10;
-        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, new RateGoal(100), 0.1, stats);
+        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, new RateGoal(100), 0.1);
 
         ClientCall<Object, Object> interceptedCall = interceptor.interceptCall(
                 methodDescriptor, CallOptions.DEFAULT, channel);
@@ -75,7 +71,7 @@ class FlowControlInterceptorTest {
                 .addLimit(Bandwidth.builder().capacity(100).refillGreedy(1, Duration.ofSeconds(10)).build())
                 .build();
 
-        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, new RateGoal(100), 0.1, stats);
+        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, new RateGoal(100), 0.1);
 
         ClientCall<Object, Object> interceptedCall = interceptor.interceptCall(
                 methodDescriptor, CallOptions.DEFAULT, channel);
@@ -97,7 +93,7 @@ class FlowControlInterceptorTest {
                 .addLimit(Bandwidth.builder().capacity(100).refillGreedy(1, Duration.ofSeconds(10)).build())
                 .build();
 
-        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, new RateGoal(100), 0.05, stats);
+        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, new RateGoal(100), 0.05);
         assertEquals(0, interceptor.getBackpressureCount().get());
 
         ClientCall<Object, Object> call = interceptor.interceptCall(
@@ -118,7 +114,7 @@ class FlowControlInterceptorTest {
                 .addLimit(Bandwidth.builder().capacity(100).refillGreedy(1, Duration.ofSeconds(10)).build())
                 .build();
 
-        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, new RateGoal(100), 0.05, stats);
+        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, new RateGoal(100), 0.05);
         assertEquals(0, interceptor.getTotalCallCount().get());
 
         ClientCall<Object, Object> call = interceptor.interceptCall(
@@ -134,7 +130,7 @@ class FlowControlInterceptorTest {
                 .addLimit(Bandwidth.builder().capacity(100).refillGreedy(1, Duration.ofSeconds(10)).build())
                 .build();
 
-        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, new RateGoal(100), 0.05, stats);
+        FlowControlInterceptor interceptor = new FlowControlInterceptor(bucket, new RateGoal(100), 0.05);
 
         ClientCall<Object, Object> interceptedCall = interceptor.interceptCall(
                 methodDescriptor, CallOptions.DEFAULT, channel);

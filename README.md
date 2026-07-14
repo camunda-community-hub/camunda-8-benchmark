@@ -165,7 +165,7 @@ benchmark.startPiReduceFactor=0.1
 
 ### `autoTune` — Automatic Rate Discovery
 
-Starts at `startPiPerSecond` and periodically adjusts the rate to match what the cluster can handle. Uses the same immediate penalty as `backoff`, plus a periodic adjuster (every 10s) that increases or decreases the base rate based on the observed backpressure percentage.
+Starts at `startPiPerSecond` and periodically adjusts the rate to match what the cluster can handle, using a TCP-style **slow-start followed by AIMD** (additive-increase/multiplicative-decrease) search: it grows the rate exponentially (fast) until the *first* tick where backpressure exceeds `maxBackpressurePercentage`, then assumes the cluster's ceiling is roughly fixed for the rest of the run — cutting hard on that first congestion event and permanently switching to small, fixed additive steps for any further increases from then on. This bounds how far a single misleadingly-healthy tick can push the rate; the alternative (always-exponential growth) has no such bound and can compound into runaway overshoot in minutes.
 
 ```properties
 benchmark.startRateAdjustmentStrategy=autoTune
@@ -180,7 +180,7 @@ benchmark.maxBackpressurePercentage=10.0
 1. **A virtual thread** consumes tokens from a Bucket4j bucket, running a simple loop: acquire token → start process instance → repeat. A single thread is enough because starting a process instance is fire-and-forget (async, non-blocking), so throughput is governed entirely by the token bucket, not by how many threads poll it.
 2. **The bucket's refill rate** equals `startPiPerSecond`, controlling throughput.
 3. **A gRPC interceptor** detects `RESOURCE_EXHAUSTED` responses and penalizes the bucket, immediately slowing down the waiting thread. Note that this interceptor is registered on the whole client, not just PI-start calls — see the caveat about `startDecisions` above.
-4. **For `autoTune`:** a periodic adjuster checks backpressure percentage against `maxBackpressurePercentage` and adjusts the refill rate using the reduce/increase factors.
+4. **For `autoTune`:** a periodic adjuster (every 10s) reads the PI-start and PI-backpressure one-minute rates from the same metrics the classic `backpressure` strategy uses (rolling rates, not a hard-reset counter, so a slow-to-resolve rejection still counts toward the window it was actually sent in). While no congestion has been seen yet, it grows the rate exponentially (`* (1 + startPiIncreaseFactor)`); once backpressure first exceeds `maxBackpressurePercentage`, it cuts the rate (`* (1 - startPiReduceFactor)`) and permanently switches to additive steps (`+ startPiPerSecond * startPiIncreaseFactor` per tick) for the rest of the run — this assumes the target cluster's capacity is roughly fixed for a single benchmark run.
 
 ### Comparison of Strategies
 

@@ -1,5 +1,6 @@
 package org.camunda.community.benchmarks.flowcontrol;
 
+import com.codahale.metrics.Meter;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -32,9 +33,14 @@ class Bucket4jPiSchedulerTest {
     @Mock
     private BenchmarkConfiguration config;
 
+    @Mock
+    private Meter startedMeter;
+
+    @Mock
+    private Meter backpressureMeter;
+
     private SimpleMeterRegistry meterRegistry;
     private Bucket bucket;
-    private FlowControlInterceptor interceptor;
     private Bucket4jPiScheduler scheduler;
 
     @BeforeEach
@@ -56,6 +62,8 @@ class Bucket4jPiSchedulerTest {
         when(config.getMaxBackpressurePercentage()).thenReturn(10.0);
         when(config.getStartPiReduceFactor()).thenReturn(0.1);
         when(config.getStartPiIncreaseFactor()).thenReturn(0.4);
+        when(stats.getStartedPiMeter()).thenReturn(startedMeter);
+        when(stats.getBackpressureOnStartPiMeter()).thenReturn(backpressureMeter);
 
         bucket = Bucket.builder()
                 .addLimit(Bandwidth.builder()
@@ -65,11 +73,16 @@ class Bucket4jPiSchedulerTest {
                 .build();
 
         RateGoal rate = new RateGoal(startPiPerSecond);
-        interceptor = new FlowControlInterceptor(bucket, rate, 0.1, stats);
 
         // start() is not called here, so no worker thread is spawned
-        scheduler = new Bucket4jPiScheduler(bucket, executor, stats, config, interceptor, rate, meterRegistry);
+        scheduler = new Bucket4jPiScheduler(bucket, executor, stats, config, rate, meterRegistry);
         return scheduler;
+    }
+
+    /** Sets the one-minute rates {@code adjustRate()} reads, as a percentage of started calls. */
+    private void simulateBackpressurePercent(double startedRatePerSecond, double backpressurePercent) {
+        when(startedMeter.getOneMinuteRate()).thenReturn(startedRatePerSecond);
+        when(backpressureMeter.getOneMinuteRate()).thenReturn(startedRatePerSecond * backpressurePercent / 100.0);
     }
 
     private double rateGoal() {
@@ -77,13 +90,10 @@ class Bucket4jPiSchedulerTest {
     }
 
     @Test
-    void adjustRate_highBackpressure_reducesRate() {
+    void adjustRate_highBackpressure_cutsRateMultiplicatively() {
         Bucket4jPiScheduler scheduler = createScheduler(100, "autoTune");
 
-        // Simulate 20% backpressure (above 10% threshold)
-        interceptor.getBackpressureCount().set(20);
-        interceptor.getTotalCallCount().set(100);
-
+        simulateBackpressurePercent(100, 20); // 20% > 10% threshold
         scheduler.adjustRate();
 
         // 100 * (1 - 0.1) = 90
@@ -91,13 +101,10 @@ class Bucket4jPiSchedulerTest {
     }
 
     @Test
-    void adjustRate_lowBackpressure_increasesRate() {
+    void adjustRate_lowBackpressureDuringSlowStart_increasesMultiplicatively() {
         Bucket4jPiScheduler scheduler = createScheduler(100, "autoTune");
 
-        // Simulate 5% backpressure (below 10% threshold)
-        interceptor.getBackpressureCount().set(5);
-        interceptor.getTotalCallCount().set(100);
-
+        simulateBackpressurePercent(100, 5); // 5% <= 10% threshold, still in slow start
         scheduler.adjustRate();
 
         // 100 * (1 + 0.4) = 140
@@ -105,13 +112,48 @@ class Bucket4jPiSchedulerTest {
     }
 
     @Test
-    void adjustRate_zeroTotalCalls_noAdjustment() {
+    void adjustRate_lowBackpressureAfterCongestion_increasesAdditivelyNotMultiplicatively() {
         Bucket4jPiScheduler scheduler = createScheduler(100, "autoTune");
 
-        // No calls at all
-        interceptor.getBackpressureCount().set(0);
-        interceptor.getTotalCallCount().set(0);
+        // First tick: congestion, ends slow start. 100 * (1 - 0.1) = 90
+        simulateBackpressurePercent(100, 20);
+        scheduler.adjustRate();
+        assertEquals(90, (long) rateGoal());
 
+        // Second tick: healthy again, but must now increase additively, not multiplicatively.
+        // step = round(startPiPerSecond * increaseFactor) = round(100 * 0.4) = 40 -> 90 + 40 = 130
+        // (a multiplicative increase would instead give round(90 * 1.4) = 126)
+        simulateBackpressurePercent(90, 5);
+        scheduler.adjustRate();
+        assertEquals(130, (long) rateGoal());
+    }
+
+    @Test
+    void adjustRate_onceInAimdMode_neverReturnsToSlowStart() {
+        Bucket4jPiScheduler scheduler = createScheduler(100, "autoTune");
+
+        // Trigger the one-time transition out of slow start.
+        simulateBackpressurePercent(100, 20);
+        scheduler.adjustRate();
+        assertEquals(90, (long) rateGoal());
+
+        // Several subsequent healthy ticks in a row must all stay additive (+40/s each), never
+        // reverting to the multiplicative slow-start growth even though backpressure looks fine
+        // every time.
+        simulateBackpressurePercent(90, 0);
+        scheduler.adjustRate();
+        assertEquals(130, (long) rateGoal()); // 90 + 40
+
+        simulateBackpressurePercent(130, 0);
+        scheduler.adjustRate();
+        assertEquals(170, (long) rateGoal()); // 130 + 40, not 130 * 1.4 = 182
+    }
+
+    @Test
+    void adjustRate_zeroStartedRate_noAdjustment() {
+        Bucket4jPiScheduler scheduler = createScheduler(100, "autoTune");
+
+        simulateBackpressurePercent(0, 0);
         scheduler.adjustRate();
 
         assertEquals(100, (long) rateGoal());
@@ -121,9 +163,7 @@ class Bucket4jPiSchedulerTest {
     void adjustRate_backoffStrategy_isNoOp() {
         Bucket4jPiScheduler scheduler = createScheduler(100, "backoff");
 
-        interceptor.getBackpressureCount().set(50);
-        interceptor.getTotalCallCount().set(100);
-
+        simulateBackpressurePercent(100, 50);
         scheduler.adjustRate();
 
         // Rate unchanged because strategy is backoff, not autoTune
@@ -134,27 +174,11 @@ class Bucket4jPiSchedulerTest {
     void adjustRate_rateNeverDropsBelowOne() {
         Bucket4jPiScheduler scheduler = createScheduler(1, "autoTune");
 
-        // 100% backpressure
-        interceptor.getBackpressureCount().set(100);
-        interceptor.getTotalCallCount().set(100);
-
+        simulateBackpressurePercent(1, 100); // 100% backpressure
         scheduler.adjustRate();
 
         // max(1, round(1 * 0.9)) = 1
         assertEquals(1, (long) rateGoal());
-    }
-
-    @Test
-    void adjustRate_resetsInterceptorCounters() {
-        Bucket4jPiScheduler scheduler = createScheduler(100, "autoTune");
-
-        interceptor.getBackpressureCount().set(10);
-        interceptor.getTotalCallCount().set(50);
-
-        scheduler.adjustRate();
-
-        assertEquals(0, interceptor.getBackpressureCount().get());
-        assertEquals(0, interceptor.getTotalCallCount().get());
     }
 
     @Test
