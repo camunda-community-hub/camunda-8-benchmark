@@ -39,6 +39,11 @@ or using the [docker image](https://hub.docker.com/r/camundacommunityhub/camunda
 docker run camundacommunityhub/camunda-8-benchmark:main
 ```
 
+To override `benchmark.*`/`camunda.client.*` properties without baking your own image, pass them as JVM system properties via the `JAVA_TOOL_OPTIONS` environment variable — the JVM reads that variable itself, so it works no matter how the container's entrypoint invokes `java`:
+```bash
+docker run -e JAVA_TOOL_OPTIONS="-Dbenchmark.startPiPerSecond=100 -Dcamunda.client.grpc-address=http://your-zeebe-gateway:26500" camundacommunityhub/camunda-8-benchmark:main
+```
+
 You can configure 
 
 - everything [Spring Zeebe](https://github.com/camunda-community-hub/spring-zeebe) understands
@@ -335,9 +340,13 @@ See [projectlombok.org/setup](https://projectlombok.org/setup/) for IDE-specific
 
 # Building and using an own version of the Docker image
 
-The image is built with the Spring Boot Maven plugin's [Cloud Native Buildpacks](https://docs.spring.io/spring-boot/maven-plugin/build-image.html) support instead of a Dockerfile — no Docker daemon config or manual layering to maintain, and repeat builds reuse cached dependency/buildpack layers automatically (only re-fetching/rebuilding what actually changed).
+The image is built from the `Dockerfile` in this repo — deliberately **not** via the Spring Boot Maven plugin's [Cloud Native Buildpacks](https://docs.spring.io/spring-boot/maven-plugin/build-image.html) support. See the comment at the top of the `Dockerfile` for why: in short, Buildpacks' bundled JVM memory calculator hardcodes `-XX:MaxDirectMemorySize` to 10MB with no supported way to make it scale with the container's memory limit, and this app is a gRPC/Netty-heavy load generator that leans hard on off-heap direct buffers — 10MB gets exhausted almost immediately under any real load. Don't re-attempt the Buildpacks route without solving that upstream limitation first.
 
-1. To build a local image, run `mvn spring-boot:build-image` — this tags it as `camunda-8-benchmark:<version>` by default. To use your own name/tag: `mvn spring-boot:build-image -Dspring-boot.build-image.imageName=<your-registry>/<name>:<tag>`
-2. Then push it: `docker push <your-registry>/<name>:<tag>`
+1. To build a local image, run `docker build . --tag <name>:<tag>`
+2. Then push it: `docker push <name>:<tag>`
 
-See the `Makefile` for an example (targets `all`/`install`) pushing to a private test registry — unrelated to the public image at [hub.docker.com/r/camundacommunityhub/camunda-8-benchmark](https://hub.docker.com/r/camundacommunityhub/camunda-8-benchmark), which CI builds and publishes the same way on every push to `main` (tag `main`) and on every GitHub release (tag matching the release name).
+See the `Makefile` for an example (targets `all`/`install`) pushing to a private test registry — unrelated to the public image at [hub.docker.com/r/camundacommunityhub/camunda-8-benchmark](https://hub.docker.com/r/camundacommunityhub/camunda-8-benchmark), which CI builds and publishes the same way (via `docker/build-push-action`) on every push to `main` (tag `main`) and on every GitHub release (tag matching the release name).
+
+**Passing `-D` overrides at runtime:** the image's `ENTRYPOINT` execs `java` directly (exec form, no shell), so it receives `SIGTERM` and shuts down cleanly on pod termination — but it also means a shell-expanded `$SOME_VAR`-style override wouldn't be read. Use `JAVA_TOOL_OPTIONS` (as in the `docker run` example above) — the JVM reads that variable itself regardless of how it was launched, no shell needed.
+
+**Heap and direct memory:** the image bakes in `ENV JDK_JAVA_OPTIONS="-XX:MaxRAMPercentage=75.0"` (see the `Dockerfile`) instead of leaving the JVM's own container-aware default of just 25% of available memory in place — that 75% leaves headroom for metaspace/thread-stacks/native overhead while still using most of whatever memory the container is given. `-XX:MaxDirectMemorySize` is deliberately left unset: unset, it defaults to whatever `-Xmx` resolves to, so direct memory automatically scales right along with heap/container memory, with nothing to separately tune per deployment. `JDK_JAVA_OPTIONS` (not `JAVA_TOOL_OPTIONS`) carries this specifically so that deployments setting `JAVA_TOOL_OPTIONS` at runtime for `benchmark.*`/`camunda.client.*` overrides don't silently clobber it — container env replaces same-named vars outright rather than merging them.
