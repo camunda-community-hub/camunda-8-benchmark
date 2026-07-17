@@ -55,7 +55,7 @@ spec:
       containers:
         - name: camunda-8-benchmark
           env:
-            - name: JAVA_OPTIONS
+            - name: JAVA_TOOL_OPTIONS
               value: >-
                 -Dbenchmark.client.enable-partition-pinning=true
                 -Dbenchmark.client.partitionCount=9

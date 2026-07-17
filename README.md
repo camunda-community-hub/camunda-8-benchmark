@@ -4,6 +4,9 @@
 
 # Camunda 8 Benchmark (c8b)
 
+> **Breaking change (2026-07-17): replace `JAVA_OPTIONS` with `JAVA_TOOL_OPTIONS`.**
+> If you pass `-D` overrides (`benchmark.*`/`camunda.client.*`) to the Docker image via a `JAVA_OPTIONS` environment variable, rename it to `JAVA_TOOL_OPTIONS`. `JAVA_OPTIONS` was never a real JVM mechanism — it only ever worked because an old Dockerfile `CMD` happened to shell-expand it, and that's no longer the case. `JAVA_TOOL_OPTIONS` is read natively by the JVM itself, so it works regardless of how the container is launched. See "Building and using an own version of the Docker image" below for the full story.
+
 Spring Boot project to run benchmarks on Camunda Platform 8.
 
 The project 

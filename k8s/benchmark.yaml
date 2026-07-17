@@ -23,7 +23,7 @@ spec:
           image: camundacommunityhub/camunda-8-benchmark:main
           imagePullPolicy: Always
           env:
-            - name: JAVA_OPTIONS
+            - name: JAVA_TOOL_OPTIONS
               value: >-
                 -Dzeebe.client.cloud.cluster-id=a75eec75-1548-473f-a517-df2808d7f39b
                 -Dzeebe.client.cloud.client-id=VR6BjC8GFvl2feHFiWaCnwMlm4kHIx-S
