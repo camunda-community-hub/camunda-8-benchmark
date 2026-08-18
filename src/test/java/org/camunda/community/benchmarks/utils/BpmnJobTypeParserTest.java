@@ -85,4 +85,27 @@ class BpmnJobTypeParserTest {
         assertTrue(jobTypes.contains("static-task-1"));
         assertTrue(jobTypes.contains("static-task-2"));
     }
+
+    @Test
+    void shouldExtractJobTypesFromExtendedElementTypes() throws Exception {
+        Resource[] resources = {new ClassPathResource("test_extended_job_types.bpmn")};
+
+        Set<String> jobTypes = BpmnJobTypeParser.extractJobTypes(resources);
+
+        assertNotNull(jobTypes);
+        // ServiceTask with explicit type
+        assertTrue(jobTypes.contains("service-task-type"));
+        // BusinessRuleTask with explicit type
+        assertTrue(jobTypes.contains("business-rule-task-type"));
+        // BusinessRuleTask without type (predicted)
+        assertTrue(jobTypes.contains("benchmark-task-BusinessRuleTask_2"));
+        // IntermediateThrowEvent with explicit type
+        assertTrue(jobTypes.contains("message-throw-event-type"));
+        // Task listener job type
+        assertTrue(jobTypes.contains("task-listener-type"));
+        // Execution listener job type
+        assertTrue(jobTypes.contains("execution-listener-type"));
+        // FEEL expression listener should be ignored
+        assertFalse(jobTypes.contains("= dynamicType"));
+    }
 }

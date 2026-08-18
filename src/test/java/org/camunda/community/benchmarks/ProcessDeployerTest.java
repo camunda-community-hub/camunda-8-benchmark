@@ -145,4 +145,31 @@ public class ProcessDeployerTest {
         assertTrue(result.contains("xmlns:zeebe=\"http://camunda.org/schema/zeebe/1.0\""));
         assertTrue(result.contains("type=\"benchmark-task-Task_1\""));
     }
+
+    @Test
+    void testInjectUniqueJobTypes_BusinessRuleTask() throws Exception {
+        String bpmnWithBusinessRuleTask = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                              xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                              id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+              <bpmn:process id="test-process" isExecutable="true">
+                <bpmn:businessRuleTask id="BRT_1" name="Business Rule Task Without Type"/>
+                <bpmn:businessRuleTask id="BRT_2" name="Business Rule Task With Type">
+                  <bpmn:extensionElements>
+                    <zeebe:taskDefinition type="existing-brt-type"/>
+                  </bpmn:extensionElements>
+                </bpmn:businessRuleTask>
+              </bpmn:process>
+            </bpmn:definitions>
+            """;
+
+        String result = processDeployer.injectUniqueJobTypes(bpmnWithBusinessRuleTask);
+
+        // Business rule task without type should have one injected
+        assertTrue(result.contains("type=\"benchmark-task-BRT_1\""));
+        // Business rule task with existing type should not be modified
+        assertTrue(result.contains("type=\"existing-brt-type\""));
+        assertFalse(result.contains("benchmark-task-BRT_2"));
+    }
 }

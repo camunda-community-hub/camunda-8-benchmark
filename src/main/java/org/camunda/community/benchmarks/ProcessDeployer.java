@@ -16,9 +16,12 @@ import org.springframework.util.StringUtils;
 import io.camunda.client.api.command.DeployResourceCommandStep1;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.builder.BusinessRuleTaskBuilder;
 import io.camunda.zeebe.model.bpmn.builder.ServiceTaskBuilder;
+import io.camunda.zeebe.model.bpmn.instance.BusinessRuleTask;
 import io.camunda.zeebe.model.bpmn.instance.ExtensionElements;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import io.camunda.zeebe.model.bpmn.instance.Task;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 
 @Component
@@ -124,6 +127,22 @@ public class ProcessDeployer {
                 LOG.info("Added job type '{}' to service task '{}'", uniqueJobType, taskId);
             }
         }
+
+        // Also inject job types for business rule tasks without a zeebe:taskDefinition
+        Collection<BusinessRuleTask> businessRuleTasks = modelInstance.getModelElementsByType(BusinessRuleTask.class);
+
+        for (BusinessRuleTask businessRuleTask : businessRuleTasks) {
+            if (!hasZeebeTaskDefinition(businessRuleTask)) {
+                String taskId = businessRuleTask.getId();
+                String uniqueJobType = generateJobTypeForTask(taskId);
+
+                BusinessRuleTaskBuilder builder = new BusinessRuleTaskBuilder(modelInstance, businessRuleTask);
+                builder.zeebeJobType(uniqueJobType);
+
+                modified = true;
+                LOG.info("Added job type '{}' to business rule task '{}'", uniqueJobType, taskId);
+            }
+        }
         
         if (modified || !bpmnContent.equals(modifiedContent)) {
             // Convert model back to string
@@ -151,10 +170,10 @@ public class ProcessDeployer {
     }
     
     /**
-     * Check if a service task already has a zeebe:taskDefinition using BPMN model API
+     * Check if a task already has a zeebe:taskDefinition using BPMN model API
      */
-    private boolean hasZeebeTaskDefinition(ServiceTask serviceTask) {
-        ExtensionElements extensionElements = serviceTask.getExtensionElements();
+    private boolean hasZeebeTaskDefinition(Task task) {
+        ExtensionElements extensionElements = task.getExtensionElements();
         if (extensionElements == null) {
             return false;
         }
