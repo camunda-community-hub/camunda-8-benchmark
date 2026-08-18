@@ -95,17 +95,29 @@ class BpmnJobTypeParserTest {
         assertNotNull(jobTypes);
         // ServiceTask with explicit type
         assertTrue(jobTypes.contains("service-task-type"));
-        // BusinessRuleTask with explicit type
+        // SendTask with explicit type
+        assertTrue(jobTypes.contains("send-task-type"));
+        // SendTask without type (predicted)
+        assertTrue(jobTypes.contains("benchmark-task-SendTask_2"));
+        // BusinessRuleTask with explicit type (job-worker mode)
         assertTrue(jobTypes.contains("business-rule-task-type"));
-        // BusinessRuleTask without type (predicted)
+        // BusinessRuleTask without type (job-worker mode, predicted)
         assertTrue(jobTypes.contains("benchmark-task-BusinessRuleTask_2"));
+        // BusinessRuleTask backed by DMN decision must be ignored
+        assertFalse(jobTypes.contains("benchmark-task-BusinessRuleTask_DMN"));
+        // ScriptTask with explicit type (job-worker mode)
+        assertTrue(jobTypes.contains("script-task-type"));
+        // ScriptTask without type (job-worker mode, predicted)
+        assertTrue(jobTypes.contains("benchmark-task-ScriptTask_2"));
+        // ScriptTask with FEEL expression must be ignored
+        assertFalse(jobTypes.contains("benchmark-task-ScriptTask_FEEL"));
         // IntermediateThrowEvent with explicit type
         assertTrue(jobTypes.contains("message-throw-event-type"));
         // Task listener job type
         assertTrue(jobTypes.contains("task-listener-type"));
         // Execution listener job type
         assertTrue(jobTypes.contains("execution-listener-type"));
-        // FEEL expression listener should be ignored
+        // FEEL expression listener must be ignored
         assertFalse(jobTypes.contains("= dynamicType"));
     }
 }

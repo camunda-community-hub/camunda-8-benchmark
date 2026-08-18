@@ -11,15 +11,49 @@
       </bpmn:extensionElements>
     </bpmn:serviceTask>
 
-    <!-- Business rule task with explicit job type -->
+    <!-- Send task with explicit job type -->
+    <bpmn:sendTask id="SendTask_1" name="Send Task">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="send-task-type"/>
+      </bpmn:extensionElements>
+    </bpmn:sendTask>
+
+    <!-- Send task without explicit job type (should be predicted) -->
+    <bpmn:sendTask id="SendTask_2" name="Send Task Without Type"/>
+
+    <!-- Business rule task with explicit job type (job-worker mode) -->
     <bpmn:businessRuleTask id="BusinessRuleTask_1" name="Business Rule Task">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="business-rule-task-type"/>
       </bpmn:extensionElements>
     </bpmn:businessRuleTask>
 
-    <!-- Business rule task without job type (should be predicted) -->
+    <!-- Business rule task without job type (job-worker mode, should be predicted) -->
     <bpmn:businessRuleTask id="BusinessRuleTask_2" name="Business Rule Task Without Type"/>
+
+    <!-- Business rule task backed by a DMN decision (should be ignored) -->
+    <bpmn:businessRuleTask id="BusinessRuleTask_DMN" name="Business Rule Task DMN">
+      <bpmn:extensionElements>
+        <zeebe:calledDecision decisionId="my-decision" resultVariable="result"/>
+      </bpmn:extensionElements>
+    </bpmn:businessRuleTask>
+
+    <!-- Script task with explicit job type (job-worker mode) -->
+    <bpmn:scriptTask id="ScriptTask_1" name="Script Task">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="script-task-type"/>
+      </bpmn:extensionElements>
+    </bpmn:scriptTask>
+
+    <!-- Script task without explicit job type (job-worker mode, should be predicted) -->
+    <bpmn:scriptTask id="ScriptTask_2" name="Script Task Without Type"/>
+
+    <!-- Script task with FEEL expression (should be ignored) -->
+    <bpmn:scriptTask id="ScriptTask_FEEL" name="Script Task FEEL">
+      <bpmn:extensionElements>
+        <zeebe:script expression="= 1 + 2" resultVariable="result"/>
+      </bpmn:extensionElements>
+    </bpmn:scriptTask>
 
     <!-- Intermediate message throw event with explicit job type -->
     <bpmn:intermediateThrowEvent id="MessageThrowEvent_1" name="Message Throw Event">
