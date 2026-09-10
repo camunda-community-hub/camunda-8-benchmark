@@ -4,4 +4,5 @@ resources:
     - prometheus-config.yaml
     - prometheus-deployment.yaml
     - grafana-datasource-config.yaml
+    - grafana-dashboard-config.yaml
     - grafana-deployment.yaml
