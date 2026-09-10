@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="test-extended-process" isExecutable="true">
+
+    <!-- Service task with explicit job type -->
+    <bpmn:serviceTask id="ServiceTask_1" name="Service Task">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="service-task-type"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- Send task with explicit job type -->
+    <bpmn:sendTask id="SendTask_1" name="Send Task">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="send-task-type"/>
+      </bpmn:extensionElements>
+    </bpmn:sendTask>
+
+    <!-- Send task without explicit job type (should be predicted) -->
+    <bpmn:sendTask id="SendTask_2" name="Send Task Without Type"/>
+
+    <!-- Business rule task with explicit job type (job-worker mode) -->
+    <bpmn:businessRuleTask id="BusinessRuleTask_1" name="Business Rule Task">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="business-rule-task-type"/>
+      </bpmn:extensionElements>
+    </bpmn:businessRuleTask>
+
+    <!-- Business rule task without job type (job-worker mode, should be predicted) -->
+    <bpmn:businessRuleTask id="BusinessRuleTask_2" name="Business Rule Task Without Type"/>
+
+    <!-- Business rule task backed by a DMN decision (should be ignored) -->
+    <bpmn:businessRuleTask id="BusinessRuleTask_DMN" name="Business Rule Task DMN">
+      <bpmn:extensionElements>
+        <zeebe:calledDecision decisionId="my-decision" resultVariable="result"/>
+      </bpmn:extensionElements>
+    </bpmn:businessRuleTask>
+
+    <!-- Script task with explicit job type (job-worker mode) -->
+    <bpmn:scriptTask id="ScriptTask_1" name="Script Task">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="script-task-type"/>
+      </bpmn:extensionElements>
+    </bpmn:scriptTask>
+
+    <!-- Script task without explicit job type (job-worker mode, should be predicted) -->
+    <bpmn:scriptTask id="ScriptTask_2" name="Script Task Without Type"/>
+
+    <!-- Script task with FEEL expression (should be ignored) -->
+    <bpmn:scriptTask id="ScriptTask_FEEL" name="Script Task FEEL">
+      <bpmn:extensionElements>
+        <zeebe:script expression="= 1 + 2" resultVariable="result"/>
+      </bpmn:extensionElements>
+    </bpmn:scriptTask>
+
+    <!-- Intermediate message throw event with explicit job type -->
+    <bpmn:intermediateThrowEvent id="MessageThrowEvent_1" name="Message Throw Event">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="message-throw-event-type"/>
+      </bpmn:extensionElements>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1"/>
+    </bpmn:intermediateThrowEvent>
+
+    <!-- Service task with task listener -->
+    <bpmn:serviceTask id="ServiceTask_WithTaskListener" name="Service Task With Task Listener">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="service-task-with-listener-type"/>
+        <zeebe:taskListeners>
+          <zeebe:taskListener eventType="complete" type="task-listener-type"/>
+        </zeebe:taskListeners>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- Service task with execution listener -->
+    <bpmn:serviceTask id="ServiceTask_WithExecListener" name="Service Task With Execution Listener">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="service-task-with-exec-listener-type"/>
+        <zeebe:executionListeners>
+          <zeebe:executionListener eventType="start" type="execution-listener-type"/>
+        </zeebe:executionListeners>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- Task listener with FEEL expression (should be ignored) -->
+    <bpmn:serviceTask id="ServiceTask_WithFeelListener" name="Service Task With FEEL Listener">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="service-task-feel-listener-type"/>
+        <zeebe:taskListeners>
+          <zeebe:taskListener eventType="complete" type="= dynamicType"/>
+        </zeebe:taskListeners>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+  </bpmn:process>
+</bpmn:definitions>
