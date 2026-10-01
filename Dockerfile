@@ -16,7 +16,7 @@
 # in-flight requests and job-worker streaming - so a fixed 10MB ceiling OOMs quickly
 # under any real load. Don't switch this back to spring-boot:build-image without
 # actually solving that upstream limitation first.
-FROM maven:3.9.16-eclipse-temurin-21-alpine AS builder
+FROM maven:3.10.0-eclipse-temurin-21-alpine AS builder
 WORKDIR /usr/src/app
 COPY pom.xml pom.xml
 RUN --mount=type=cache,target=/root/.m2 \
