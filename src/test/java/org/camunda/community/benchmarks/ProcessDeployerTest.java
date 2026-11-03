@@ -145,4 +145,81 @@ public class ProcessDeployerTest {
         assertTrue(result.contains("xmlns:zeebe=\"http://camunda.org/schema/zeebe/1.0\""));
         assertTrue(result.contains("type=\"benchmark-task-Task_1\""));
     }
+
+    @Test
+    void testInjectUniqueJobTypes_BusinessRuleTask() throws Exception {
+        String bpmnWithBusinessRuleTask = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                              xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                              id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+              <bpmn:process id="test-process" isExecutable="true">
+                <bpmn:businessRuleTask id="BRT_1" name="Business Rule Task Without Type"/>
+                <bpmn:businessRuleTask id="BRT_2" name="Business Rule Task With Type">
+                  <bpmn:extensionElements>
+                    <zeebe:taskDefinition type="existing-brt-type"/>
+                  </bpmn:extensionElements>
+                </bpmn:businessRuleTask>
+                <bpmn:businessRuleTask id="BRT_DMN" name="Business Rule Task DMN">
+                  <bpmn:extensionElements>
+                    <zeebe:calledDecision decisionId="my-decision" resultVariable="result"/>
+                  </bpmn:extensionElements>
+                </bpmn:businessRuleTask>
+              </bpmn:process>
+            </bpmn:definitions>
+            """;
+
+        String result = processDeployer.injectUniqueJobTypes(bpmnWithBusinessRuleTask);
+
+        // Business rule task without type (job-worker mode) should have one injected
+        assertTrue(result.contains("type=\"benchmark-task-BRT_1\""));
+        // Business rule task with existing type should not be modified
+        assertTrue(result.contains("type=\"existing-brt-type\""));
+        assertFalse(result.contains("benchmark-task-BRT_2"));
+        // Business rule task backed by DMN should never have a job type injected
+        assertFalse(result.contains("benchmark-task-BRT_DMN"));
+    }
+
+    @Test
+    void testInjectUniqueJobTypes_SendTask() throws Exception {
+        String bpmnWithSendTask = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                              id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+              <bpmn:process id="test-process" isExecutable="true">
+                <bpmn:sendTask id="SendTask_1" name="Send Task Without Type"/>
+              </bpmn:process>
+            </bpmn:definitions>
+            """;
+
+        String result = processDeployer.injectUniqueJobTypes(bpmnWithSendTask);
+
+        assertTrue(result.contains("type=\"benchmark-task-SendTask_1\""));
+    }
+
+    @Test
+    void testInjectUniqueJobTypes_ScriptTask() throws Exception {
+        String bpmnWithScriptTask = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                              xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                              id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+              <bpmn:process id="test-process" isExecutable="true">
+                <bpmn:scriptTask id="ScriptTask_1" name="Script Task Without Type"/>
+                <bpmn:scriptTask id="ScriptTask_FEEL" name="Script Task FEEL">
+                  <bpmn:extensionElements>
+                    <zeebe:script expression="= 1 + 2" resultVariable="result"/>
+                  </bpmn:extensionElements>
+                </bpmn:scriptTask>
+              </bpmn:process>
+            </bpmn:definitions>
+            """;
+
+        String result = processDeployer.injectUniqueJobTypes(bpmnWithScriptTask);
+
+        // Script task without type (job-worker mode) should have one injected
+        assertTrue(result.contains("type=\"benchmark-task-ScriptTask_1\""));
+        // Script task with FEEL expression should not have a job type injected
+        assertFalse(result.contains("benchmark-task-ScriptTask_FEEL"));
+    }
 }

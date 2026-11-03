@@ -16,9 +16,18 @@ import org.springframework.util.StringUtils;
 import io.camunda.client.api.command.DeployResourceCommandStep1;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.builder.BusinessRuleTaskBuilder;
+import io.camunda.zeebe.model.bpmn.builder.ScriptTaskBuilder;
+import io.camunda.zeebe.model.bpmn.builder.SendTaskBuilder;
 import io.camunda.zeebe.model.bpmn.builder.ServiceTaskBuilder;
+import io.camunda.zeebe.model.bpmn.instance.BusinessRuleTask;
 import io.camunda.zeebe.model.bpmn.instance.ExtensionElements;
+import io.camunda.zeebe.model.bpmn.instance.ScriptTask;
+import io.camunda.zeebe.model.bpmn.instance.SendTask;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import io.camunda.zeebe.model.bpmn.instance.Task;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeCalledDecision;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeScript;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 
 @Component
@@ -106,22 +115,48 @@ public class ProcessDeployer {
         
         boolean modified = false;
         
-        // Find all service tasks and inject job types where needed
+        // Service tasks: always use a job worker
         Collection<ServiceTask> serviceTasks = modelInstance.getModelElementsByType(ServiceTask.class);
-        
         for (ServiceTask serviceTask : serviceTasks) {
-            // Check if this service task already has a zeebe:taskDefinition
             if (!hasZeebeTaskDefinition(serviceTask)) {
-                // Generate a unique job type based on the task ID and partition pinning config
                 String taskId = serviceTask.getId();
                 String uniqueJobType = generateJobTypeForTask(taskId);
-                
-                // Use ServiceTaskBuilder fluent API to add job type
-                ServiceTaskBuilder builder = new ServiceTaskBuilder(modelInstance, serviceTask);
-                builder.zeebeJobType(uniqueJobType);
-                
+                new ServiceTaskBuilder(modelInstance, serviceTask).zeebeJobType(uniqueJobType);
                 modified = true;
                 LOG.info("Added job type '{}' to service task '{}'", uniqueJobType, taskId);
+            }
+        }
+
+        // Send tasks: always use a job worker (same as service tasks)
+        for (SendTask sendTask : modelInstance.getModelElementsByType(SendTask.class)) {
+            if (!hasZeebeTaskDefinition(sendTask)) {
+                String taskId = sendTask.getId();
+                String uniqueJobType = generateJobTypeForTask(taskId);
+                new SendTaskBuilder(modelInstance, sendTask).zeebeJobType(uniqueJobType);
+                modified = true;
+                LOG.info("Added job type '{}' to send task '{}'", uniqueJobType, taskId);
+            }
+        }
+
+        // Business rule tasks: inject only when not backed by a DMN decision
+        for (BusinessRuleTask brt : modelInstance.getModelElementsByType(BusinessRuleTask.class)) {
+            if (!hasZeebeTaskDefinition(brt) && !hasDmnDecision(brt)) {
+                String taskId = brt.getId();
+                String uniqueJobType = generateJobTypeForTask(taskId);
+                new BusinessRuleTaskBuilder(modelInstance, brt).zeebeJobType(uniqueJobType);
+                modified = true;
+                LOG.info("Added job type '{}' to business rule task '{}'", uniqueJobType, taskId);
+            }
+        }
+
+        // Script tasks: inject only when not using a FEEL expression script
+        for (ScriptTask st : modelInstance.getModelElementsByType(ScriptTask.class)) {
+            if (!hasZeebeTaskDefinition(st) && !hasZeebeScript(st)) {
+                String taskId = st.getId();
+                String uniqueJobType = generateJobTypeForTask(taskId);
+                new ScriptTaskBuilder(modelInstance, st).zeebeJobType(uniqueJobType);
+                modified = true;
+                LOG.info("Added job type '{}' to script task '{}'", uniqueJobType, taskId);
             }
         }
         
@@ -151,10 +186,10 @@ public class ProcessDeployer {
     }
     
     /**
-     * Check if a service task already has a zeebe:taskDefinition using BPMN model API
+     * Check if a task already has a zeebe:taskDefinition using BPMN model API
      */
-    private boolean hasZeebeTaskDefinition(ServiceTask serviceTask) {
-        ExtensionElements extensionElements = serviceTask.getExtensionElements();
+    private boolean hasZeebeTaskDefinition(Task task) {
+        ExtensionElements extensionElements = task.getExtensionElements();
         if (extensionElements == null) {
             return false;
         }
@@ -164,5 +199,23 @@ public class ProcessDeployer {
             .list();
         
         return !taskDefinitions.isEmpty();
+    }
+
+    /** Returns true if this business rule task is backed by a DMN decision (not a job worker). */
+    private boolean hasDmnDecision(Task task) {
+        ExtensionElements ext = task.getExtensionElements();
+        if (ext == null) {
+            return false;
+        }
+        return !ext.getElementsQuery().filterByType(ZeebeCalledDecision.class).list().isEmpty();
+    }
+
+    /** Returns true if this script task uses a FEEL expression (not a job worker). */
+    private boolean hasZeebeScript(Task task) {
+        ExtensionElements ext = task.getExtensionElements();
+        if (ext == null) {
+            return false;
+        }
+        return !ext.getElementsQuery().filterByType(ZeebeScript.class).list().isEmpty();
     }
 }
