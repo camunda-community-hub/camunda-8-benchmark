@@ -2,6 +2,7 @@ package org.camunda.community.benchmarks;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -127,21 +128,24 @@ public class StartMessageScenarioScheduler {
     public void run() {
       Message message = scenario.getMessageSequence().get(scenario.getCurrentPosition());
       client
-      .newPublishMessageCommand()
-      .messageName(message.getMessageName())
-      .correlationKey(message.getCorrelationKey())
-      .timeToLive(messageTtl)
-      .variables(message.getVariables())
-      .send();
-      System.out.println(System.currentTimeMillis()+" : "+message.getMessageName()+" "+message.getCorrelationKey());
-      scenario.setCurrentPosition(scenario.getCurrentPosition()+1);
-      if (scenario.getCurrentPosition()<nbMessages) {
-        taskScheduler.schedule(
-          this,
-          new Date(System.currentTimeMillis() + config.getDelayBetweenMessages())
+        .newPublishMessageCommand()
+        .messageName(message.getMessageName())
+        .correlationKey(message.getCorrelationKey())
+        .timeToLive(messageTtl)
+        .variables(message.getVariables())
+        .send()
+        .thenAccept(
+          response -> {
+            scenario.setCurrentPosition(scenario.getCurrentPosition()+1);
+            if (scenario.getCurrentPosition()<nbMessages) {
+              taskScheduler.schedule(
+                this,
+                Instant.now().plusMillis(config.getDelayBetweenMessages())
+              );
+            }
+          }
         );
-      }
-    }
+      };
   }
 
 }
