@@ -42,14 +42,19 @@ public class BpmnJobTypeParser {
 
         for (Resource resource : bpmnResources) {
             if (resource != null && resource.exists()) {
+                String filename = resource.getFilename();
+                if (filename == null || !filename.toLowerCase().endsWith(".bpmn")) {
+                    LOG.debug("Skipping non-BPMN resource {} for job type extraction", filename);
+                    continue;
+                }
                 try {
                     Set<String> resourceJobTypes = extractJobTypesFromResource(resource);
                     jobTypes.addAll(resourceJobTypes);
-                    LOG.info("Extracted {} job types from {}: {}", 
-                        resourceJobTypes.size(), resource.getFilename(), resourceJobTypes);
-                } catch (IOException e) {
-                    LOG.error("Failed to extract job types from resource {}: {}", 
-                        resource.getFilename(), e.getMessage(), e);
+                    LOG.info("Extracted {} job types from {}: {}",
+                        resourceJobTypes.size(), filename, resourceJobTypes);
+                } catch (Exception e) {
+                    LOG.error("Failed to extract job types from resource {}: {}",
+                        filename, e.getMessage(), e);
                 }
             }
         }
